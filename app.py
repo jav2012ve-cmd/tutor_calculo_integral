@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import random 
 import time
 import re   
 from PIL import Image
@@ -64,29 +65,57 @@ def limpiar_json(texto):
              return None
 
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ Genera la tutoría para el modo Entrenamiento (Banco/IA) """
+    """ Genera la tutoría para el modo Entrenamiento con 4 opciones y aleatoriedad real """
+    
     prompt = f"""
-    Actúa como un profesor experto de cálculo. Para el siguiente ejercicio de {tema}:
+    Actúa como un profesor experto de cálculo de la UCAB. Para el siguiente ejercicio de {tema}:
     "{pregunta_texto}"
     
     Genera un objeto JSON estricto.
-    REGLAS LATEX (CRÍTICO):
+    
+    REGLAS DE CONTENIDO (CRÍTICO):
+    1. Debes generar EXACTAMENTE 4 estrategias de resolución (una correcta y tres distractores).
+    2. Los distractores deben ser errores matemáticos verosímiles.
+    3. El "indice_correcta" debe representar la posición de la estrategia válida (0, 1, 2 o 3).
+    4. IMPORTANTE: Varía la posición de la respuesta correcta en cada llamada. No uses siempre el mismo índice.
+
+    REGLAS LATEX:
     1. Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
-    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int.
+    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int, \\\\sqrt.
     
     Estructura JSON:
     {{
-        "estrategias": ["Estrategia Correcta", "Estrategia Incorrecta 1", "Estrategia Incorrecta 2"],
-        "indice_correcta": 0,
-        "feedback_estrategia": "Explicación breve.",
+        "estrategias": ["Opción A", "Opción B", "Opción C", "Opción D"],
+        "indice_correcta": 2,
+        "feedback_estrategia": "Explicación breve de por qué esa ruta es la adecuada.",
         "paso_intermedio": "Ecuación LaTeX PURA (sin $$) del hito",
         "resultado_final": "Ecuación LaTeX PURA (sin $$) del resultado"
     }}
-    Orden aleatorio en estrategias.
     """
+    
     response = generar_contenido_seguro(prompt)
+    
     if response:
-        return limpiar_json(response.text)
+        try:
+            # 1. Limpiamos y cargamos el JSON
+            datos = json.loads(limpiar_json(response.text))
+            
+            # 2. EXTRA DE SEGURIDAD: Barajado manual en Python
+            # Esto garantiza que el 99% de "A o B" se rompa definitivamente
+            opciones = datos["estrategias"]
+            correcta_texto = opciones[datos["indice_correcta"]]
+            
+            # Mezclamos la lista de opciones
+            random.shuffle(opciones)
+            
+            # Re-asignamos el índice correcto basado en la nueva posición
+            datos["estrategias"] = opciones
+            datos["indice_correcta"] = opciones.index(correcta_texto)
+            
+            return datos
+        except Exception as e:
+            st.error(f"Error procesando la respuesta del tutor: {e}")
+            return None
     return None
 
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
@@ -752,4 +781,5 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
                 st.markdown(respuesta_tutor)
                 
         # 3. Guardar respuesta asistente
+
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
