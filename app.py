@@ -69,7 +69,7 @@ import json
 import streamlit as st
 
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ Genera la tutoría con 4 opciones y devuelve STRING para evitar errores de tipo """
+    """ Genera la tutoría con 4 opciones. Mantiene estructura JSON completa y evita errores de tipo. """
     
     prompt = f"""
     Actúa como un profesor experto de cálculo de la UCAB. Para el siguiente ejercicio de {tema}:
@@ -85,7 +85,7 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
     {{
         "estrategias": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
         "indice_correcta": 0,
-        "feedback_estrategia": "Texto",
+        "feedback_estrategia": "Texto explicativo detallado",
         "paso_intermedio": "LaTeX",
         "resultado_final": "LaTeX"
     }}
@@ -99,30 +99,40 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
             texto_ia = limpiar_json(response.text)
             datos = json.loads(texto_ia)
             
-            # 2. PROCESO DE ALEATORIEDAD (Manual)
-            opciones = datos["estrategias"]
-            # Aseguramos 4 elementos siempre
-            while len(opciones) < 4:
-                opciones.append("Planteamiento incorrecto alternativo")
+            # 2. PROCESO DE ALEATORIEDAD Y BLINDAJE
+            opciones = datos.get("estrategias", [])
             
-            # Barajamos las opciones
-            correcta_texto = opciones[datos["indice_correcta"]]
+            # Aseguramos 4 elementos para que el st.radio de la interfaz no explote
+            while len(opciones) < 4:
+                opciones.append(f"Planteamiento alternativo {len(opciones)+1}")
+            
+            # Recuperamos la correcta para re-indexar tras el shuffle
+            idx_ia = datos.get("indice_correcta", 0)
+            correcta_texto = opciones[idx_ia] if idx_ia < len(opciones) else opciones[0]
+            
+            # Barajamos las opciones (Aleatoriedad Real)
             random.shuffle(opciones)
             
-            # Actualizamos el índice real
+            # Actualizamos el índice real basado en la nueva posición
             datos["estrategias"] = opciones
             datos["indice_correcta"] = opciones.index(correcta_texto)
             
-            # 3. EL PUNTO CLAVE: Devolvemos un STRING de nuevo
-            # Esto evita el error "must be str, not dict"
+            # 3. RETORNO COMPATIBLE: Devolvemos String
             return json.dumps(datos)
             
         except Exception as e:
-            # En lugar de solo None, enviamos un error descriptivo en JSON
-            error_json = {"error": str(e), "estrategias": [], "tema_detectado": "Error"}
-            return json.dumps(error_json) 
+            # En caso de error de parseo, enviamos un JSON con estructura mínima 
+            # para que st.radio(["Error...", ...]) funcione y no de Traceback
+            error_fallback = {
+                "estrategias": ["Error al generar opciones", "Reintente", "...", "..."],
+                "indice_correcta": 0,
+                "feedback_estrategia": f"Detalle: {str(e)}",
+                "paso_intermedio": "",
+                "resultado_final": ""
+            }
+            return json.dumps(error_fallback)
             
-    return None # Si llegamos aquí, realmente falló la conexión
+    return None
     
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     """
@@ -806,6 +816,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
