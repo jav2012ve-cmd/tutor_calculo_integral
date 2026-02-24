@@ -1,6 +1,5 @@
 import streamlit as st
 import json
-import random 
 import time
 import re   
 from PIL import Image
@@ -64,137 +63,76 @@ def limpiar_json(texto):
         except:
              return None
 
-import random
-import json
-import streamlit as st
-
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ Genera la tutoría con 4 opciones. Mantiene estructura JSON completa y evita errores de tipo. """
-    
+    """ Genera la tutoría para el modo Entrenamiento (Banco/IA) """
     prompt = f"""
-    Actúa como un profesor experto de cálculo de la UCAB. Para el siguiente ejercicio de {tema}:
+    Actúa como un profesor experto de cálculo. Para el siguiente ejercicio de {tema}:
     "{pregunta_texto}"
     
     Genera un objeto JSON estricto.
-    REGLAS:
-    1. EXACTAMENTE 4 estrategias (una correcta y tres distractores).
-    2. El "indice_correcta" debe variar entre 0, 1, 2 y 3.
-    3. Usa LaTeX puro sin $$.
+    REGLAS LATEX (CRÍTICO):
+    1. Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
+    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int.
     
     Estructura JSON:
     {{
-        "estrategias": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
+        "estrategias": ["Estrategia Correcta", "Estrategia Incorrecta 1", "Estrategia Incorrecta 2"],
         "indice_correcta": 0,
-        "feedback_estrategia": "Texto explicativo detallado",
-        "paso_intermedio": "LaTeX",
-        "resultado_final": "LaTeX"
+        "feedback_estrategia": "Explicación breve.",
+        "paso_intermedio": "Ecuación LaTeX PURA (sin $$) del hito",
+        "resultado_final": "Ecuación LaTeX PURA (sin $$) del resultado"
     }}
+    Orden aleatorio en estrategias.
     """
-    
     response = generar_contenido_seguro(prompt)
-    
     if response:
-        try:
-            # 1. Limpiamos y cargamos a diccionario
-            texto_ia = limpiar_json(response.text)
-            datos = json.loads(texto_ia)
-            
-            # 2. PROCESO DE ALEATORIEDAD Y BLINDAJE
-            opciones = datos.get("estrategias", [])
-            
-            # Aseguramos 4 elementos para que el st.radio de la interfaz no explote
-            while len(opciones) < 4:
-                opciones.append(f"Planteamiento alternativo {len(opciones)+1}")
-            
-            # Recuperamos la correcta para re-indexar tras el shuffle
-            idx_ia = datos.get("indice_correcta", 0)
-            correcta_texto = opciones[idx_ia] if idx_ia < len(opciones) else opciones[0]
-            
-            # Barajamos las opciones (Aleatoriedad Real)
-            random.shuffle(opciones)
-            
-            # Actualizamos el índice real basado en la nueva posición
-            datos["estrategias"] = opciones
-            datos["indice_correcta"] = opciones.index(correcta_texto)
-            
-            # 3. RETORNO COMPATIBLE: Devolvemos String
-            return json.dumps(datos)
-            
-        except Exception as e:
-            # En caso de error de parseo, enviamos un JSON con estructura mínima 
-            # para que st.radio(["Error...", ...]) funcione y no de Traceback
-            error_fallback = {
-                "estrategias": ["Error al generar opciones", "Reintente", "...", "..."],
-                "indice_correcta": 0,
-                "feedback_estrategia": f"Detalle: {str(e)}",
-                "paso_intermedio": "",
-                "resultado_final": ""
-            }
-            return json.dumps(error_fallback)
-            
+        return limpiar_json(response.text)
     return None
-    
+
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     """
     Analiza un problema subido por el alumno (Texto o Imagen).
-    Versión corregida: Evita el error 'must be str, not dict'.
+    Distingue entre Integrales/EDO (Rígido) y Aplicaciones (Flexible).
     """
     prompt_base = """
-    Actúa como un Tutor Experto de Matemáticas III de la UCAB.
+    Actúa como un Tutor Experto de Matemáticas III.
+    Analiza el problema del estudiante (texto o imagen).
+
+    OBJETIVO: Generar una guía paso a paso JSON.
+
+    REGLAS DE ESTRATEGIAS (CRÍTICO):
+    1. Si es INTEGRAL (Cálculo directo): Las opciones DEBEN ser Técnicas (ej. "Por Partes", "Sustitución", "Fracciones Parciales").
+    2. Si es EDO (Resolver ecuación): Las opciones DEBEN ser Tipos (ej. "Variables Separables", "Lineal", "Exacta").
+    3. Si es CÁLCULO DE ÁREAS, VOLÚMENES, EXCEDENTES O APLICACIONES:
+       - Tienes LIBERTAD TOTAL.
+       - Las opciones deben ser PLANTEAMIENTOS o ENFOQUES (ej. "Integrar con respecto a Y", "Usar método de arandelas", "Igualar Oferta y Demanda").
+
+    REGLAS LATEX (CRÍTICO):
+    1. Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
+    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int.
     
-    OBJETIVO: Generar una guía paso a paso en formato JSON estricto.
-
-    REGLAS DE CONTENIDO:
-    1. Genera EXACTAMENTE 4 estrategias (una correcta y tres distractores).
-    2. El "indice_correcta" debe ser un número entre 0 y 3.
-    3. No uses siempre el mismo índice para la respuesta correcta.
-
-    Estructura JSON:
+    Estructura JSON requerida:
     {
-        "tema_detectado": "Nombre",
-        "enunciado_latex": "Enunciado",
-        "estrategias": ["A", "B", "C", "D"],
+        "tema_detectado": "Nombre del tema (ej. Volumen de Revolución)",
+        "enunciado_latex": "El problema transcrito a LaTeX (sin $$)",
+        "estrategias": ["Planteamiento/Técnica CORRECTA", "Opción INCORRECTA 1", "Opción INCORRECTA 2"],
         "indice_correcta": 0,
-        "feedback_estrategia": "Texto",
-        "paso_intermedio": "LaTeX",
-        "resultado_final": "LaTeX"
+        "feedback_estrategia": "Por qué este es el camino correcto.",
+        "paso_intermedio": "Un hito clave a mitad del desarrollo (LaTeX puro, sin $$)",
+        "resultado_final": "La solución final (LaTeX puro, sin $$)"
     }
     """
     
     contenido = [prompt_base]
     if texto_usuario:
-        contenido.append(f"Enunciado: {texto_usuario}")
+        contenido.append(f"Enunciado del estudiante: {texto_usuario}")
     if imagen_usuario:
         contenido.append(imagen_usuario)
+        contenido.append("Transcribe y resuelve.")
 
     response = generar_contenido_seguro(contenido)
-    
     if response:
-        try:
-            # 1. Obtenemos el texto limpio de la IA
-            texto_limpio = limpiar_json(response.text)
-            
-            # 2. Convertimos a diccionario para manipular la aleatoriedad
-            datos = json.loads(texto_limpio)
-            
-            # --- LÓGICA DE ALEATORIEDAD (El Shuffle) ---
-            opciones = datos["estrategias"]
-            # Aseguramos 4 opciones por si la IA falla
-            while len(opciones) < 4:
-                opciones.append("Planteamiento alternativo genérico")
-            
-            texto_correcta = opciones[datos["indice_correcta"]]
-            random.shuffle(opciones)
-            datos["estrategias"] = opciones
-            datos["indice_correcta"] = opciones.index(texto_correcta)
-            
-            # 3. ¡IMPORTANTE! Devolvemos un STRING de JSON para que la 
-            # función que llama a esta no explote al intentar parsear.
-            return json.dumps(datos)
-            
-        except Exception as e:
-            st.error(f"Error procesando la respuesta del tutor: {e}")
-            return None
+        return limpiar_json(response.text)
     return None
 def generar_respuesta_tutor_abierto(pregunta_usuario, historial_previo):
     """
@@ -339,7 +277,7 @@ if ruta == "a) Entrenamiento (Temario)":
             st.markdown(f"### {ejercicio['pregunta']}")
             st.divider()
 
-# --- LLAMADA A LA IA TUTOR ---
+            # --- LLAMADA A LA IA TUTOR ---
             if st.session_state.entrenamiento_data_ia is None:
                 with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
                     datos_tutor = generar_tutor_paso_a_paso(ejercicio['pregunta'], ejercicio.get('tema', 'Cálculo'))
@@ -352,20 +290,7 @@ if ruta == "a) Entrenamiento (Temario)":
                         time.sleep(2)
                         st.rerun()
             
-            # --- TRADUCCIÓN DE TEXTO A OBJETO (LA CURA) ---
-            data_raw = st.session_state.entrenamiento_data_ia
-            
-            # Si los datos son texto, los convertimos a un diccionario real
-            if isinstance(data_raw, str):
-                try:
-                    tutor = json.loads(data_raw)
-                except:
-                    st.error("Error de formato. Reintentando...")
-                    st.session_state.entrenamiento_data_ia = None
-                    st.rerun()
-            else:
-                tutor = data_raw
-
+            tutor = st.session_state.entrenamiento_data_ia
             step = st.session_state.entrenamiento_step
 
             # PASO 1: ESTRATEGIA
@@ -395,6 +320,53 @@ if ruta == "a) Entrenamiento (Temario)":
                         st.session_state.entrenamiento_validado = False
                         st.rerun()
 
+            # PASO 2: HITO INTERMEDIO
+            if step == 2:
+                st.success(f"✅ Estrategia: {tutor['estrategias'][tutor['indice_correcta']]}")
+                st.markdown("#### 2️⃣ Paso 2: Ejecución Intermedia")
+                st.write("Aplica la estrategia seleccionada. Deberías llegar a una expresión similar a esta:")
+                
+                # CORRECCIÓN LATEX: Limpiamos por seguridad
+                latex_limpio = tutor['paso_intermedio'].replace('$', '')
+                st.info(f"$${latex_limpio}$$")
+                
+                st.write("¿Lograste llegar a este punto o algo equivalente?")
+                
+                col_si, col_no = st.columns(2)
+                with col_si:
+                    if st.button("👍 Sí, lo tengo", key=f"btn_si_{idx}"):
+                        st.session_state.entrenamiento_step = 3
+                        st.rerun()
+                with col_no:
+                    if st.button("👎 No, necesito ayuda", key=f"btn_no_{idx}"):
+                        st.error("Revisa tus derivadas/integrales básicas o el álgebra.")
+
+            # PASO 3: FINAL
+            if step == 3:
+                st.success(f"✅ Estrategia Correcta | ✅ Hito Intermedio Alcanzado")
+                st.markdown("#### 3️⃣ Paso 3: Resolución Final")
+                st.write("El resultado definitivo es:")
+                
+                # CORRECCIÓN LATEX
+                latex_final = tutor['resultado_final'].replace('$', '')
+                st.success(f"$$ {latex_final} $$")
+                
+                with st.expander("Ver explicación completa"):
+                    st.write(ejercicio.get('explicacion', 'Procedimiento estándar aplicado correctamente.'))
+
+                if st.button("Siguiente Ejercicio ➡️", type="primary", key=f"btn_next_{idx}"):
+                    st.session_state.entrenamiento_idx += 1
+                    st.session_state.entrenamiento_step = 1
+                    st.session_state.entrenamiento_data_ia = None 
+                    st.session_state.entrenamiento_validado = False
+                    st.rerun()
+
+        else:
+            st.success("🎉 ¡Entrenamiento completado!")
+            if st.button("🔄 Volver al Inicio", key="btn_reset_entrenamiento"):
+                st.session_state.entrenamiento_activo = False
+                st.session_state.entrenamiento_idx = 0
+                st.rerun()
 
 # =======================================================
 # LÓGICA B: RESPUESTA GUIADA (Consultas) - TUTOR PERSONALIZADO
@@ -780,19 +752,4 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
                 st.markdown(respuesta_tutor)
                 
         # 3. Guardar respuesta asistente
-
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
-
-
-
-
-
-
-
-
-
-
-
-
-
-
