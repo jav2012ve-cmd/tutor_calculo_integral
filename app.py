@@ -65,8 +65,10 @@ def limpiar_json(texto):
              return None
 
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ Genera la tutoría con 4 opciones y aleatoriedad real, compatible con el flujo original """
-    
+    """ 
+    Genera la tutoría con 4 opciones y aleatoriedad real. 
+    Mantiene compatibilidad devolviendo un string de JSON.
+    """
     prompt = f"""
     Actúa como un profesor experto de cálculo de la UCAB. Para el siguiente ejercicio de {tema}:
     "{pregunta_texto}"
@@ -74,8 +76,8 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
     Genera un objeto JSON estricto.
     
     REGLAS DE CONTENIDO (CRÍTICO):
-    1. Debes generar EXACTAMENTE 4 estrategias de resolución.
-    2. El "indice_correcta" debe representar la posición de la válida (0, 1, 2 o 3).
+    1. Genera EXACTAMENTE 4 estrategias de resolución (una correcta y tres distractores).
+    2. El "indice_correcta" debe ser la posición de la válida (0, 1, 2 o 3).
     3. IMPORTANTE: Varía la posición de la respuesta correcta.
 
     REGLAS LATEX:
@@ -96,29 +98,26 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
     
     if response:
         try:
-            # 1. Cargamos el JSON de la IA para procesar la aleatoriedad internamente
-            datos_dict = json.loads(limpiar_json(response.text))
+            # 1. Cargamos como diccionario para manipularlo
+            texto_crudo = limpiar_json(response.text)
+            datos_dict = json.loads(texto_crudo)
             
-            # 2. BARREJADO MANUAL (Garantiza romper el sesgo A o B)
+            # 2. SEGURO DE ALEATORIEDAD: Shuffle manual
             opciones = datos_dict["estrategias"]
             
-            # Si por error la IA mandó menos de 4, completamos para no romper la interfaz
+            # Si la IA mandó menos de 4, rellenamos para no romper la interfaz
             while len(opciones) < 4:
                 opciones.append("Planteamiento alternativo (Incorrecto)")
             
-            # Guardamos cuál era la correcta antes de mezclar
+            # Guardamos la correcta, mezclamos y re-indexamos
             texto_correcta = opciones[datos_dict["indice_correcta"]]
-            
-            # Mezclamos
             random.shuffle(opciones)
             
-            # Actualizamos el diccionario con la nueva posición
             datos_dict["estrategias"] = opciones
             datos_dict["indice_correcta"] = opciones.index(texto_correcta)
             
-            # 3. EL TRUCO FINAL: Convertimos de vuelta a STRING.
-            # Esto permite que la función que llama a esta siga funcionando
-            # sin errores de "must be str, not dict".
+            # 3. RETORNO COMPATIBLE: Devolvemos un String
+            # Esto evita el error "must be str, not dict" en la interfaz
             return json.dumps(datos_dict)
             
         except Exception as e:
@@ -807,6 +806,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
