@@ -339,10 +339,11 @@ if ruta == "a) Entrenamiento (Temario)":
             st.markdown(f"### {ejercicio['pregunta']}")
             st.divider()
 
-        with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
+            # --- LLAMADA A LA IA TUTOR ---
+            if st.session_state.entrenamiento_data_ia is None:
+                with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
                     datos_tutor = generar_tutor_paso_a_paso(ejercicio['pregunta'], ejercicio.get('tema', 'Cálculo'))
                     if datos_tutor:
-                        # Guardamos el resultado (que es un STRING de JSON)
                         st.session_state.entrenamiento_data_ia = datos_tutor
                         st.rerun()
                     else:
@@ -351,21 +352,9 @@ if ruta == "a) Entrenamiento (Temario)":
                         time.sleep(2)
                         st.rerun()
             
-            # --- AQUÍ ESTÁ LA CORRECCIÓN CRÍTICA ---
-            # Como entrenamiento_data_ia guarda un STRING, debemos convertirlo a OBJETO
-            data_ia_raw = st.session_state.entrenamiento_data_ia
-            
-            if isinstance(data_ia_raw, str):
-                try:
-                    tutor = json.loads(data_ia_raw)
-                except Exception as e:
-                    st.error(f"Error parseando JSON: {e}")
-                    st.session_state.entrenamiento_data_ia = None
-                    st.rerun()
-            else:
-                tutor = data_ia_raw
-
+            tutor = st.session_state.entrenamiento_data_ia
             step = st.session_state.entrenamiento_step
+
             # PASO 1: ESTRATEGIA
             if step == 1:
                 st.markdown("#### 1️⃣ Paso 1: Selección de Estrategia")
@@ -393,53 +382,6 @@ if ruta == "a) Entrenamiento (Temario)":
                         st.session_state.entrenamiento_validado = False
                         st.rerun()
 
-            # PASO 2: HITO INTERMEDIO
-            if step == 2:
-                st.success(f"✅ Estrategia: {tutor['estrategias'][tutor['indice_correcta']]}")
-                st.markdown("#### 2️⃣ Paso 2: Ejecución Intermedia")
-                st.write("Aplica la estrategia seleccionada. Deberías llegar a una expresión similar a esta:")
-                
-                # CORRECCIÓN LATEX: Limpiamos por seguridad
-                latex_limpio = tutor['paso_intermedio'].replace('$', '')
-                st.info(f"$${latex_limpio}$$")
-                
-                st.write("¿Lograste llegar a este punto o algo equivalente?")
-                
-                col_si, col_no = st.columns(2)
-                with col_si:
-                    if st.button("👍 Sí, lo tengo", key=f"btn_si_{idx}"):
-                        st.session_state.entrenamiento_step = 3
-                        st.rerun()
-                with col_no:
-                    if st.button("👎 No, necesito ayuda", key=f"btn_no_{idx}"):
-                        st.error("Revisa tus derivadas/integrales básicas o el álgebra.")
-
-            # PASO 3: FINAL
-            if step == 3:
-                st.success(f"✅ Estrategia Correcta | ✅ Hito Intermedio Alcanzado")
-                st.markdown("#### 3️⃣ Paso 3: Resolución Final")
-                st.write("El resultado definitivo es:")
-                
-                # CORRECCIÓN LATEX
-                latex_final = tutor['resultado_final'].replace('$', '')
-                st.success(f"$$ {latex_final} $$")
-                
-                with st.expander("Ver explicación completa"):
-                    st.write(ejercicio.get('explicacion', 'Procedimiento estándar aplicado correctamente.'))
-
-                if st.button("Siguiente Ejercicio ➡️", type="primary", key=f"btn_next_{idx}"):
-                    st.session_state.entrenamiento_idx += 1
-                    st.session_state.entrenamiento_step = 1
-                    st.session_state.entrenamiento_data_ia = None 
-                    st.session_state.entrenamiento_validado = False
-                    st.rerun()
-
-        else:
-            st.success("🎉 ¡Entrenamiento completado!")
-            if st.button("🔄 Volver al Inicio", key="btn_reset_entrenamiento"):
-                st.session_state.entrenamiento_activo = False
-                st.session_state.entrenamiento_idx = 0
-                st.rerun()
 
 # =======================================================
 # LÓGICA B: RESPUESTA GUIADA (Consultas) - TUTOR PERSONALIZADO
@@ -827,6 +769,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
