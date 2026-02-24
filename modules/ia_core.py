@@ -25,7 +25,10 @@ def iniciar_modelo():
     try:
         model = genai.GenerativeModel(
             model_name=nombre_modelo,
-            generation_config={"temperature": 0.3}
+            generation_config={
+                "temperature": 0.7, # Aumentado de 0.3 a 0.7
+                "top_p": 0.95,
+            }
         )
         return model, nombre_modelo
     except Exception as e:
