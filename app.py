@@ -3,7 +3,7 @@ import json
 import time
 import re   
 from PIL import Image
-from modules import ia_core, interfaz, temario, banco_preguntas
+from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras
 
 # --- 1. CONFIGURACIÓN INICIAL ---
 interfaz.configurar_pagina()
@@ -134,7 +134,53 @@ def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     if response:
         return limpiar_json(response.text)
     return None
+def generar_respuesta_tutor_abierto(pregunta_usuario, historial_previo):
+    """
+    NUEVA FUNCIÓN: Tutor de Preguntas Abiertas.
+    Usa el contexto de banco_muestras y banco_preguntas para personalizar la respuesta.
+    """
+    # 1. Construimos el contexto (tomamos una muestra para no saturar)
+    contexto_ejercicios = str(banco_preguntas.BANCO_FIXED[:10]) 
+    estilos_examen = banco_muestras.EJEMPLOS_ESTILO
 
+    # 2. Prompt del Sistema (La personalidad del profesor)
+    prompt_tutor = f"""
+    Eres el tutor virtual de Matemáticas III para Economía en la UCAB.
+    Tu objetivo es ayudar al estudiante a entender la teoría, pero SIEMPRE aterrizándola a la práctica de la clase.
+
+    CONTEXTO DE LA CÁTEDRA (Tu base de conocimiento):
+    --- Estilos de Examen ---
+    {estilos_examen}
+    --- Ejercicios del Banco Oficial (Muestra) ---
+    {contexto_ejercicios}
+    
+    INSTRUCCIONES CLAVE:
+    1. Responde de forma clara y pedagógica.
+    
+    2. GESTIÓN DEL CONOCIMIENTO (CRÍTICO):
+       - Usa los ejercicios del contexto para mantener el estilo y la dificultad de la cátedra.
+       - SI EL CONTEXTO NO TIENE EJEMPLOS DE UN TEMA (ej. Integrales Dobles o Impropias): 
+         NO digas "el banco es pequeño" ni "no tengo ejemplos". 
+         Genera tú mismo un ejemplo matemático riguroso (nivel Leithold/Larson) y preséntalo con naturalidad, diciendo: "Un caso típico que estudiamos en este tema es..." o "Para ilustrar esto, analicemos...".
+    
+    3. FORMATO MATEMÁTICO (CRÍTICO): 
+       - Usa SIEMPRE signos de dólar para encerrar el LaTeX.
+       - Para fórmulas dentro del texto usa uno solo: $ f(x) = x^2 $
+       - Para ecuaciones grandes o centradas usa doble signo: $$ \\int_{{a}}^{{b}} f(x) dx $$
+       
+    4. VINCULACIÓN: Siempre que sea posible, menciona: "Esto sigue la lógica de nuestros ejercicios de parcial..." o "Es análogo a los problemas de oferta y demanda...".
+
+    Historial de chat reciente:
+    {historial_previo}
+
+    Pregunta del estudiante:
+    {pregunta_usuario}
+    """
+    
+    response = generar_contenido_seguro(prompt_tutor)
+    if response:
+        return response.text
+    return "Lo siento, tuve un problema pensando la respuesta."
 # --- 2. GESTIÓN DE ESTADO ---
 if "quiz_activo" not in st.session_state: st.session_state.quiz_activo = False
 if "preguntas_quiz" not in st.session_state: st.session_state.preguntas_quiz = []
@@ -145,6 +191,9 @@ if "respuestas_usuario" not in st.session_state: st.session_state.respuestas_usu
 if "consulta_step" not in st.session_state: st.session_state.consulta_step = 0
 if "consulta_data" not in st.session_state: st.session_state.consulta_data = None
 if "consulta_validada" not in st.session_state: st.session_state.consulta_validada = False
+
+# Estado D: Tutor Preguntas Abiertas (NUEVO)  <-- AGREGA ESTAS DOS LÍNEAS
+if "historial_tutor_abierto" not in st.session_state: st.session_state.historial_tutor_abierto = []
 
 # --- 3. INTERFAZ PRINCIPAL ---
 ruta, tema_actual = interfaz.mostrar_sidebar()
@@ -669,3 +718,38 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 st.session_state.indice_pregunta = 0
                 st.session_state.respuestas_usuario = []
                 st.rerun()
+# =======================================================
+# LÓGICA D: TUTOR PREGUNTAS ABIERTAS (NUEVO)
+# =======================================================
+elif ruta == "d) Tutor: Preguntas Abiertas":
+    st.markdown("### 💬 Preguntas Abiertas al Tutor")
+    st.markdown("""
+    Haz cualquier pregunta teórica. El tutor te responderá **vinculando la teoría con 
+    los ejercicios y estilos de examen** de nuestra cátedra.
+    """)
+
+    # Mostrar historial de chat
+    for mensaje in st.session_state.historial_tutor_abierto:
+        with st.chat_message(mensaje["role"]):
+            st.markdown(mensaje["content"])
+
+    # Input del usuario (Texto actualizado)
+    if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de las ejercicios del profesor"):
+        # 1. Guardar y mostrar mensaje usuario
+        st.session_state.historial_tutor_abierto.append({"role": "user", "content": prompt})
+        with st.chat_message("user"):
+            st.markdown(prompt)
+
+        # 2. Generar respuesta con la IA
+        with st.chat_message("assistant"):
+            with st.spinner("Consultando guías de la cátedra..."):
+                # Preparamos contexto del chat previo
+                historial_texto = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.historial_tutor_abierto[-4:]])
+                
+                # Llamamos a la función del tutor (Asegúrate de haber hecho el PASO 2)
+                respuesta_tutor = generar_respuesta_tutor_abierto(prompt, historial_texto)
+                
+                st.markdown(respuesta_tutor)
+                
+        # 3. Guardar respuesta asistente
+        st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
