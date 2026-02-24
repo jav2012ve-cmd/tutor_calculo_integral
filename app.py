@@ -121,34 +121,33 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     """
     Analiza un problema subido por el alumno (Texto o Imagen).
-    Distingue entre Integrales/EDO (Rígido) y Aplicaciones (Flexible).
+    Corregido: 4 opciones y aleatoriedad garantizada.
     """
     prompt_base = """
-    Actúa como un Tutor Experto de Matemáticas III.
+    Actúa como un Tutor Experto de Matemáticas III de la UCAB.
     Analiza el problema del estudiante (texto o imagen).
 
-    OBJETIVO: Generar una guía paso a paso JSON.
+    OBJETIVO: Generar una guía paso a paso en formato JSON.
 
     REGLAS DE ESTRATEGIAS (CRÍTICO):
-    1. Si es INTEGRAL (Cálculo directo): Las opciones DEBEN ser Técnicas (ej. "Por Partes", "Sustitución", "Fracciones Parciales").
-    2. Si es EDO (Resolver ecuación): Las opciones DEBEN ser Tipos (ej. "Variables Separables", "Lineal", "Exacta").
-    3. Si es CÁLCULO DE ÁREAS, VOLÚMENES, EXCEDENTES O APLICACIONES:
-       - Tienes LIBERTAD TOTAL.
-       - Las opciones deben ser PLANTEAMIENTOS o ENFOQUES (ej. "Integrar con respecto a Y", "Usar método de arandelas", "Igualar Oferta y Demanda").
+    1. Genera EXACTAMENTE 4 estrategias (una correcta y tres incorrectas/distractores).
+    2. Si es INTEGRAL o EDO: Usa técnicas o tipos (ej. "Por Partes", "Variables Separables").
+    3. Si es APLICACIÓN (Áreas, Sólidos, Economía): Usa planteamientos (ej. "Método de Discos", "Excedente del Productor").
+    4. ALEATORIEDAD: El "indice_correcta" debe variar entre 0, 1, 2 y 3. No uses siempre el mismo.
 
-    REGLAS LATEX (CRÍTICO):
+    REGLAS LATEX:
     1. Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
-    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int.
+    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int, \\\\sqrt.
     
     Estructura JSON requerida:
     {
-        "tema_detectado": "Nombre del tema (ej. Volumen de Revolución)",
-        "enunciado_latex": "El problema transcrito a LaTeX (sin $$)",
-        "estrategias": ["Planteamiento/Técnica CORRECTA", "Opción INCORRECTA 1", "Opción INCORRECTA 2"],
-        "indice_correcta": 0,
-        "feedback_estrategia": "Por qué este es el camino correcto.",
-        "paso_intermedio": "Un hito clave a mitad del desarrollo (LaTeX puro, sin $$)",
-        "resultado_final": "La solución final (LaTeX puro, sin $$)"
+        "tema_detectado": "Nombre del tema",
+        "enunciado_latex": "Transcripción a LaTeX (sin $$)",
+        "estrategias": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
+        "indice_correcta": 1,
+        "feedback_estrategia": "Explicación de la ruta correcta.",
+        "paso_intermedio": "Ecuación LaTeX pura (sin $$)",
+        "resultado_final": "Solución final LaTeX pura (sin $$)"
     }
     """
     
@@ -157,11 +156,35 @@ def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
         contenido.append(f"Enunciado del estudiante: {texto_usuario}")
     if imagen_usuario:
         contenido.append(imagen_usuario)
-        contenido.append("Transcribe y resuelve.")
+        contenido.append("Analiza la imagen, transcribe el problema y resuélvelo siguiendo el JSON.")
 
     response = generar_contenido_seguro(contenido)
+    
     if response:
-        return limpiar_json(response.text)
+        try:
+            # 1. Limpieza y carga
+            datos = json.loads(limpiar_json(response.text))
+            
+            # 2. BARRENA DE ALEATORIEDAD (Shuffle)
+            # Extraemos la correcta antes de desordenar
+            opciones = datos["estrategias"]
+            # Aseguramos que existan al menos 4 opciones, si la IA mandó menos, rellenamos
+            while len(opciones) < 4:
+                opciones.append("Planteamiento alternativo no válido")
+                
+            texto_correcta = opciones[datos["indice_correcta"]]
+            
+            # Mezclamos las 4 opciones
+            random.shuffle(opciones)
+            
+            # Re-indexamos
+            datos["estrategias"] = opciones
+            datos["indice_correcta"] = opciones.index(texto_correcta)
+            
+            return datos # Retornamos el diccionario ya procesado
+        except Exception as e:
+            st.error(f"Error técnico al procesar el JSON: {e}")
+            return None
     return None
 def generar_respuesta_tutor_abierto(pregunta_usuario, historial_previo):
     """
@@ -783,3 +806,4 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
