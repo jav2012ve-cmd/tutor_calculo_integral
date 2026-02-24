@@ -65,7 +65,7 @@ def limpiar_json(texto):
              return None
 
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ Genera la tutoría para el modo Entrenamiento con 4 opciones y aleatoriedad real """
+    """ Genera la tutoría con 4 opciones y aleatoriedad real, compatible con el flujo original """
     
     prompt = f"""
     Actúa como un profesor experto de cálculo de la UCAB. Para el siguiente ejercicio de {tema}:
@@ -74,22 +74,21 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
     Genera un objeto JSON estricto.
     
     REGLAS DE CONTENIDO (CRÍTICO):
-    1. Debes generar EXACTAMENTE 4 estrategias de resolución (una correcta y tres distractores).
-    2. Los distractores deben ser errores matemáticos verosímiles.
-    3. El "indice_correcta" debe representar la posición de la estrategia válida (0, 1, 2 o 3).
-    4. IMPORTANTE: Varía la posición de la respuesta correcta en cada llamada. No uses siempre el mismo índice.
+    1. Debes generar EXACTAMENTE 4 estrategias de resolución.
+    2. El "indice_correcta" debe representar la posición de la válida (0, 1, 2 o 3).
+    3. IMPORTANTE: Varía la posición de la respuesta correcta.
 
     REGLAS LATEX:
-    1. Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
+    1. Escribe la fórmula pura. NO incluyas signos "$$".
     2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int, \\\\sqrt.
     
     Estructura JSON:
     {{
-        "estrategias": ["Opción A", "Opción B", "Opción C", "Opción D"],
+        "estrategias": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
         "indice_correcta": 2,
-        "feedback_estrategia": "Explicación breve de por qué esa ruta es la adecuada.",
-        "paso_intermedio": "Ecuación LaTeX PURA (sin $$) del hito",
-        "resultado_final": "Ecuación LaTeX PURA (sin $$) del resultado"
+        "feedback_estrategia": "Explicación breve.",
+        "paso_intermedio": "Ecuación LaTeX pura",
+        "resultado_final": "Ecuación LaTeX pura"
     }}
     """
     
@@ -97,27 +96,35 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
     
     if response:
         try:
-            # 1. Limpiamos y cargamos el JSON
-            datos = json.loads(limpiar_json(response.text))
+            # 1. Cargamos el JSON de la IA para procesar la aleatoriedad internamente
+            datos_dict = json.loads(limpiar_json(response.text))
             
-            # 2. EXTRA DE SEGURIDAD: Barajado manual en Python
-            # Esto garantiza que el 99% de "A o B" se rompa definitivamente
-            opciones = datos["estrategias"]
-            correcta_texto = opciones[datos["indice_correcta"]]
+            # 2. BARREJADO MANUAL (Garantiza romper el sesgo A o B)
+            opciones = datos_dict["estrategias"]
             
-            # Mezclamos la lista de opciones
+            # Si por error la IA mandó menos de 4, completamos para no romper la interfaz
+            while len(opciones) < 4:
+                opciones.append("Planteamiento alternativo (Incorrecto)")
+            
+            # Guardamos cuál era la correcta antes de mezclar
+            texto_correcta = opciones[datos_dict["indice_correcta"]]
+            
+            # Mezclamos
             random.shuffle(opciones)
             
-            # Re-asignamos el índice correcto basado en la nueva posición
-            datos["estrategias"] = opciones
-            datos["indice_correcta"] = opciones.index(correcta_texto)
+            # Actualizamos el diccionario con la nueva posición
+            datos_dict["estrategias"] = opciones
+            datos_dict["indice_correcta"] = opciones.index(texto_correcta)
             
-            return datos
+            # 3. EL TRUCO FINAL: Convertimos de vuelta a STRING.
+            # Esto permite que la función que llama a esta siga funcionando
+            # sin errores de "must be str, not dict".
+            return json.dumps(datos_dict)
+            
         except Exception as e:
             st.error(f"Error procesando la respuesta del tutor: {e}")
             return None
     return None
-
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     """
     Analiza un problema subido por el alumno (Texto o Imagen).
@@ -800,5 +807,6 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
