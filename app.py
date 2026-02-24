@@ -339,11 +339,10 @@ if ruta == "a) Entrenamiento (Temario)":
             st.markdown(f"### {ejercicio['pregunta']}")
             st.divider()
 
-            # --- LLAMADA A LA IA TUTOR ---
-            if st.session_state.entrenamiento_data_ia is None:
-                with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
+           with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
                     datos_tutor = generar_tutor_paso_a_paso(ejercicio['pregunta'], ejercicio.get('tema', 'Cálculo'))
                     if datos_tutor:
+                        # Guardamos el resultado (que es un STRING de JSON)
                         st.session_state.entrenamiento_data_ia = datos_tutor
                         st.rerun()
                     else:
@@ -352,9 +351,21 @@ if ruta == "a) Entrenamiento (Temario)":
                         time.sleep(2)
                         st.rerun()
             
-            tutor = st.session_state.entrenamiento_data_ia
-            step = st.session_state.entrenamiento_step
+            # --- AQUÍ ESTÁ LA CORRECCIÓN CRÍTICA ---
+            # Como entrenamiento_data_ia guarda un STRING, debemos convertirlo a OBJETO
+            data_ia_raw = st.session_state.entrenamiento_data_ia
+            
+            if isinstance(data_ia_raw, str):
+                try:
+                    tutor = json.loads(data_ia_raw)
+                except Exception as e:
+                    st.error(f"Error parseando JSON: {e}")
+                    st.session_state.entrenamiento_data_ia = None
+                    st.rerun()
+            else:
+                tutor = data_ia_raw
 
+            step = st.session_state.entrenamiento_step
             # PASO 1: ESTRATEGIA
             if step == 1:
                 st.markdown("#### 1️⃣ Paso 1: Selección de Estrategia")
@@ -816,6 +827,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
