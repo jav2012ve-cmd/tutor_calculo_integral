@@ -339,7 +339,7 @@ if ruta == "a) Entrenamiento (Temario)":
             st.markdown(f"### {ejercicio['pregunta']}")
             st.divider()
 
-           with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
+        with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
                     datos_tutor = generar_tutor_paso_a_paso(ejercicio['pregunta'], ejercicio.get('tema', 'Cálculo'))
                     if datos_tutor:
                         # Guardamos el resultado (que es un STRING de JSON)
