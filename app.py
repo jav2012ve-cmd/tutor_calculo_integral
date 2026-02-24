@@ -339,7 +339,7 @@ if ruta == "a) Entrenamiento (Temario)":
             st.markdown(f"### {ejercicio['pregunta']}")
             st.divider()
 
-            # --- LLAMADA A LA IA TUTOR ---
+# --- LLAMADA A LA IA TUTOR ---
             if st.session_state.entrenamiento_data_ia is None:
                 with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
                     datos_tutor = generar_tutor_paso_a_paso(ejercicio['pregunta'], ejercicio.get('tema', 'Cálculo'))
@@ -352,17 +352,19 @@ if ruta == "a) Entrenamiento (Temario)":
                         time.sleep(2)
                         st.rerun()
             
-            # --- PROCESAMIENTO SEGURO DEL JSON ---
-            data_ia = st.session_state.entrenamiento_data_ia
-            if isinstance(data_ia, str):
+            # --- TRADUCCIÓN DE TEXTO A OBJETO (LA CURA) ---
+            data_raw = st.session_state.entrenamiento_data_ia
+            
+            # Si los datos son texto, los convertimos a un diccionario real
+            if isinstance(data_raw, str):
                 try:
-                    tutor = json.loads(data_ia)
-                except Exception as e:
-                    st.error(f"Error de formato en la respuesta: {e}")
+                    tutor = json.loads(data_raw)
+                except:
+                    st.error("Error de formato. Reintentando...")
                     st.session_state.entrenamiento_data_ia = None
                     st.rerun()
             else:
-                tutor = data_ia
+                tutor = data_raw
 
             step = st.session_state.entrenamiento_step
 
@@ -780,6 +782,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
