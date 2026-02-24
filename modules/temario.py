@@ -10,11 +10,12 @@ TEMAS_PARCIAL_1 = [
     "1.2.1 Áreas entre curvas",
     "1.2.2 Excedentes del consumidor y productor",
     "1.2.3 Integrales Impropias", 
-    "1.2.4 Volúmenes de Sólidos de Revolución",
-    "1.2.5 Integrales Dobles"
+    "1.2.4 Funciones de Distribución de probabilidad"
 ]
 
 TEMAS_PARCIAL_2 = [
+    "1.2.5 Volúmenes de Sólidos de Revolución",
+    "1.2.6 Integrales Dobles",
     "2.1.1 ED 1er Orden: Separación de Variables",
     "2.1.2 ED 1er Orden: Homogéneas",
     "2.1.3 ED 1er Orden: Exactas",
@@ -68,6 +69,8 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
     1. CADA pregunta debe tener EXACTAMENTE 4 OPCIONES (A, B, C, D).
     2. Las opciones deben ser plausibles (distractores matemáticos comunes).
     3. NO incluyas notas aclaratorias o pistas en el enunciado. Sé directo y riguroso.
+    4. ALEATORIEDAD TOTAL: La respuesta correcta DEBE estar distribuida equitativamente entre A, B, C y D. 
+       No permitas que la mayoría de las respuestas sean A o B.
     
     TEMAS A EVALUAR: 
     {', '.join(temas_seleccionados)}.
@@ -88,4 +91,5 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
         }},
         ...
     ]
+
     """
