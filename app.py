@@ -64,6 +64,10 @@ def limpiar_json(texto):
         except:
              return None
 
+import random
+import json
+import streamlit as st
+
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
     """ 
     Genera la tutoría con 4 opciones y aleatoriedad real. 
@@ -124,6 +128,7 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
             st.error(f"Error procesando la respuesta del tutor: {e}")
             return None
     return None
+    
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     """
     Analiza un problema subido por el alumno (Texto o Imagen).
@@ -806,6 +811,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
