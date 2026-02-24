@@ -69,32 +69,25 @@ import json
 import streamlit as st
 
 def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ 
-    Genera la tutoría con 4 opciones y aleatoriedad real. 
-    Mantiene compatibilidad devolviendo un string de JSON.
-    """
+    """ Genera la tutoría con 4 opciones y devuelve STRING para evitar errores de tipo """
+    
     prompt = f"""
     Actúa como un profesor experto de cálculo de la UCAB. Para el siguiente ejercicio de {tema}:
     "{pregunta_texto}"
     
     Genera un objeto JSON estricto.
-    
-    REGLAS DE CONTENIDO (CRÍTICO):
-    1. Genera EXACTAMENTE 4 estrategias de resolución (una correcta y tres distractores).
-    2. El "indice_correcta" debe ser la posición de la válida (0, 1, 2 o 3).
-    3. IMPORTANTE: Varía la posición de la respuesta correcta.
-
-    REGLAS LATEX:
-    1. Escribe la fórmula pura. NO incluyas signos "$$".
-    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int, \\\\sqrt.
+    REGLAS:
+    1. EXACTAMENTE 4 estrategias (una correcta y tres distractores).
+    2. El "indice_correcta" debe variar entre 0, 1, 2 y 3.
+    3. Usa LaTeX puro sin $$.
     
     Estructura JSON:
     {{
         "estrategias": ["Opción 1", "Opción 2", "Opción 3", "Opción 4"],
-        "indice_correcta": 2,
-        "feedback_estrategia": "Explicación breve.",
-        "paso_intermedio": "Ecuación LaTeX pura",
-        "resultado_final": "Ecuación LaTeX pura"
+        "indice_correcta": 0,
+        "feedback_estrategia": "Texto",
+        "paso_intermedio": "LaTeX",
+        "resultado_final": "LaTeX"
     }}
     """
     
@@ -102,27 +95,27 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
     
     if response:
         try:
-            # 1. Cargamos como diccionario para manipularlo
-            texto_crudo = limpiar_json(response.text)
-            datos_dict = json.loads(texto_crudo)
+            # 1. Limpiamos y cargamos a diccionario
+            texto_ia = limpiar_json(response.text)
+            datos = json.loads(texto_ia)
             
-            # 2. SEGURO DE ALEATORIEDAD: Shuffle manual
-            opciones = datos_dict["estrategias"]
-            
-            # Si la IA mandó menos de 4, rellenamos para no romper la interfaz
+            # 2. PROCESO DE ALEATORIEDAD (Manual)
+            opciones = datos["estrategias"]
+            # Aseguramos 4 elementos siempre
             while len(opciones) < 4:
-                opciones.append("Planteamiento alternativo (Incorrecto)")
+                opciones.append("Planteamiento incorrecto alternativo")
             
-            # Guardamos la correcta, mezclamos y re-indexamos
-            texto_correcta = opciones[datos_dict["indice_correcta"]]
+            # Barajamos las opciones
+            correcta_texto = opciones[datos["indice_correcta"]]
             random.shuffle(opciones)
             
-            datos_dict["estrategias"] = opciones
-            datos_dict["indice_correcta"] = opciones.index(texto_correcta)
+            # Actualizamos el índice real
+            datos["estrategias"] = opciones
+            datos["indice_correcta"] = opciones.index(correcta_texto)
             
-            # 3. RETORNO COMPATIBLE: Devolvemos un String
-            # Esto evita el error "must be str, not dict" en la interfaz
-            return json.dumps(datos_dict)
+            # 3. EL PUNTO CLAVE: Devolvemos un STRING de nuevo
+            # Esto evita el error "must be str, not dict"
+            return json.dumps(datos)
             
         except Exception as e:
             st.error(f"Error procesando la respuesta del tutor: {e}")
@@ -811,6 +804,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
