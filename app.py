@@ -118,9 +118,11 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
             return json.dumps(datos)
             
         except Exception as e:
-            st.error(f"Error procesando la respuesta del tutor: {e}")
-            return None
-    return None
+            # En lugar de solo None, enviamos un error descriptivo en JSON
+            error_json = {"error": str(e), "estrategias": [], "tema_detectado": "Error"}
+            return json.dumps(error_json) 
+            
+    return None # Si llegamos aquí, realmente falló la conexión
     
 def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     """
@@ -804,6 +806,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         # 3. Guardar respuesta asistente
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
 
 
 
