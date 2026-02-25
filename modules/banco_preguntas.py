@@ -677,9 +677,59 @@ BANCO_FIXED = [
         "respuesta_correcta": r"A) $\int_0^1 \int_0^y f(x,y) \, dx \, dy$",
         "explicacion": r"La región es un triángulo definido por $0 \le x \le 1$ y $x \le y \le 1$. Al invertir, $y$ va de 0 a 1 y $x$ va de 0 a $y$."
     },
+    # --- INTEGRALES DOBLES SOBRE REGIONES IRREGULARES ---
+    {
+        "tema": "1.2.6 Integrales Dobles",
+        "pregunta": r"Sea $R$ la región acotada por la parábola $y = x^2$ y la recta $y = 4$. Plantee la integral doble $\iint_R f(x,y) dA$ en el orden $dy dx$:",
+        "opciones": [
+            r"A) $\int_{-2}^{2} \int_{x^2}^{4} f(x,y) dy dx$",
+            r"B) $\int_{0}^{2} \int_{x^2}^{4} f(x,y) dy dx$",
+            r"C) $\int_{-2}^{2} \int_{0}^{x^2} f(x,y) dy dx$",
+            r"D) $\int_{0}^{4} \int_{-\sqrt{y}}^{\sqrt{y}} f(x,y) dy dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-2}^{2} \int_{x^2}^{4} f(x,y) dy dx$",
+        "explicacion": r"Los puntos de intersección son $x^2=4 \Rightarrow x = \pm 2$. Para un $x$ fijo, $y$ varía desde la curva inferior (parábola $x^2$) hasta la superior (recta $4$)."
+    },    
+    {
+        "tema": "1.2.6 Integrales Dobles",
+        "pregunta": r"Considere la región $R$ limitada por $x = y^2$ y $x = y + 2$. Plantee la integral $\iint_R f(x,y) dA$ usando el orden $dx dy$ (Tipo II):",
+        "opciones": [
+            r"A) $\int_{-1}^{2} \int_{y^2}^{y+2} f(x,y) dx dy$",
+            r"B) $\int_{-1}^{2} \int_{y+2}^{y^2} f(x,y) dx dy$",
+            r"C) $\int_{0}^{4} \int_{\sqrt{x}}^{x-2} f(x,y) dx dy$",
+            r"D) $\int_{-1}^{1} \int_{y^2}^{y+2} f(x,y) dx dy$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-1}^{2} \int_{y^2}^{y+2} f(x,y) dx dy$",
+        "explicacion": r"Igualando: $y^2 = y+2 \Rightarrow y^2-y-2=0 \Rightarrow (y-2)(y+1)=0$. Límites en $y$ de $-1$ a $2$. La recta $x=y+2$ está a la derecha de la parábola $x=y^2$."
+    },
+    
+    {
+        "tema": "1.2.6 Integrales Dobles",
+        "pregunta": r"Dada la integral $I = \int_{0}^{1} \int_{y}^{1} f(x,y) dx dy$, realice el cambio de orden a $dy dx$:",
+        "opciones": [
+            r"A) $\int_{0}^{1} \int_{0}^{x} f(x,y) dy dx$",
+            r"B) $\int_{0}^{1} \int_{x}^{1} f(x,y) dy dx$",
+            r"C) $\int_{0}^{y} \int_{0}^{1} f(x,y) dy dx$",
+            r"D) $\int_{0}^{1} \int_{0}^{1} f(x,y) dy dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{0}^{1} \int_{0}^{x} f(x,y) dy dx$",
+        "explicacion": r"La región original es un triángulo con vértices $(0,0), (1,0)$ y $(1,1)$. Al cambiar el orden, $x$ va de $0$ a $1$, y para cada $x$, $y$ sube desde $0$ hasta la recta $y=x$."
+    },
+    {
+        "tema": "1.2.6 Integrales Dobles",
+        "pregunta": r"Sea $R$ la región en el primer cuadrante limitada por $y = x$ y $y = x^3$. Plantee $\iint_R f(x,y) dA$ en orden $dy dx$:",
+        "opciones": [
+            r"A) $\int_{0}^{1} \int_{x^3}^{x} f(x,y) dy dx$",
+            r"B) $\int_{0}^{1} \int_{x}^{x^3} f(x,y) dy dx$",
+            r"C) $\int_{-1}^{1} \int_{x^3}^{x} f(x,y) dy dx$",
+            r"D) $\int_{0}^{1} \int_{0}^{x} f(x,y) dy dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{0}^{1} \int_{x^3}^{x} f(x,y) dy dx$",
+        "explicacion": r"En el intervalo $[0, 1]$, la función identidad $y=x$ está por encima de $y=x^3$. La intersección ocurre en $x=0$ y $x=1$."
+    },
     # --- VOLÚMENES DE REVOLUCIÓN ---
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes de Sólido de Revolución",
         "pregunta": r"Volumen de $f(x)=1+x^2$ entre $x=-1, 5$ girando en $y=-1$:",
         "opciones": [
             r"A) $\pi \int_{-1}^{5} (2+x^2)^2 dx$",
@@ -691,7 +741,7 @@ BANCO_FIXED = [
         "explicacion": r"Radio $R = (1+x^2) - (-1) = 2+x^2$. No hay hueco (disco)."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes de Sólido de Revolución",
         "pregunta": r"Volumen región $y=x^2-4x$, $y=0$ girando en $y=4$:",
         "opciones": [
             r"A) $\pi \int_0^4 [ 4^2 - (4-(x^2-4x))^2 ] dx$",
@@ -703,7 +753,7 @@ BANCO_FIXED = [
         "explicacion": r"Arandelas. Radio exterior constante 4 (hasta el eje x). Radio interior hasta la curva."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes de Sólido de Revolución",
         "pregunta": r"Volumen región $x=y^2+2, x=1$ girando en $x=-2$:",
         "opciones": [
             r"A) $\pi \int_{-2}^{2} [ (y^2+4)^2 - 3^2 ] dy$",
@@ -715,7 +765,7 @@ BANCO_FIXED = [
         "explicacion": r"Radio mayor $R=(y^2+2)-(-2)$. Radio menor $r=1-(-2)$."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes de Sólido de Revolución",
         "pregunta": r"Volumen región $y=2+x^2, y=6$ girando en $y=1$:",
         "opciones": [
             r"A) $\pi \int_{-2}^{2} [ (6-1)^2 - (2+x^2-1)^2 ] dx$",
@@ -727,7 +777,7 @@ BANCO_FIXED = [
         "explicacion": r"Radio mayor constante $5$. Radio menor variable $1+x^2$."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes de Sólido de Revolución",
         "pregunta": r"Volumen región $y=4-x^2, y=3$ girando en $y=2$:",
         "opciones": [
             r"A) $\pi \int_{0}^{1} [ (4-x^2-2)^2 - (3-2)^2 ] dx$",
@@ -835,18 +885,55 @@ BANCO_FIXED = [
         ],
         "respuesta_correcta": r"A) $y = ux$",
         "explicacion": r"Estándar para homogéneas."
+    },# --- ED 1er ORDEN: HOMOGÉNEAS ---
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Halle la solución general de la ecuación diferencial homogénea: $(x - 2y) dx + y dy = 0$:",
+        "opciones": [
+            r"A) $(y - x)^2 = Cx e^{-x/y}$",
+            r"B) $(y - x) = C e^{x}$",
+            r"C) $y^2 - 2xy + x^2 = C$",
+            r"D) $\ln|y-x| + \frac{x}{y-x} = C$"
+        ],
+        "respuesta_correcta": r"A) $(y - x)^2 = Cx e^{-x/y}$",
+        "explicacion": r"Usando $y=ux$ y $dy=udx+xdu$, la ecuación se transforma en una de variables separables cuya integración conduce a la forma implícita $(y-x)^2 = Cxe^{-x/y}$."
     },
     {
         "tema": "2.1.2 ED 1er Orden: Homogéneas",
-        "pregunta": r"Factor integrante para $y' + y = e^{3x}$ (Lineal básica):",
+        "pregunta": r"Resuelva la ecuación diferencial: $y^2 dx + (2xy - x^2) dy = 0$:",
         "opciones": [
-            r"A) $e^x$",
-            r"B) $e^{-x}$",
-            r"C) $x$",
-            r"D) $e^{3x}$"
+            r"A) $x y^2 - x^2 y = C$",
+            r"B) $y^2 = \frac{x^2}{2 \ln|y| + C}$",
+            r"C) $\frac{x}{y} + \ln|y| = C$",
+            r"D) $x^2 y - x y^2 = C$"
         ],
-        "respuesta_correcta": r"A) $e^x$",
-        "explicacion": r"P(x)=1, integral dx es x."
+        "respuesta_correcta": r"A) $x y^2 - x^2 y = C$",
+        "explicacion": r"Al verificar homogeneidad de grado 2 y sustituir $x=vy$ o $y=ux$, la solución simplificada resulta en la relación algebraica $xy^2 - x^2y = C$."
+    },
+    
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Determine la solución de la ED: $(x^2 + y^2) dx + 2xy dy = 0$:",
+        "opciones": [
+            r"A) $3x^2y + x^3 = C$",
+            r"B) $x^2 + y^2 = Cx$",
+            r"C) $y = \sqrt{Cx - x^2}$",
+            r"D) $x^3 + 3xy^2 = C$"
+        ],
+        "respuesta_correcta": r"D) $x^3 + 3xy^2 = C$",
+        "explicacion": r"Esta ecuación es tanto homogénea como exacta. La integración de $M$ respecto a $x$ y la verificación con $N$ nos da la familia de curvas $x^3 + 3xy^2 = C$."
+    },
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"¿Cuál es la solución general de $\frac{dy}{dx} = \frac{y-x}{y+x}$?:",
+        "opciones": [
+            r"A) $\arctan(\frac{y}{x}) + \ln\sqrt{x^2+y^2} = C$",
+            r"B) $\frac{1}{2}\ln|x^2+y^2| + \arctan(\frac{y}{x}) = C$",
+            r"C) $y^2 + x^2 = C(y-x)$",
+            r"D) $\ln|y+x| = \frac{y}{x} + C$"
+        ],
+        "respuesta_correcta": r"B) $\frac{1}{2}\ln|x^2+y^2| + \arctan(\frac{y}{x}) = C$",
+        "explicacion": r"Al sustituir $y=ux$, la integral resultante de $\frac{1+u}{1+u^2} du$ genera un término de logaritmo (para $u$) y uno de arcotangente."
     },
     # --- EXACTAS ---
     {
@@ -875,39 +962,39 @@ BANCO_FIXED = [
     },
     {
         "tema": "2.1.3 ED 1er Orden: Exactas",
-        "pregunta": r"Resuelva exacta: $(\cos y - y\sin x + 1)dx + (\cos x - x\sin y - 2)dy = 0$",
+        "pregunta": r"Resuelva la ED: $[2(2x+3y)^2 + 3x^2] dx + [3(2x+3y)^2 - 3y^2] dy = 0$:",
         "opciones": [
-            r"A) $x\cos y + y\cos x + x - 2y = C$",
-            r"B) $\sin y \cos x \dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $\frac{(2x+3y)^3}{3} + x^3 - y^3 = C$",
+            r"B) $\frac{2(2x+3y)^3}{3} + 3x^2 - 3y^2 = C$",
+            r"C) $(2x+3y)^3 + x^3 - y^3 = C$",
+            r"D) $\frac{(2x+3y)^3}{2} + x^3 - y^3 = C$"
         ],
-        "respuesta_correcta": r"A) $x\cos y + y\cos x + x - 2y = C$",
-        "explicacion": r"Integración parcial y comparación."
+        "respuesta_correcta": r"A) $\frac{(2x+3y)^3}{3} + x^3 - y^3 = C$",
+        "explicacion": r"Al verificar exactitud $\frac{\partial M}{\partial y} = \frac{\partial N}{\partial x} = 12(2x+3y)$. La integración de $3x^2$ respecto a $x$ da $x^3$, y $-3y^2$ respecto a $y$ da $-y^3$."
     },
     {
         "tema": "2.1.3 ED 1er Orden: Exactas",
-        "pregunta": r"Resuelva: $(\frac{1}{y} - 2x + \ln^2 y + \dots)dx + \dots = 0$:",
+        "pregunta": r"Halle la solución de: $(\frac{1}{y}-2x+\ln^2 y + \frac{2y\ln x}{x}) dx + (3y^2 - \frac{x}{y^2} + \ln^2 x + \frac{2x\ln y}{y}) dy = 0$:",
         "opciones": [
-            r"A) $\frac{x}{y} - x^2 + x \ln^2 y + y \ln^2 x + y^3 = C$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $\frac{x}{y} - x^2 + x\ln^2 y + y\ln^2 x + y^3 = C$",
+            r"B) $\ln x - x^2 + \ln y + x\ln y + y^3 = C$",
+            r"C) $\frac{x}{y} - x^2 + 2\ln x \ln y + y^3 = C$",
+            r"D) $\frac{x}{y} - x^2 + y\ln^2 x + y^3 = C$"
         ],
-        "respuesta_correcta": r"A) $\frac{x}{y} - x^2 + x \ln^2 y + y \ln^2 x + y^3 = C$",
-        "explicacion": r"Reconstrucción de función potencial."
-    },
+        "respuesta_correcta": r"A) $\frac{x}{y} - x^2 + x\ln^2 y + y\ln^2 x + y^3 = C$",
+        "explicacion": r"La función potencial $f(x,y)$ contiene los términos mixtos $y\ln^2 x$ (de $\frac{2y\ln x}{x}$) y $x\ln^2 y$ (de $\frac{2x\ln y}{y}$), además de los términos puros $-x^2$ y $y^3$."
+    },    
     {
         "tema": "2.1.3 ED 1er Orden: Exactas",
-        "pregunta": r"Resuelva: $(2x \cos y + 3x^2 y) dx + (x^3 - x^2 \sin y - y) dy = 0$",
+        "pregunta": r"Resuelva: $(10e^x + e^y - \frac{y}{e^x}) dx + (e^{-x} - 12e^y + xe^y) dy = 0$:",
         "opciones": [
-            r"A) $x^2 \cos y + x^3 y - \frac{y^2}{2} = C$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $10e^x + ye^x - 12e^y + ye^{-x} = C$",
+            r"B) $10e^x + xe^y - 12e^y + ye^{-x} = C$",
+            r"C) $10e^x + xe^y - 12e^y - ye^{-x} = C$",
+            r"D) $10e^x + e^y - 12e^y + xe^y = C$"
         ],
-        "respuesta_correcta": r"A) $x^2 \cos y + x^3 y - \frac{y^2}{2} = C$",
-        "explicacion": r"Término $-y$ en N se integra a $-y^2/2$."
+        "respuesta_correcta": r"B) $10e^x + xe^y - 12e^y + ye^{-x} = C$",
+        "explicacion": r"Integrando $M$ respecto a $x$: $10e^x + xe^y + ye^{-x} + g(y)$. Derivando respecto a $y$ e igualando a $N$, obtenemos $g'(y) = -12e^y$."
     },
     # --- LINEALES ---
     {
@@ -936,161 +1023,270 @@ BANCO_FIXED = [
     },
     {
         "tema": "2.1.4 ED 1er Orden: Lineales",
-        "pregunta": r"Solución general $x y' + 2y = x^3 - x\ln x$:",
+        "pregunta": r"Halle la solución general de la ecuación: $x dy + (2y - x^3 + x\ln x) dx = 0$:",
         "opciones": [
-            r"A) $y = \frac{x^3}{5} - \frac{x}{3}\ln x + \frac{x}{9} + \frac{C}{x^2}$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y = \frac{x^3}{5} - \frac{x}{2}\ln x + \frac{x}{4} + \frac{C}{x^2}$",
+            r"B) $y = x^3 - \ln x + C$",
+            r"C) $y = \frac{x^4}{5} - x^2\ln x + Cx^2$",
+            r"D) $y = \frac{x^3}{5} - \frac{1}{2}\ln x + C$"
         ],
-        "respuesta_correcta": r"A) $y = \frac{x^3}{5} - \frac{x}{3}\ln x + \frac{x}{9} + \frac{C}{x^2}$",
-        "explicacion": r"$\mu = x^2$."
+        "respuesta_correcta": r"A) $y = \frac{x^3}{5} - \frac{x}{2}\ln x + \frac{x}{4} + \frac{C}{x^2}$",
+        "explicacion": r"Llevamos a forma estándar: $y' + \frac{2}{x}y = x^2 - \ln x$. El factor integrante es $\mu(x) = e^{\int \frac{2}{x}dx} = x^2$. La solución es $y = \frac{1}{x^2} \int x^2(x^2 - \ln x) dx$."
     },
     {
         "tema": "2.1.4 ED 1er Orden: Lineales",
-        "pregunta": r"Solución $y' - \frac{2}{x}y = x^2 \sin x$:",
+        "pregunta": r"Resuelva la ecuación diferencial lineal en $x$: $dx + (x - e^{-y} \cos y) dy = 0$:",
         "opciones": [
-            r"A) $y = -x^2 \cos x + C x^2$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $x = e^{-y}(\sin y + C)$",
+            r"B) $x = e^{y}(\cos y + C)$",
+            r"C) $x = \sin y + e^y + C$",
+            r"D) $x = e^{-y}\sin y + C e^y$"
         ],
-        "respuesta_correcta": r"A) $y = -x^2 \cos x + C x^2$",
-        "explicacion": r"$\mu = x^{-2}$."
+        "respuesta_correcta": r"A) $x = e^{-y}(\sin y + C)$",
+        "explicacion": r"La ecuación es $\frac{dx}{dy} + x = e^{-y}\cos y$. El factor integrante es $\mu(y) = e^y$. Al integrar $\int e^y (e^{-y}\cos y) dy = \int \cos y dy = \sin y + C$."
     },
     {
         "tema": "2.1.4 ED 1er Orden: Lineales",
-        "pregunta": r"Resuelva $y' + y \tan x = \sec x$:",
+        "pregunta": r"Determine la solución de $y' - y \tan x = \sec x$:",
         "opciones": [
-            r"A) $y = \sin x + C \cos x$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y = x \sec x + C \sec x$",
+            r"B) $y = \sin x + C \cos x$",
+            r"C) $y = \sec x \tan x + C$",
+            r"D) $y = x \cos x + C$"
         ],
-        "respuesta_correcta": r"A) $y = \sin x + C \cos x$",
-        "explicacion": r"$\mu = \sec x$."
+        "respuesta_correcta": r"A) $y = x \sec x + C \sec x$",
+        "explicacion": r"$\mu(x) = e^{-\int \tan x dx} = e^{\ln|\cos x|} = \cos x$. Multiplicando la ED: $(y \cos x)' = 1 \Rightarrow y \cos x = x + C \Rightarrow y = \frac{x+C}{\cos x}$."
     },
-    # --- BERNOULLI ---
+    # --- ED 1er ORDEN: BERNOULLI ---
     {
         "tema": "2.1.5 ED 1er Orden: Bernoulli",
-        "pregunta": r"Bernoulli $x dy + (x^2 y^3 + xy^3 - 2y) dx = 0$. Solución:",
-        "opciones": [
-            r"A) $y^{-2} = \frac{1}{3}x^2 + \frac{2}{5}x + Cx^{-4}$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+        "pregunta": r"Resuelva la ecuación diferencial de Bernoulli: $xy dy + (2y^2 - x^3 + x\ln x) dx = 0$:",
+        "options": [
+            r"A) $y^2 = \frac{x^3}{2} - \frac{2x}{5}\ln x + \frac{2x}{25} + \frac{C}{x^4}$",
+            r"B) $y^2 = x^3 - \ln x + C$",
+            r"C) $y = \sqrt{x^2 - \ln x} + C$",
+            r"D) $y^2 = \frac{x^3}{5} - \frac{x}{2}\ln x + \frac{x}{4} + \frac{C}{x^2}$"
         ],
-        "respuesta_correcta": r"A) $y^{-2} = \frac{1}{3}x^2 + \frac{2}{5}x + Cx^{-4}$",
-        "explicacion": r"$n=3$. Sustitución $u=y^{-2}$."
-    },
-    {
-        "tema": "2.1.5 ED 1er Orden: Bernoulli",
-        "pregunta": r"Bernoulli $xy dy + (2y^2 - x^3 + x\ln x) dx = 0$. Solución:",
-        "opciones": [
-            r"A) $y^2 = \frac{1}{3}x^2 - \frac{1}{2}\ln x + \frac{1}{8} + Cx^{-4}$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
-        ],
-        "respuesta_correcta": r"A) $y^2 = \frac{1}{3}x^2 - \frac{1}{2}\ln x + \frac{1}{8} + Cx^{-4}$",
-        "explicacion": r"$n=-1$ para $y(x)$. Sustitución $u=y^2$."
+        "respuesta_correcta": r"A) $y^2 = \frac{x^3}{2} - \frac{2x}{5}\ln x + \frac{2x}{25} + \frac{C}{x^4}$",
+        "explicacion": r"Dividiendo por $x y$: $y' + \frac{2}{x}y = (x^2 - \ln x)y^{-1}$. Es Bernoulli con $n=-1$. La sustitución $w = y^2$ la transforma en la lineal $w' + \frac{4}{x}w = 2x^2 - 2\ln x$."
     },
     {
         "tema": "2.1.5 ED 1er Orden: Bernoulli",
-        "pregunta": r"Bernoulli $y' + \frac{1}{x}y = x y^2$:",
-        "opciones": [
-            r"A) $\frac{1}{y} = Cx - x^2$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+        "pregunta": r"Determine la solución general de $y' - y = e^x y^2$:",
+        "options": [
+            r"A) $y = \frac{1}{Ce^{-x} - e^x}$",
+            r"B) $y = \frac{e^x}{C - x}$",
+            r"C) $y = (Ce^x - e^{2x})^{-1}$",
+            r"D) $y = Ce^x + e^{2x}$"
         ],
-        "respuesta_correcta": r"A) $\frac{1}{y} = Cx - x^2$",
-        "explicacion": r"$n=2$. $u=y^{-1}$."
+        "respuesta_correcta": r"C) $y = (Ce^x - e^{2x})^{-1}$",
+        "explicacion": r"Bernoulli con $n=2$. Sustituimos $w = y^{-1} \Rightarrow w' + w = -e^x$. El factor integrante es $e^x$, resultando en $w e^x = -\int e^{2x} dx = -\frac{1}{2}e^{2x} + C$."
     },
     {
         "tema": "2.1.5 ED 1er Orden: Bernoulli",
-        "pregunta": r"Bernoulli $y' + \frac{1}{x}y = y^3$:",
+        "pregunta": r"Halle la solución general de la ecuación diferencial: $x \frac{dy}{dx} + y = x^2 y^2 \ln x$:",
         "opciones": [
-            r"A) $y^{-2} = 2x + C x^2$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y = \frac{1}{x^2(1 - \ln x) + Cx}$",
+            r"B) $y = \frac{1}{x(1 - x\ln x + x) + C}$",
+            r"C) $y = \frac{1}{x(x - x\ln x + C)}$",
+            r"D) $y = x^2 \ln x + Cx$"
         ],
-        "respuesta_correcta": r"A) $y^{-2} = 2x + C x^2$",
-        "explicacion": r"$n=3$. $u=y^{-2}$."
+        "respuesta_correcta": r"C) $y = \frac{1}{x(x - x\ln x + C)}$",
+        "explicacion": r"Es Bernoulli con $n=2$. Dividiendo por $x y^2$ y usando $w = y^{-1}$, obtenemos $w' - \frac{1}{x}w = -x \ln x$. El factor integrante es $1/x$. La integral resultante es $\int -\ln x dx = x - x \ln x + C$."
     },
     {
         "tema": "2.1.5 ED 1er Orden: Bernoulli",
-        "pregunta": r"Bernoulli $y' - \frac{4}{x}y = x \sqrt{y}$:",
+        "pregunta": r"Resuelva la ecuación diferencial (Bernoulli en $x$): $\frac{dx}{dy} + \frac{x}{y} = y^2 x^3$:",
         "opciones": [
-            r"A) $\sqrt{y} = \frac{1}{2}x^2 \ln x + C x^2$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $x^{-2} = \frac{2}{y} + Cy^2$",
+            r"B) $x^2 = \frac{y}{2 + Cy^3}$",
+            r"C) $x^{-2} = y^2 - \frac{2}{5}y^5 + C$",
+            r"D) $x^{-2} = \frac{2}{5}y^3 + \frac{C}{y^2}$"
         ],
-        "respuesta_correcta": r"A) $\sqrt{y} = \frac{1}{2}x^2 \ln x + C x^2$",
-        "explicacion": r"$n=1/2$. $u=\sqrt{y}$."
-    },
-    # --- ORDEN SUPERIOR ---
-    {
-        "tema": "2.2.1 ED Orden Superior: Homogéneas",
-        "pregunta": r"Primer paso para $y^{(4)} - y^{(5)} + \dots = 0$:",
-        "opciones": [
-            r"A) Hallar las raíces del polinomio característico.",
-            r"B) Integrar",
-            r"C) Variación de parámetros",
-            r"D) Factor integrante"
-        ],
-        "respuesta_correcta": r"A) Hallar las raíces del polinomio característico.",
-        "explicacion": r"Método estándar para coeficientes constantes."
+        "respuesta_correcta": r"D) $x^{-2} = \frac{2}{5}y^3 + \frac{C}{y^2}$",
+        "explicacion": r"Aquí $n=3$ respecto a $x$. Sustituimos $w = x^{-2} \Rightarrow \frac{dw}{dy} - \frac{2}{y}w = -2y^2$. El factor integrante es $y^{-2}$. La integral es $\int -2 dy = -2y + C$."
     },
     {
-        "tema": "2.2.1 ED Orden Superior: Homogéneas",
-        "pregunta": r"Solución general $y^{\prime\prime\prime} + 2y^{\prime\prime} - 3y' = 0$:",
+        "tema": "2.1.5 ED 1er Orden: Bernoulli",
+        "pregunta": r"Determine la solución de la ecuación: $y' - \frac{1}{x}y = \frac{1}{2y}$:",
         "opciones": [
-            r"A) $y = C_1 + C_2 e^{-3x} + C_3 e^{x}$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y^2 = x \ln|x| + Cx^2$",
+            r"B) $y^2 = -x + Cx^2$",
+            r"C) $y = \sqrt{x^2 + Cx}$",
+            r"D) $y^2 = \frac{1}{x} + C$"
         ],
-        "respuesta_correcta": r"A) $y = C_1 + C_2 e^{-3x} + C_3 e^{x}$",
-        "explicacion": r"Raíces $0, -3, 1$."
-    },
+        "respuesta_correcta": r"B) $y^2 = -x + Cx^2$",
+        "explicacion": r"Bernoulli con $n = -1$ (ya que $1/y = y^{-1}$). Multiplicando por $2y$ obtenemos $2yy' - \frac{2}{x}y^2 = 1$. Con $w = y^2$, la lineal es $w' - \frac{2}{x}w = 1$. El factor integrante es $x^{-2}$."
+    },    
+    # --- 2.2.1 ED ORDEN SUPERIOR: HOMOGÉNEAS ---
     {
         "tema": "2.2.1 ED Orden Superior: Homogéneas",
-        "pregunta": r"Solución general $y^{\prime\prime\prime} + 6y^{\prime\prime} + 12y' + 8y = 0$:",
+        "pregunta": r"Resuelva la ecuación diferencial: $y'' + 4y' + 3y = 0$:",
         "opciones": [
-            r"A) $y = C_1 e^{-2x} + C_2 x e^{-2x} + C_3 x^2 e^{-2x}$",
-            r"B) $\dots$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y = C_1 e^{-x} + C_2 e^{-3x}$",
+            r"B) $y = C_1 e^{x} + C_2 e^{3x}$",
+            r"C) $y = C_1 e^{-x} + C_2 x e^{-x}$",
+            r"D) $y = C_1 \cos(3x) + C_2 \sin(x)$"
         ],
-        "respuesta_correcta": r"A) $y = C_1 e^{-2x} + C_2 x e^{-2x} + C_3 x^2 e^{-2x}$",
-        "explicacion": r"Raíz $-2$ con multiplicidad 3."
+        "respuesta_correcta": r"A) $y = C_1 e^{-x} + C_2 e^{-3x}$",
+        "explicacion": r"Ecuación característica: $r^2 + 4r + 3 = 0 \Rightarrow (r+3)(r+1)=0$. Raíces reales distintas $r=-3, -1$."
     },
     {
         "tema": "2.2.1 ED Orden Superior: Homogéneas",
-        "pregunta": r"Solución particular $y_p$ de $y'' + 4y' + 3y = 12e^x$:",
+        "pregunta": r"Halle la solución general de: $y''' + 6y'' + 12y' + 8y = 0$:",
         "opciones": [
-            r"A) $y_p = \frac{3}{2}e^x$",
-            r"B) $12e^x$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y = (C_1 + C_2 x + C_3 x^2) e^{-2x}$",
+            r"B) $y = C_1 e^{-2x} + C_2 e^{2x} + C_3 e^{0}$",
+            r"C) $y = C_1 e^{-2x} + C_2 x e^{-2x} + C_3 e^{2x}$",
+            r"D) $y = C_1 e^{-2x} + C_2 e^{-3x} + C_3 e^{-4x}$"
         ],
-        "respuesta_correcta": r"A) $y_p = \frac{3}{2}e^x$",
-        "explicacion": r"Coeficientes indeterminados."
+        "respuesta_correcta": r"A) $y = (C_1 + C_2 x + C_3 x^2) e^{-2x}$",
+        "explicacion": r"La característica es $(r+2)^3 = 0$. La raíz $r=-2$ tiene multiplicidad 3."
     },
     {
         "tema": "2.2.1 ED Orden Superior: Homogéneas",
-        "pregunta": r"Característica de $y^{(4)} - 16y = 0$:",
+        "pregunta": r"Determine la solución de: $y'' - 6y' + 25y = 0$:",
         "opciones": [
-            r"A) $r^4 - 16 = 0$",
-            r"B) $4r-16=0$",
-            r"C) $\dots$",
-            r"D) $\dots$"
+            r"A) $y = e^{3x}(C_1 \cos 4x + C_2 \sin 4x)$",
+            r"B) $y = e^{-3x}(C_1 \cos 4x + C_2 \sin 4x)$",
+            r"C) $y = C_1 e^{3x} + C_2 e^{4x}$",
+            r"D) $y = C_1 e^{7x} + C_2 e^{-1x}$"
         ],
-        "respuesta_correcta": r"A) $r^4 - 16 = 0$",
-        "explicacion": r"Sustitución directa."
+        "respuesta_correcta": r"A) $y = e^{3x}(C_1 \cos 4x + C_2 \sin 4x)$",
+        "explicacion": r"Raíces complejas: $r = \frac{6 \pm \sqrt{36-100}}{2} = 3 \pm 4i$. La parte real va en la exponencial y la imaginaria en el argumento de trigonométricas."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Resuelva la ecuación: $y^{IV} - 16y = 0$:",
+        "opciones": [
+            r"A) $y = C_1 e^{2x} + C_2 e^{-2x} + C_3 \cos 2x + C_4 \sin 2x$",
+            r"B) $y = C_1 e^{2x} + C_2 e^{-2x} + C_3 e^{2ix} + C_4 e^{-2ix}$",
+            r"C) $y = (C_1 + C_2 x + C_3 x^2 + C_4 x^3) e^{2x}$",
+            r"D) $y = C_1 \cos 4x + C_2 \sin 4x$"
+        ],
+        "respuesta_correcta": r"A) $y = C_1 e^{2x} + C_2 e^{-2x} + C_3 \cos 2x + C_4 \sin 2x$",
+        "explicacion": r"Raíces de $r^4 - 16 = 0 \Rightarrow (r^2-4)(r^2+4)=0$. Raíces: $2, -2, 2i, -2i$."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Si la ecuación característica es $r^2(r-5)=0$, la solución general es:",
+        "opciones": [
+            r"A) $y = C_1 + C_2 x + C_3 e^{5x}$",
+            r"B) $y = C_1 e^{5x}$",
+            r"C) $y = C_1 x + C_2 e^{5x}$",
+            r"D) $y = C_1 \cos 5x + C_2 \sin 5x$"
+        ],
+        "respuesta_correcta": r"A) $y = C_1 + C_2 x + C_3 e^{5x}$",
+        "explicacion": r"La raíz $r=0$ es doble (genera $C_1 e^{0x} + C_2 x e^{0x} \Rightarrow C_1 + C_2 x$) y $r=5$ es simple."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Halle la solución de $y'' + 10y' + 25y = 0$:",
+        "opciones": [
+            r"A) $y = C_1 e^{-5x} + C_2 x e^{-5x}$",
+            r"B) $y = C_1 e^{5x} + C_2 x e^{5x}$",
+            r"C) $y = C_1 e^{-5x} + C_2 e^{5x}$",
+            r"D) $y = C_1 \cos 5x + C_2 \sin 5x$"
+        ],
+        "respuesta_correcta": r"A) $y = C_1 e^{-5x} + C_2 x e^{-5x}$",
+        "explicacion": r"$(r+5)^2 = 0$. Raíz única repetida $r=-5$."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Para $y'' + 4y = 0$, la solución es:",
+        "opciones": [
+            r"A) $y = C_1 \cos 2x + C_2 \sin 2x$",
+            r"B) $y = C_1 e^{2x} + C_2 e^{-2x}$",
+            r"C) $y = C_1 e^{2ix} + C_2 e^{-2ix}$",
+            r"D) $y = C_1 \cos 4x + C_2 \sin 4x$"
+        ],
+        "respuesta_correcta": r"A) $y = C_1 \cos 2x + C_2 \sin 2x$",
+        "explicacion": r"Raíces imaginarias puras $r = \pm 2i$."
+    },
+    # --- 2.2.2 ED ORDEN SUPERIOR: NO HOMOGÉNEAS ---
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Halle la solución particular $y_p$ de $y'' + 4y' + 3y = x^2 + 12e^x$:",
+        "opciones": [
+            r"A) $y_p = \frac{1}{3}x^2 - \frac{8}{9}x + \frac{26}{27} + \frac{3}{2}e^x$",
+            r"B) $y_p = \frac{1}{3}x^2 + \frac{3}{2}e^x$",
+            r"C) $y_p = Ax^2 + Bx + C + De^x$",
+            r"D) $y_p = \frac{1}{3}x^2 - \frac{8}{9}x + 2e^x$"
+        ],
+        "respuesta_correcta": r"A) $y_p = \frac{1}{3}x^2 - \frac{8}{9}x + \frac{26}{27} + \frac{3}{2}e^x$",
+        "explicacion": r"Se asume $y_p = Ax^2+Bx+C + De^x$. Al derivar y sustituir, se determinan los coeficientes por igualdad polinómica."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Para $y''' + 6y'' + 12y' + 8y = 4x - 10e^x$, plantee la forma de $y_p$:",
+        "opciones": [
+            r"A) $y_p = Ax + B + Ce^x$",
+            r"B) $y_p = Ax^2 + Bx + Ce^x$",
+            r"C) $y_p = Ax + B + Cx^3 e^{-2x}$",
+            r"D) $y_p = A + Be^x$"
+        ],
+        "respuesta_correcta": r"A) $y_p = Ax + B + Ce^x$",
+        "explicacion": r"Como las raíces de la homogénea son $r=-2$ (triple) y el lado derecho tiene $e^x$ y $x^1$, no hay resonancia."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Considere $y^{VI} + 4y^V - 3y^{IV} \dots = 4x^2 + 12e^{-x} + 10e^{2x}$. Si la homogénea tiene raíces $r=-2(3), 2(3)$, plantee la forma de $y_p$ para el término $10e^{2x}$:",
+        "opciones": [
+            r"A) $y_p = Ax^3 e^{2x}$",
+            r"B) $y_p = Ae^{2x}$",
+            r"C) $y_p = Ax^2 e^{2x}$",
+            r"D) $y_p = (Ax^2+Bx+C)e^{2x}$"
+        ],
+        "respuesta_correcta": r"A) $y_p = Ax^3 e^{2x}$",
+        "explicacion": r"Existe resonancia ya que $r=2$ es raíz de la homogénea con multiplicidad 3."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Halle $y_p$ para $y'' - y = 4e^x$:",
+        "opciones": [
+            r"A) $y_p = 2xe^x$",
+            r"B) $y_p = 4e^x$",
+            r"C) $y_p = 2e^x$",
+            r"D) $y_p = 4xe^x$"
+        ],
+        "respuesta_correcta": r"A) $y_p = 2xe^x$",
+        "explicacion": r"La homogénea tiene raíz $r=1$. Como $g(x)=4e^x$, hay resonancia. Probamos $y_p = Axe^x$."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Para $y'' + 4y = 8x$, la solución particular es:",
+        "opciones": [
+            r"A) $y_p = 2x$",
+            r"B) $y_p = 8x$",
+            r"C) $y_p = 4x$",
+            r"D) $y_p = 2x + 4$"
+        ],
+        "respuesta_correcta": r"A) $y_p = 2x$",
+        "explicacion": r"Asumiendo $y_p = Ax+B \Rightarrow y_p''=0$. Sustituyendo: $0 + 4(Ax+B) = 8x \Rightarrow 4A=8, 4B=0 \Rightarrow A=2, B=0$."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Determine la forma de $y_p$ para $y'' - 5y' + 6y = e^{2x} + e^{3x}$:",
+        "opciones": [
+            r"A) $y_p = Axe^{2x} + Bxe^{3x}$",
+            r"B) $y_p = Ae^{2x} + Be^{3x}$",
+            r"C) $y_p = Ax^2 e^{2x} + Bx^2 e^{3x}$",
+            r"D) $y_p = (Ax+B)e^{2x+3x}$"
+        ],
+        "respuesta_correcta": r"A) $y_p = Axe^{2x} + Bxe^{3x}$",
+        "explicacion": r"Las raíces homogéneas son $r=2$ y $r=3$. Ambos términos externos resuenan con la homogénea."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"¿Cuál es el valor de $A$ en $y_p = A \cos x$ para $y'' + 2y' + y = 10 \sin x$?:",
+        "opciones": [
+            r"A) $A = -5$",
+            r"B) $A = 5$",
+            r"C) $A = 10$",
+            r"D) $A = 0$"
+        ],
+        "respuesta_correcta": r"A) $A = -5$",
+        "explicacion": r"Se debe usar $y_p = A \cos x + B \sin x$. Al sustituir y resolver el sistema, el coeficiente de la función trigonométrica resulta en -5."
     },
     # --- APLICACIONES ---
     {
@@ -1265,6 +1461,91 @@ BANCO_FIXED = [
         "respuesta_correcta": r"A) $y_p = A e^x + (Bx^2 + Cx + D)$",
         "explicacion": r"Principio de superposición. Para $12e^x$ proponemos $Ae^x$. Para $-x^2$ proponemos polinomio completo grado 2 ($Bx^2+Cx+D$). No hay conflicto con la homogénea ($r = -1 \pm 2i$)."
     },
+    # --- 2.3.1 APLICACIONES DE ED DE PRIMER ORDEN ---
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"Una infección bacteriana se considera curada si se reduce al 10% de la cantidad inicial $P_0$. Si la rapidez de disminución es proporcional a la cantidad presente y la vida media de la bacteria es de 8 días, ¿cuánto dura el tratamiento?:",
+        "opciones": [
+            r"A) $t = 8 \frac{\ln(0.1)}{\ln(0.5)}$ días",
+            r"B) $t = 8 \ln(10)$ días",
+            r"C) $t = 24$ días",
+            r"D) $t = \frac{\ln(0.5)}{8 \ln(0.1)}$ días"
+        ],
+        "respuesta_correcta": r"A) $t = 8 \frac{\ln(0.1)}{\ln(0.5)}$ días",
+        "explicacion": r"El modelo es $P(t) = P_0 e^{kt}$. Con vida media: $0.5 = e^{8k} \Rightarrow k = \frac{\ln(0.5)}{8}$. Para curar: $0.1 = e^{kt} \Rightarrow t = \frac{\ln(0.1)}{k}$."
+    },    
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"Una colonia de bacterias crece según $\frac{dp}{dt} = k \frac{t}{2}(1000 - p)$. Si $p(0) = 50$, ¿cuál es el comportamiento de la población a largo plazo ($t \to \infty$)?",
+        "opciones": [
+            r"A) La población se estabiliza en 1000 unidades",
+            r"B) La población crece infinitamente",
+            r"C) La población se extingue",
+            r"D) La población oscila alrededor de 500"
+        ],
+        "respuesta_correcta": r"A) La población se estabiliza en 1000 unidades",
+        "explicacion": r"Es un modelo de crecimiento limitado. Al resolver la ED separable, el término exponencial tiende a cero cuando $t \to \infty$, dejando $p(t) = 1000$."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"En un modelo de mercado, la tasa de cambio del precio es proporcional a la escasez $\frac{dp}{dt} = k(D - S)$. Si $D = 10-p$ y $S = 2+p$, con $p(0)=10$, halle $p(t)$:",
+        "opciones": [
+            r"A) $p(t) = 4 + 6e^{-2kt}$",
+            r"B) $p(t) = 10e^{-kt}$",
+            r"C) $p(t) = 4 - 6e^{2kt}$",
+            r"D) $p(t) = 6 + 4e^{-2kt}$"
+        ],
+        "respuesta_correcta": r"A) $p(t) = 4 + 6e^{-2kt}$",
+        "explicacion": r"$\frac{dp}{dt} = k[(10-p)-(2+p)] = k(8-2p)$. Separando variables e integrando con $p(0)=10$ se llega a la convergencia hacia el precio de equilibrio $p=4$."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"Un cultivo de levadura crece a una tasa proporcional a su tamaño. Si inicialmente hay 2 gramos y después de 2 horas hay 4 gramos, ¿cuánta levadura habrá a las 6 horas?:",
+        "opciones": [
+            r"A) 16 gramos",
+            r"B) 12 gramos",
+            r"C) 8 gramos",
+            r"D) 32 gramos"
+        ],
+        "respuesta_correcta": r"A) 16 gramos",
+        "explicacion": r"La población se duplica cada 2 horas (de 2 a 4). En 6 horas ocurren tres periodos de duplicación: $2 \to 4 \to 8 \to 16$."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"El modelo de capital $K(t)$ sigue $\frac{dK}{dt} = sY - \delta K$, donde $sY$ es la inversión constante $I_0$. La solución $K(t)$ para este modelo lineal es:",
+        "opciones": [
+            r"A) $K(t) = \frac{I_0}{\delta} + (K_0 - \frac{I_0}{\delta})e^{-\delta t}$",
+            r"B) $K(t) = I_0 e^{\delta t}$",
+            r"C) $K(t) = K_0 - \delta t$",
+            r"D) $K(t) = \frac{I_0}{\delta} e^{\delta t}$"
+        ],
+        "respuesta_correcta": r"A) $K(t) = \frac{I_0}{\delta} + (K_0 - \frac{I_0}{\delta})e^{-\delta t}$",
+        "explicacion": r"Es una ED lineal de primer orden. El término $I_0/\delta$ representa el nivel de capital de estado estacionario."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"Un tanque contiene 100L de salmuera. Entra agua pura a 5L/min y sale la mezcla a la misma tasa. Si inicialmente había 20kg de sal, plantee la ED para la cantidad de sal $Q(t)$:",
+        "opciones": [
+            r"A) $\frac{dQ}{dt} = -\frac{5Q}{100}$",
+            r"B) $\frac{dQ}{dt} = 5 - \frac{Q}{100}$",
+            r"C) $\frac{dQ}{dt} = 20e^{-0.05t}$",
+            r"D) $\frac{dQ}{dt} = -\frac{Q}{5}$"
+        ],
+        "respuesta_correcta": r"A) $\frac{dQ}{dt} = -\frac{5Q}{100}$",
+        "explicacion": r"Tasa de entrada = 0 (agua pura). Tasa de salida = (Concentración) $\times$ (Flujo) = $(Q/100) \times 5$."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de ED de primer orden",
+        "pregunta": r"En el modelo logístico de población $\frac{dP}{dt} = rP(1 - \frac{P}{K})$, si la población actual $P$ es igual a la capacidad de carga $K$, entonces:",
+        "opciones": [
+            r"A) La tasa de crecimiento es cero",
+            r"B) La población crece exponencialmente",
+            r"C) La población colapsa",
+            r"D) El crecimiento es máximo"
+        ],
+        "respuesta_correcta": r"A) La tasa de crecimiento es cero",
+        "explicacion": r"Si $P=K$, el término $(1 - P/K)$ se hace cero, anulando la derivada. La población ha alcanzado su equilibrio estable."
+    },
     # --- APLICACIONES DE ED (ORDEN SUPERIOR) ---
     {
         "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
@@ -1301,7 +1582,94 @@ BANCO_FIXED = [
         ],
         "respuesta_correcta": r"A) Crece explosivamente (inestable)",
         "explicacion": r"Raíces: $r^2 - r - 6 = 0 \Rightarrow (r-3)(r+2)=0$. Como hay una raíz positiva ($r=3$), el término $C_1 e^{3t}$ domina y tiende a infinito."
-    }
+    },
+    # --- 2.3.2 APLICACIONES DE ED DE ORDEN SUPERIOR ---
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Dadas $Q_D = 4p'' - 2p' + 3p - 7t$ y $Q_O = 3p'' - 3p' + 15p - 5$, plantee la ED que rige el precio de equilibrio $p(t)$:",
+        "opciones": [
+            r"A) $p'' + p' - 12p = 7t - 5$",
+            r"B) $p'' - 5p' + 18p = 7t + 5$",
+            r"C) $7p'' - 5p' + 18p = 0$",
+            r"D) $p'' + p' - 12p = 0$"
+        ],
+        "respuesta_correcta": r"A) $p'' + p' - 12p = 7t - 5$",
+        "explicacion": r"Igualamos $Q_D = Q_O$: $4p'' - 2p' + 3p - 7t = 3p'' - 3p' + 15p - 5$. Al trasponer términos obtenemos $p'' + p' - 12p = 7t - 5$."
+    },
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Para la trayectoria de precios $p'' + p' - 12p = 7t - 5$, con $p(0)=2$ y $p'(0)=4$, halle la solución complementaria $p_h(t)$:",
+        "opciones": [
+            r"A) $p_h = C_1 e^{3t} + C_2 e^{-4t}$",
+            r"B) $p_h = C_1 e^{-3t} + C_2 e^{4t}$",
+            r"C) $p_h = C_1 e^{3t} + C_2 x e^{3t}$",
+            r"D) $p_h = C_1 \cos(3t) + C_2 \sin(4t)$"
+        ],
+        "respuesta_correcta": r"A) $p_h = C_1 e^{3t} + C_2 e^{-4t}$",
+        "explicacion": r"La ecuación característica es $r^2 + r - 12 = 0 \Rightarrow (r+4)(r-3)=0$. Las raíces son $r=3$ y $r=-4$."
+    },
+    
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Considerando la solución del ejercicio anterior $p(t) = C_1 e^{3t} + C_2 e^{-4t} + p_p(t)$, ¿cuál es el comportamiento del precio a largo plazo ($t \to \infty$)?",
+        "opciones": [
+            r"A) Es inestable (tiende a infinito debido a $e^{3t}$)",
+            r"B) Converge al equilibrio (tiende a $p_p$)",
+            r"C) Oscila permanentemente",
+            r"D) Se mantiene constante en $p(0)$"
+        ],
+        "respuesta_correcta": r"A) Es inestable (tiende a infinito debido a $e^{3t}$)",
+        "explicacion": r"Como una de las raíces de la característica es positiva ($r=3$), el término $C_1 e^{3t}$ domina y hace que el precio se aleje del equilibrio si $C_1 \neq 0$."
+    },
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Halle el precio de equilibrio de mercado (solución particular $p_p$) para $p'' + p' - 12p = 7t - 5$:",
+        "opciones": [
+            r"A) $p_p = -\frac{7}{12}t + \frac{53}{144}$",
+            r"B) $p_p = 7t - 5$",
+            r"C) $p_p = \frac{7}{12}t$",
+            r"D) $p_p = -\frac{7}{12}t - \frac{67}{144}$"
+        ],
+        "respuesta_correcta": r"A) $p_p = -\frac{7}{12}t + \frac{53}{144}$",
+        "explicacion": r"Asumimos $p_p = At + B$. Al derivar y sustituir: $A - 12(At+B) = 7t - 5$. Comparando coeficientes: $-12A = 7 \Rightarrow A = -7/12$."
+    },
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"En un modelo de ciclo económico, el ingreso nacional $Y(t)$ sigue $Y'' + 2Y' + 5Y = 10$. El comportamiento del ingreso a mediano plazo es:",
+        "opciones": [
+            r"A) Oscilaciones amortiguadas que convergen a $Y=2$",
+            r"B) Oscilaciones explosivas",
+            r"C) Crecimiento exponencial constante",
+            r"D) Convergencia monótona (sin oscilar)"
+        ],
+        "respuesta_correcta": r"A) Oscilaciones amortiguadas que convergen a $Y=2$",
+        "explicacion": r"Las raíces son $-1 \pm 2i$. La parte real negativa (-1) amortigua el sistema, y la parte imaginaria genera las oscilaciones (ciclo)."
+    },
+    
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Si un modelo de expectativas de precios genera raíces características $r_1 = 0$ y $r_2 = -5$, el precio a largo plazo:",
+        "opciones": [
+            r"A) Tiende a una constante $C_1 + p_p$",
+            r"B) Converge a cero",
+            r"C) Crece linealmente con el tiempo",
+            r"D) Es puramente oscilatorio"
+        ],
+        "respuesta_correcta": r"A) Tiende a una constante $C_1 + p_p$",
+        "explicacion": r"La raíz $r=0$ genera un término constante $C_1 e^{0t} = C_1$. El término $e^{-5t}$ desaparece al límite."
+    },
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Para que un sistema de precios $ap'' + bp' + cp = g(t)$ sea estable (converja al equilibrio), las raíces de la ecuación característica deben tener:",
+        "opciones": [
+            r"A) Partes reales negativas",
+            r"B) Solo raíces reales",
+            r"C) Partes reales positivas",
+            r"D) Determinante igual a cero"
+        ],
+        "respuesta_correcta": r"A) Partes reales negativas",
+        "explicacion": r"Si las partes reales son negativas, todas las soluciones de la homogénea tienden a cero cuando $t \to \infty$, dejando solo el nivel de equilibrio $p_p$."
+    },
 ]
 
 def obtener_preguntas_fijas(temas_solicitados, cantidad):
@@ -1311,5 +1679,6 @@ def obtener_preguntas_fijas(temas_solicitados, cantidad):
     num_a_seleccionar = min(len(candidatas), cantidad)
 
     return random.sample(candidatas, num_a_seleccionar)
+
 
 
