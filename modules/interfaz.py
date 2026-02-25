@@ -72,5 +72,6 @@ def mostrar_bienvenida():
     """, unsafe_allow_html=True)
     
     # Tip dinámico para mejorar la UX
-    st.info("💡 **Consejo del Tutor:** Si estás preparando el próximo parcial, te recomendamos iniciar con el modo **'Autoevaluación'** centrándote en los temas de **ED de Orden Superior**.")
+    st.info("💡 **Consejo del Profesor:** Si estás preparando el segundo parcial, te recomendamos iniciar con el modo **'Autoevaluación'** centrándote en cada tema por separado. Usando la opción **'Personalizado'**.")
+
 
