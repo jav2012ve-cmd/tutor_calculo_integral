@@ -840,7 +840,7 @@ BANCO_FIXED = [
     # --- HOMOGÉNEAS ---
     {
         "tema": "2.1.2 ED 1er Orden: Homogéneas",
-        "pregunta": r"Tipo de ecuación $(x^2 - 2y^2)dx + y dy = 0$:",
+        "pregunta": r"Tipo de ecuación $(x^2 - 2y^2)dx + y^2 dy = 0$:",
         "opciones": [
             r"A) Homogénea de grado 2",
             r"B) Exacta",
@@ -1667,6 +1667,7 @@ def obtener_preguntas_fijas(temas_solicitados, cantidad):
     num_a_seleccionar = min(len(candidatas), cantidad)
 
     return random.sample(candidatas, num_a_seleccionar)
+
 
 
 
