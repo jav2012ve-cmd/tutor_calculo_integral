@@ -50,9 +50,24 @@ def mostrar_sidebar():
 def mostrar_bienvenida():
     st.title("Matemáticas III - Economía UCAB")
     st.markdown("""
-    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #00aeef;">
-        <h4>👋 Bienvenidos al curso</h4>
-        <p>Centrado en: <strong>Cálculo Integral</strong> y <strong>Ecuaciones Diferenciales</strong>.</p>
+    <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
+        <h4 style="margin-top: 0;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
+        <p>Este ecosistema académico está diseñado para fortalecer el dominio de las herramientas cuantitativas críticas para tu formación como economista. Nos enfocamos en dos pilares:</p>
+        <ul style="margin-bottom: 10px;">
+            <li><strong>Cálculo Integral:</strong> Aplicaciones de excedentes del consumidor/productor, áreas complejas y volúmenes de sólidos.</li>
+            <li><strong>Ecuaciones Diferenciales (ED):</strong> Dinámica temporal, modelos de crecimiento, estabilidad de precios y ciclos económicos.</li>
+        </ul>
     </div>
-    <hr>
+    
+    ### 🛠️ ¿Qué hay de nuevo?
+    **¡Hemos optimizado el motor de ejercicios!** Te invitamos a explorar los ajustes de precisión que incorporamos recientemente:
+    
+    * **Refinamiento en ED Homogéneas:** Se ajustaron los problemas modelo de primer orden para garantizar la coherencia algebraica de los grados de homogeneidad.
+    * **Modelos de Bernoulli:** Incorporación de casos lineales en $x$ y potencias fraccionarias.
+    * **Simulación de Orden Superior:** Mejoras en la detección de **Resonancia** y análisis de **Estabilidad a Largo Plazo**.
+    * **Contexto Bio-Económico:** Nuevos reactivos sobre dinámicas de población limitada y equilibrio de mercado.
+    
+    <hr style="margin-top: 20px; margin-bottom: 20px;">
     """, unsafe_allow_html=True)
+    # Tip dinámico para mejorar la UX
+    st.info("💡 **Consejo del Tutor:** Si estás preparando el próximo parcial, te recomendamos iniciar con el modo **'Autoevaluación'** centrándote en los temas de **ED de Orden Superior**.")
