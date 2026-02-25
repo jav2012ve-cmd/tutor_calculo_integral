@@ -1327,18 +1327,6 @@ BANCO_FIXED = [
     },
     {
         "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
-        "pregunta": r"Límite $\frac{dp}{dt} = kt(1000 - p/2)$:",
-        "opciones": [
-            r"A) $2000$ unidades",
-            r"B) $1000$",
-            r"C) $500$",
-            r"D) $\infty$"
-        ],
-        "respuesta_correcta": r"A) 2000 unidades",
-        "explicacion": r"Equilibrio cuando derivada es 0."
-    },
-    {
-        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
         "pregunta": r"Carbono-14, 1/6 remanente. Vida media 5600. Ecuación:",
         "opciones": [
             r"A) $\frac{1}{6} = e^{k t}$ con $k = \frac{\ln(0.5)}{5600}$",
@@ -1679,6 +1667,7 @@ def obtener_preguntas_fijas(temas_solicitados, cantidad):
     num_a_seleccionar = min(len(candidatas), cantidad)
 
     return random.sample(candidatas, num_a_seleccionar)
+
 
 
 
