@@ -323,6 +323,31 @@ BANCO_FIXED = [
         "respuesta_correcta": r"A) $1.5$",
         "explicacion": r"No se cruzan. $\int_0^\infty (e^{-x} + e^{-2x}) dx = [ -e^{-x} - 0.5e^{-2x} ]_0^\infty = 0 - (-1.5) = 1.5$."
     },
+    {
+        "tema": "1.2.1 Áreas entre curvas",
+        "pregunta": r"Plantee la integral (SIN RESOLVER) para el área de la región encerrada por $y = x^2$ y $y = 4$:",
+        "opciones": [
+            r"A) $\int_{-2}^{2} (4 - x^2) dx$", # Correcta
+            r"B) $\int_{0}^{2} (x^2 - 4) dx$",  # Error de límites y orden
+            r"C) $\int_{-2}^{2} (x^2 - 4) dx$", # Error de orden (piso - techo)
+            r"D) $\int_{0}^{4} (4 - x^2) dx$"   # Error de límites (usa valores de y)
+        ],
+        "respuesta_correcta": r"A) $\int_{-2}^{2} (4 - x^2) dx$",
+        "explicacion": r"Los puntos de corte son $x^2=4 \Rightarrow x=\pm 2$. En ese intervalo, la recta $y=4$ está por encima de la parábola."
+    },
+    {
+        "tema": "1.2.1 Áreas entre curvas",
+        "pregunta": r"Plantee la integral (SIN RESOLVER) para el área de la región encerrada por $y = 4-x^2$ y $y = 3x$ en el intervalo $x = -5$ $x = 5$:",
+        "opciones": [
+            r"A) $\int_{-5}^{-4} (3x-4 - x^2) dxint_{-4}^{1} (4 - x^2-3x) dx+int_{1}^{5} (3x-4 - x^2-3x) dx$", # Correcta
+            r"B) $\int_{-5}^{5} (4-x^2 - 3x) dx$",  # Error, no toma en cuenta los cambios de posición de las funciones en el intervalo
+            r"C) $$\int_{-5}^{-4} (3x-4 - x^2) dxint_{-4}^{1} (3x-4 - x^2) dx+int_{1}^{5} (3x-4 - x^2-3x) dx$", # Error, falla la posición de las funciones en el intervalo central
+            r"D) $\int_{-5}^{-4} (4 - x^2-3x) dxint_{-4}^{1} (4 - x^2-3x) dx+int_{1}^{5} (3x-4 - x^2-3x) dx$",   # Error, falla la posición de las funciones en el primer intervalo. 
+        ],
+        "respuesta_correcta": r"A) $\int_{-5}^{-4} (3x-4 - x^2) dxint_{-4}^{1} (4 - x^2-3x) dx+int_{1}^{5} (3x-4 - x^2-3x) dx$",
+        "explicacion": r"Los puntos de corte entre las funciones son $x=-4$ y $x=1$. Se definen tres intervalos: $x \in [-5, -4]; x \in [-4, 1]; x \in [1, 5]$ En cada intervalo debe validarse la posición de las funciones."
+    },
+    
     # --- EXCEDENTES ---
     {
         "tema": "1.2.2 Excedentes del consumidor y productor",
@@ -1210,4 +1235,5 @@ def obtener_preguntas_fijas(temas_solicitados, cantidad):
     if not candidatas:
         return []
     num_a_seleccionar = min(len(candidatas), cantidad)
+
     return random.sample(candidatas, num_a_seleccionar)
