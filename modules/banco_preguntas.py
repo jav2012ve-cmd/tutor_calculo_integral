@@ -506,9 +506,59 @@ BANCO_FIXED = [
         "respuesta_correcta": r"A) $1/2$",
         "explicacion": r"$\lim_{b \to \infty} \left[ -\frac{1}{2}e^{-2x} \right]_0^b = 0 - (-\frac{1}{2}) = 1/2$."
     },
+    # --- FUNCIONES DE DISTRIBUCIÓN DE PROBABILIDAD ---
+    {
+        "tema": "1.2.4 Funciones de Distribución de probabilidad",
+        "pregunta": r"Sea $f(x) = kx^2$ una función de densidad para $x \in [0, 3]$. Determine el valor de la constante $k$ para que sea una PDF válida:",
+        "opciones": [
+            r"A) $k = 1/9$",
+            r"B) $k = 1/27$",
+            r"C) $k = 3$",
+            r"D) $k = 1/3$"
+        ],
+        "respuesta_correcta": r"A) $k = 1/9$",
+        "explicacion": r"Para ser PDF: $\int_{0}^{3} kx^2 dx = 1 \Rightarrow k[\frac{x^3}{3}]_0^3 = 1 \Rightarrow 9k = 1 \Rightarrow k=1/9$."
+    },
+    {
+        "tema": "1.2.4 Funciones de Distribución de probabilidad",
+        "pregunta": r"Dada la PDF $f(x) = \frac{1}{2}e^{-x/2}$ para $x \ge 0$, plantee la integral (NO RESOLVER) para hallar la probabilidad de que $x$ esté entre 1 y 5, es decir $P(1 \le x \le 5)$:",
+        "opciones": [
+            r"A) $\int_{1}^{5} \frac{1}{2}e^{-x/2} dx$",
+            r"B) $\int_{0}^{5} \frac{1}{2}e^{-x/2} dx$",
+            r"C) $1 - \int_{1}^{5} \frac{1}{2}e^{-x/2} dx$",
+            r"D) $\int_{1}^{\infty} \frac{1}{2}e^{-x/2} dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{1}^{5} \frac{1}{2}e^{-x/2} dx$",
+        "explicacion": r"La probabilidad en un intervalo $[a, b]$ para una PDF es siempre la integral definida de la función en dicho intervalo."
+    },
+    {
+        "tema": "1.2.4 Funciones de Distribución de probabilidad",
+        "pregunta": r"Si una variable aleatoria tiene una PDF definida por tramos: $f(x) = \frac{1}{4}$ para $x \in [0, 4]$ y $0$ en otro caso. ¿Cuál es el planteamiento correcto para la probabilidad acumulada $F(2)$?:",
+        "opciones": [
+            r"A) $\int_{0}^{2} \frac{1}{4} dx$",
+            r"B) $\int_{0}^{4} \frac{1}{4} dx$",
+            r"C) $\int_{2}^{4} \frac{1}{4} dx$",
+            r"D) $\frac{1}{4} \cdot 2$"
+        ],
+        "respuesta_correcta": r"A) $\int_{0}^{2} \frac{1}{4} dx$",
+        "explicacion": r"La función de distribución acumulada $F(x)$ se define como la integral desde el límite inferior hasta el punto pedido: $\int_{-\infty}^{x} f(t) dt$."
+    },
+    {
+        "tema": "1.2.4 Funciones de Distribución de probabilidad",
+        "pregunta": r"Para la función $f(x) = \frac{3}{8}x^2$ en $x \in [0, 2]$, calcule la Esperanza Matemática $E[X]$:",
+        "opciones": [
+            r"A) $1.5$",
+            r"B) $1.0$",
+            r"C) $2.0$",
+            r"D) $0.75$"
+        ],
+        "respuesta_correcta": r"A) $1.5$",
+        "explicacion": r"$E[X] = \int_{0}^{2} x \cdot f(x) dx = \int_{0}^{2} \frac{3}{8}x^3 dx = \frac{3}{8} [\frac{x^4}{4}]_0^2 = \frac{3}{8} \cdot 4 = 1.5$."
+    },  
+    
     # --- INTEGRALES DOBLES ---
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Calcule $\int_{0}^{1}\int_{1}^{2} (3x^2 - 6z) dx dz$ (orden $dx, dz$):",
         "opciones": [
             r"A) $-2$",
@@ -520,7 +570,7 @@ BANCO_FIXED = [
         "explicacion": r"Integral interna $x^3-6zx|_1^2 = 7-6z$. Integral externa $7z-3z^2|_0^1 = 4$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Calcule $\int_{0}^{1}\int_{1}^{2} (3x^2 - 6z) dx dz$:",
         "opciones": [
             r"A) $4$",
@@ -532,7 +582,7 @@ BANCO_FIXED = [
         "explicacion": r"Evaluación directa: Interna da $7-6z$. Externa da $4$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Plantee para región entre parábola $x = y^2 - 4y$ y recta $y = x - 6$:",
         "opciones": [
             r"A) $\int_{-1}^{6} \int_{y^2-4y}^{y+6} f(x,y) dx dy$",
@@ -544,7 +594,7 @@ BANCO_FIXED = [
         "explicacion": r"Integración tipo II (dx primero). Límites de y $[-1, 6]$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Cambie orden $\int_0^4 \int_0^x f(x,y) dy dx$:",
         "opciones": [
             r"A) $\int_0^4 \int_y^4 f(x,y) dx dy$",
@@ -556,7 +606,7 @@ BANCO_FIXED = [
         "explicacion": r"Región triangular $0 \le y \le x \le 4$. En orden inverso $y \le x \le 4$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Calcule $\int_0^1 \int_0^2 (x+y) dy dx$:",
         "opciones": [
             r"A) $3$",
@@ -568,7 +618,7 @@ BANCO_FIXED = [
         "explicacion": r"Interna $2x+2$. Externa $1+2=3$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Volumen bajo $z=1+x-y$ sobre región limitada por $y=x^2$ y $y=8-2x$:",
         "opciones": [
             r"A) $\int_{-4}^{2} \int_{x^2}^{8-2x} (1+x-y) dy dx$",
@@ -580,7 +630,7 @@ BANCO_FIXED = [
         "explicacion": r"Cortes en $x=-4, 2$. Recta por encima de parábola."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Calcule la integral doble $\iint_R 2xy \, dA$ sobre el rectángulo $R = [0,2] \times [0,1]$:",
         "opciones": [
             r"A) 2",
@@ -592,7 +642,7 @@ BANCO_FIXED = [
         "explicacion": r"$\int_0^2 \int_0^1 2xy \, dy \, dx = \int_0^2 x [y^2]_0^1 dx = \int_0^2 x dx = [\frac{x^2}{2}]_0^2 = 2$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales Dobles",
         "pregunta": r"Al cambiar el orden de integración en $\int_0^1 \int_x^1 f(x,y) \, dy \, dx$, la nueva integral es:",
         "opciones": [
             r"A) $\int_0^1 \int_0^y f(x,y) \, dx \, dy$",
@@ -1237,3 +1287,4 @@ def obtener_preguntas_fijas(temas_solicitados, cantidad):
     num_a_seleccionar = min(len(candidatas), cantidad)
 
     return random.sample(candidatas, num_a_seleccionar)
+
