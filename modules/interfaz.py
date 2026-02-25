@@ -53,19 +53,19 @@ def mostrar_bienvenida():
     st.markdown("""
     <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
         <h4 style="margin-top: 0; color: #0e1117;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
-        <p style="color: #31333f;">Este ecosistema académico está diseñado para fortalecer el dominio de las herramientas cuantitativas críticas para tu formación como economista. Nos enfocamos en dos pilares:</p>
+        <p style="color: #31333f;">Este ecosistema académico está diseñado para fortalecer el dominio de las herramientas matemáticas básicas relacionadas con cálculo integral y ecuaciones diferencial para tu formación como economista. Nos enfocamos en dos pilares:</p>
         <ul style="margin-bottom: 10px; color: #31333f;">
-            <li><strong>Cálculo Integral:</strong> Aplicaciones de excedentes, áreas complejas y volúmenes de sólidos.</li>
-            <li><strong>Ecuaciones Diferenciales (ED):</strong> Dinámica temporal, modelos de crecimiento, estabilidad de precios y ciclos económicos.</li>
+            <li><strong>Cálculo Integral:</strong> Métodos de integración integral definida y sus aplicaciones excedentes, áreas, volúmenes de sólidos y probabilidad.</li>
+            <li><strong>Ecuaciones Diferenciales (ED):</strong> De primer orden, de orden superior. Modelos de crecimiento natural, Ley de enfriamiento de Newton, estabilidad de precios y ciclos económicos.</li>
         </ul>
     </div>
     
     ### 🛠️ ¿Qué hay de nuevo?
     **¡Hemos optimizado el motor de ejercicios!** Te invitamos a explorar los ajustes de precisión que incorporamos recientemente:
     
-    * **Refinamiento en ED Homogéneas:** Se ajustaron los problemas modelo de primer orden para garantizar la coherencia algebraica de los grados de homogeneidad.
-    * **Modelos de Bernoulli:** Incorporación de casos lineales en $x$ y potencias fraccionarias, típicos en exámenes de suficiencia.
-    * **Simulación de Orden Superior:** Mejoras en la detección de **Resonancia** y análisis de **Estabilidad a Largo Plazo**.
+    * **Refinamiento en ED Homogéneas:** Se aumentó el número de problemas modelo.
+    * **Ecuaciones Lineas y De Bernoulli:** Se aumentó el número de ejercicios modelo.
+    * **Modelos de Primer Orden:** Se incorporaron modelos económicos, físicos y biológicos de primer orden.
     * **Contexto Bio-Económico:** Nuevos reactivos sobre dinámicas de población limitada y equilibrio de mercado.
     
     <hr style="margin-top: 20px; margin-bottom: 20px;">
@@ -73,3 +73,4 @@ def mostrar_bienvenida():
     
     # Tip dinámico para mejorar la UX
     st.info("💡 **Consejo del Tutor:** Si estás preparando el próximo parcial, te recomendamos iniciar con el modo **'Autoevaluación'** centrándote en los temas de **ED de Orden Superior**.")
+
