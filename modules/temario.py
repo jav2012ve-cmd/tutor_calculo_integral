@@ -71,6 +71,8 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
     3. NO incluyas notas aclaratorias o pistas en el enunciado. Sé directo y riguroso.
     4. ALEATORIEDAD TOTAL: La respuesta correcta DEBE estar distribuida equitativamente entre A, B, C y D. 
        No permitas que la mayoría de las respuestas sean A o B.
+    5. Si el ejercicio es de tipo 'PLANTEAR' (como áreas, volúmenes, excedentes o integrales dobles), las 4 opciones de respuesta (A, B, C, D) deben ser expresiones matemáticas de integrales. 
+        Tres de ellas deben tener errores comunes de planteamiento (límites invertidos, signos erróneos, funciones restadas en orden incorrecto) y una debe ser el planteamiento correcto
     
     TEMAS A EVALUAR: 
     {', '.join(temas_seleccionados)}.
@@ -93,3 +95,4 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
     ]
 
     """
+
