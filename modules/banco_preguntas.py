@@ -530,31 +530,55 @@ BANCO_FIXED = [
         ],
         "respuesta_correcta": r"A) $\int_{1}^{5} \frac{1}{2}e^{-x/2} dx$",
         "explicacion": r"La probabilidad en un intervalo $[a, b]$ para una PDF es siempre la integral definida de la función en dicho intervalo."
+    },     
+    {
+        "tema": "1.2.4 Funciones de Distribución de probabilidad",
+        "pregunta": r"Sea $f(x)$ una PDF definida en $[0, 10]$. Plantee la integral para la probabilidad del evento: '$x$ es menor a 3 **O** mayor a 7' (o inclusivo):",
+        "opciones": [
+            r"A) $\int_{0}^{3} f(x) dx + \int_{7}^{10} f(x) dx$",
+            r"B) $\int_{3}^{7} f(x) dx$",
+            r"C) $\int_{0}^{10} f(x) dx - (\int_{0}^{3} f(x) dx + \int_{7}^{10} f(x) dx)$",
+            r"D) $\int_{3}^{10} f(x) dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{0}^{3} f(x) dx + \int_{7}^{10} f(x) dx$",
+        "explicacion": r"El conector 'o' inclusivo en eventos disjuntos (como $x<3$ y $x>7$) se traduce como la suma de las áreas de ambos intervalos."
     },
     {
         "tema": "1.2.4 Funciones de Distribución de probabilidad",
-        "pregunta": r"Si una variable aleatoria tiene una PDF definida por tramos: $f(x) = \frac{1}{4}$ para $x \in [0, 4]$ y $0$ en otro caso. ¿Cuál es el planteamiento correcto para la probabilidad acumulada $F(2)$?:",
+        "pregunta": r"Dada una PDF $f(x)$ en el intervalo $[0, 5]$, plantee la probabilidad del evento '$x$ es menor a 4 **Y** mayor a 1':",
         "opciones": [
-            r"A) $\int_{0}^{2} \frac{1}{4} dx$",
-            r"B) $\int_{0}^{4} \frac{1}{4} dx$",
-            r"C) $\int_{2}^{4} \frac{1}{4} dx$",
-            r"D) $\frac{1}{4} \cdot 2$"
+            r"A) $\int_{1}^{4} f(x) dx$",
+            r"B) $\int_{0}^{1} f(x) dx + \int_{4}^{5} f(x) dx$",
+            r"C) $\int_{0}^{4} f(x) dx \cdot \int_{1}^{5} f(x) dx$",
+            r"D) $\int_{0}^{5} f(x) dx$"
         ],
-        "respuesta_correcta": r"A) $\int_{0}^{2} \frac{1}{4} dx$",
-        "explicacion": r"La función de distribución acumulada $F(x)$ se define como la integral desde el límite inferior hasta el punto pedido: $\int_{-\infty}^{x} f(t) dt$."
+        "respuesta_correcta": r"A) $\int_{1}^{4} f(x) dx$",
+        "explicacion": r"El conector 'y' representa la intersección de los intervalos $x \in [0, 4]$ y $x \in [1, 5]$, lo que resulta en el intervalo común $[1, 4]$."
     },
     {
         "tema": "1.2.4 Funciones de Distribución de probabilidad",
-        "pregunta": r"Para la función $f(x) = \frac{3}{8}x^2$ en $x \in [0, 2]$, calcule la Esperanza Matemática $E[X]$:",
+        "pregunta": r"Sea $f(x) = \frac{1}{5}$ para $x \in [0, 5]$. Calcule la probabilidad del evento '$x \leq 2$ **O** $x \geq 4$':",
         "opciones": [
-            r"A) $1.5$",
-            r"B) $1.0$",
-            r"C) $2.0$",
-            r"D) $0.75$"
+            r"A) $0.60$",
+            r"B) $0.40$",
+            r"C) $0.20$",
+            r"D) $0.80$"
         ],
-        "respuesta_correcta": r"A) $1.5$",
-        "explicacion": r"$E[X] = \int_{0}^{2} x \cdot f(x) dx = \int_{0}^{2} \frac{3}{8}x^3 dx = \frac{3}{8} [\frac{x^4}{4}]_0^2 = \frac{3}{8} \cdot 4 = 1.5$."
-    },  
+        "respuesta_correcta": r"A) $0.60$",
+        "explicacion": r"Calculamos $P(x \leq 2) = \int_{0}^{2} \frac{1}{5} dx = 0.4$ y $P(x \geq 4) = \int_{4}^{5} \frac{1}{5} dx = 0.2$. Al ser eventos disjuntos, sumamos: $0.4 + 0.2 = 0.6$."
+    },
+    {
+        "tema": "1.2.4 Funciones de Distribución de probabilidad",
+        "pregunta": r"Para una PDF en $[a, b]$, el evento 'O exclusivo' entre dos intervalos $A$ y $B$ ($A \triangle B$) se plantea matemáticamente como:",
+        "opciones": [
+            r"A) $P(A \cup B) - P(A \cap B)$",
+            r"B) $P(A) + P(B)$",
+            r"C) $P(A \cap B)$",
+            r"D) $1 - P(A \cup B)$"
+        ],
+        "respuesta_correcta": r"A) $P(A \cup B) - P(A \cap B)$",
+        "explicacion": r"El 'o exclusivo' incluye los elementos que están en A o en B, pero no en ambos simultáneamente (diferencia simétrica)."
+    },
     
     # --- INTEGRALES DOBLES ---
     {
@@ -1287,4 +1311,5 @@ def obtener_preguntas_fijas(temas_solicitados, cantidad):
     num_a_seleccionar = min(len(candidatas), cantidad)
 
     return random.sample(candidatas, num_a_seleccionar)
+
 
