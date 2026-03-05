@@ -6,7 +6,14 @@ def configurar_gemini():
         genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
         return True
     else:
-        st.error("⚠️ Falta la API Key. Configúrala en los Secrets.")
+        st.error(
+            "⚠️ **Falta la API Key de Google (Gemini).**\n\n"
+            "Para que el tutor funcione, configura la clave:\n\n"
+            "• **En local:** crea el archivo `.streamlit/secrets.toml` con:\n"
+            "  `GOOGLE_API_KEY = \"tu-clave-aqui\"`\n\n"
+            "• **En Streamlit Cloud:** en la app → Settings → Secrets, añade `GOOGLE_API_KEY`.\n\n"
+            "Obtén la clave en [Google AI Studio](https://aistudio.google.com/apikey)."
+        )
         return False
 
 def obtener_modelo_robusto():

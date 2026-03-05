@@ -10,12 +10,12 @@ TEMAS_PARCIAL_1 = [
     "1.2.1 Áreas entre curvas",
     "1.2.2 Excedentes del consumidor y productor",
     "1.2.3 Integrales Impropias",
-    "1.2.4 Funciones de Distribución de probabilidad"
+    "1.2.3.1 Funciones de Distribución de probabilidad"
 ]
 
 TEMAS_PARCIAL_2 = [
-    "1.2.5 Volúmenes de Sólidos de Revolución",
-    "1.2.6 Integrales Dobles",
+    "1.2.4 Volúmenes de Sólido de Revolución",
+    "1.2.5 Integrales Dobles",
     "2.1.1 ED 1er Orden: Separación de Variables",
     "2.1.2 ED 1er Orden: Homogéneas",
     "2.1.3 ED 1er Orden: Exactas",

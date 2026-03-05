@@ -181,6 +181,41 @@ def generar_respuesta_tutor_abierto(pregunta_usuario, historial_previo):
     if response:
         return response.text
     return "Lo siento, tuve un problema pensando la respuesta."
+
+def _sanitizar_para_pdf(texto):
+    """Reduce LaTeX y caracteres especiales para PDF legible (fuente estándar)."""
+    if not texto:
+        return ""
+    t = texto.replace("$$", "").replace("$", "").strip()
+    t = t.replace("\\frac", " frac ").replace("\\int", " int ").replace("\\ln", " ln ")
+    for c, r in [("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u"), ("ñ", "n"), ("¿", "?"), ("¡", "")]:
+        t = t.replace(c, r).replace(c.upper(), r.upper())
+    return t[:500] if len(t) > 500 else t  # evitar celdas enormes
+
+def generar_pdf_informe_quiz(respuestas_usuario, nota_final):
+    """Genera bytes del PDF con calificación y detalle del examen."""
+    from fpdf import FPDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Helvetica", size=14)
+    pdf.cell(0, 10, "Informe de evaluacion - Matematicas III (Economia UCAB)", ln=True)
+    pdf.set_font("Helvetica", size=11)
+    pdf.cell(0, 8, f"Calificacion final: {nota_final} / 20 pts", ln=True)
+    pdf.cell(0, 8, "Aprobado." if nota_final >= 10 else "No aprobado.", ln=True)
+    pdf.ln(4)
+    for i, r in enumerate(respuestas_usuario, 1):
+        pdf.set_font("Helvetica", "B", size=10)
+        pts = r.get("puntos", 0)
+        pdf.cell(0, 6, f"Pregunta {i} ({pts} pts)", ln=True)
+        pdf.set_font("Helvetica", size=9)
+        pdf.multi_cell(0, 5, _sanitizar_para_pdf(r.get("pregunta", "")))
+        pdf.cell(0, 4, "Tu respuesta: " + _sanitizar_para_pdf(r.get("elegida", "")), ln=True)
+        if not r.get("es_correcta", True):
+            pdf.cell(0, 4, "Correcta: " + _sanitizar_para_pdf(r.get("correcta", "")), ln=True)
+        pdf.cell(0, 4, "Comentario: " + _sanitizar_para_pdf(r.get("explicacion", "")), ln=True)
+        pdf.ln(2)
+    return pdf.output()
+
 # --- 2. GESTIÓN DE ESTADO ---
 if "quiz_activo" not in st.session_state: st.session_state.quiz_activo = False
 if "preguntas_quiz" not in st.session_state: st.session_state.preguntas_quiz = []
@@ -682,7 +717,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
             with col_nota_top:
                 st.metric("Calificación Final", f"{nota_final} / 20 pts")
             with col_info_top:
-                st.info("💡 **Recordatorio:** Presiona `Ctrl + P` para guardar.")
+                st.info("💡 Puedes **descargar el informe en PDF** con tu calificación y comentarios al final de esta página.")
 
             st.divider()
             st.subheader("📄 Detalle del Examen")
@@ -713,11 +748,22 @@ elif ruta == "c) Autoevaluación (Quiz)":
             
             st.divider()
 
-            if st.button("🔄 Comenzar Nuevo Examen", type="primary"):
-                st.session_state.quiz_activo = False
-                st.session_state.indice_pregunta = 0
-                st.session_state.respuestas_usuario = []
-                st.rerun()
+            col_pdf, col_nuevo = st.columns(2)
+            with col_pdf:
+                pdf_bytes = generar_pdf_informe_quiz(st.session_state.respuestas_usuario, nota_final)
+                st.download_button(
+                    "📥 Descargar informe (PDF)",
+                    data=pdf_bytes,
+                    file_name=f"informe_quiz_{str(nota_final).replace('.', '_')}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True
+                )
+            with col_nuevo:
+                if st.button("🔄 Comenzar Nuevo Examen", type="primary", use_container_width=True):
+                    st.session_state.quiz_activo = False
+                    st.session_state.indice_pregunta = 0
+                    st.session_state.respuestas_usuario = []
+                    st.rerun()
 # =======================================================
 # LÓGICA D: TUTOR PREGUNTAS ABIERTAS (NUEVO)
 # =======================================================
