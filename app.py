@@ -71,11 +71,12 @@ def preparar_latex_para_streamlit(texto: Optional[str]) -> str:
     def wrap_frac(m):
         return f"$\\frac{{{m.group(1)}}}{{{m.group(2)}}}$"
     t = re.sub(r"(?<!\$)\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)", wrap_frac, t)
-    # Evitar bad escape en reemplazo (Python 3.13): usar función en vez de r"$\\cdot$"
-    t = re.sub(r"(?<!\$)\\\cdot(?!\$)", lambda _: "$\\cdot$", t)
+    # Python 3.13: \c en el patrón es bad escape; construir patrón sin \cdot
+    t = re.sub(r"(?<!\$)\\" + "cdot" + r"(?!\$)", lambda _: "$\\cdot$", t)
     def wrap_sqrt(m):
         return f"$\\sqrt{{{m.group(1)}}}$"
-    t = re.sub(r"(?<!\$)\\\sqrt\{([^{}]+)\}(?!\$)", wrap_sqrt, t)
+    # Evitar \s en patrón como escape: buscar backslash + "sqrt"
+    t = re.sub(r"(?<!\$)\\" + "sqrt" + r"\{([^{}]+)\}(?!\$)", wrap_sqrt, t)
     # Líneas que son claramente ecuación: envolver en $$ para display math
     lineas = t.split("\n")
     result = []
