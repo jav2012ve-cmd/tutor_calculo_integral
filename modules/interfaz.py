@@ -49,10 +49,27 @@ def mostrar_sidebar():
 
 def mostrar_bienvenida():
     st.title("Matemáticas III - Economía UCAB")
+    
     st.markdown("""
-    <div style="background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #00aeef;">
-        <h4>👋 Bienvenidos al curso</h4>
-        <p>Centrado en: <strong>Cálculo Integral</strong> y <strong>Ecuaciones Diferenciales</strong>.</p>
+    <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
+        <h4 style="margin-top: 0; color: #0e1117;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
+        <p style="color: #31333f;">Este ecosistema académico está diseñado para fortalecer el dominio de las herramientas matemáticas básicas relacionadas con cálculo integral y ecuaciones diferencial para tu formación como economista. Nos enfocamos en dos pilares:</p>
+        <ul style="margin-bottom: 10px; color: #31333f;">
+            <li><strong>Cálculo Integral:</strong> Métodos de integración integral definida y sus aplicaciones excedentes, áreas, volúmenes de sólidos y probabilidad.</li>
+            <li><strong>Ecuaciones Diferenciales (ED):</strong> De primer orden, de orden superior. Modelos de crecimiento natural, Ley de enfriamiento de Newton, estabilidad de precios y ciclos económicos.</li>
+        </ul>
     </div>
-    <hr>
+    
+    ### 🛠️ ¿Qué hay de nuevo?
+    **¡Hemos optimizado el motor de ejercicios!** Te invitamos a explorar los ajustes de precisión que incorporamos recientemente:
+    
+    * **Refinamiento en ED Homogéneas:** Se aumentó el número de problemas modelo.
+    * **Ecuaciones Lineas y De Bernoulli:** Se aumentó el número de ejercicios modelo.
+    * **Modelos de Primer Orden:** Se incorporaron modelos económicos, físicos y biológicos de primer orden.
+    * **Contexto Bio-Económico:** Nuevos reactivos sobre dinámicas de población limitada y equilibrio de mercado.
+    
+    <hr style="margin-top: 20px; margin-bottom: 20px;">
     """, unsafe_allow_html=True)
+    
+    # Tip dinámico para mejorar la UX
+    st.info("💡 **Consejo del Profesor:** Si estás preparando el segundo parcial, te recomendamos iniciar con el modo **'Autoevaluación'** centrándote en cada tema por separado. Usando la opción **'Personalizado'**.")

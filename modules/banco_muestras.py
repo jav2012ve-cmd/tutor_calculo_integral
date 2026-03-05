@@ -23,7 +23,7 @@ Instrucción: NO LA RESUELVA, solo llegue hasta la expresión simplificada en $z
 Integral:
 $$ \int_{-2}^{1} (1-x) x^2 \sqrt{2-x^3} dx $$"
 
-EJEMPLO 4:
+EJEMPLO 4: 
 "Sea la función $f(x) = x e^{-x}$ definida para $x \in [0, \infty)$.
 1. Confirme matemáticamente si es una función de densidad de probabilidad (PDF).
 2. Calcule la probabilidad $P(x \geq 2 \vee x \leq 5)$."

@@ -190,7 +190,7 @@ def _sanitizar_para_pdf(texto):
     t = t.replace("\\frac", " frac ").replace("\\int", " int ").replace("\\ln", " ln ")
     for c, r in [("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u"), ("ñ", "n"), ("¿", "?"), ("¡", "")]:
         t = t.replace(c, r).replace(c.upper(), r.upper())
-    return t[:500] if len(t) > 500 else t  # evitar celdas enormes
+    return t[:500] if len(t) > 500 else t
 
 def generar_pdf_informe_quiz(respuestas_usuario, nota_final):
     """Genera bytes del PDF con calificación y detalle del examen."""
