@@ -67,6 +67,13 @@ def preparar_latex_para_streamlit(texto: Optional[str]) -> str:
     # Quitar espaciado LaTeX que se muestra literal
     t = re.sub(r"\\\[\s*[\d.]*em\s*\]", " ", t)
     t = t.replace("$$$$", "$$").replace("\\\\", "\n")
+    # Envolver \sqrt, \int y \frac sueltos (no ya dentro de $) para render en Streamlit
+    def wrap_frac(m):
+        return f"$\\frac{{{m.group(1)}}}{{{m.group(2)}}}$"
+    t = re.sub(r"(?<!\$)\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)", wrap_frac, t)
+    t = re.sub(r"(?<!\$)\\\cdot(?!\$)", r"$\\cdot$", t)
+    # \sqrt{...} suelto
+    t = re.sub(r"(?<!\$)\\\sqrt\{([^{}]+)\}(?!\$)", r"$\\sqrt{\1}$", t)
     # Líneas que son claramente ecuación: envolver en $$ para display math
     lineas = t.split("\n")
     result = []
@@ -75,19 +82,12 @@ def preparar_latex_para_streamlit(texto: Optional[str]) -> str:
         if not linea:
             result.append("")
             continue
-        # Si la línea empieza o contiene \int, \frac, \left y no está ya entre $$
         if ("$" not in linea or linea.count("$") % 2 != 0) and (
-            "\\int" in linea or "\\frac" in linea or "\\left" in linea or "\\right" in linea
+            "\\int" in linea or "\\frac" in linea or "\\left" in linea or "\\right" in linea or "\\sqrt" in linea
         ):
-            # Escapar posibles $ interiores y envolver toda la línea
             linea = linea.replace("$$", "")
             result.append(f"$${linea}$$")
         else:
-            # Envolver \frac{...}{...} sueltos
-            def wrap_frac(m):
-                return f"$\\frac{{{m.group(1)}}}{{{m.group(2)}}}$"
-            linea = re.sub(r"(?<!\$)\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)", wrap_frac, linea)
-            linea = re.sub(r"(?<!\$)\\\cdot(?!\$)", r"$\\cdot$", linea)
             result.append(linea)
     t = "\n".join(result)
     return t.strip()
@@ -689,20 +689,18 @@ elif ruta == "c) Autoevaluación (Quiz)":
             st.markdown("#### " + preparar_latex_para_streamlit(pregunta_data["pregunta"]))
             st.divider()
             
-            # 2. RENDERIZADO DE LAS OPCIONES (VISUAL)
-            # Esto corrige el problema de LaTeX en los radio buttons.
-            # Mostramos las opciones formateadas con Markdown primero.
+            # 2. RENDERIZADO DE LAS OPCIONES (VISUAL) — LaTeX renderizado como fórmula
             st.write("Opciones:")
             col_ops = st.columns(2)
-            opciones_completas = pregunta_data['opciones']
-            
+            opciones_completas = pregunta_data["opciones"]
+
             for i, opcion_texto in enumerate(opciones_completas):
-                # Extraemos la letra si existe formato "A) ..." para negrita
                 if ")" in opcion_texto:
                     letra, resto = opcion_texto.split(")", 1)
+                    resto = preparar_latex_para_streamlit(resto.strip())
                     texto_mostrar = f"**{letra})** {resto}"
                 else:
-                    texto_mostrar = opcion_texto
+                    texto_mostrar = preparar_latex_para_streamlit(opcion_texto)
 
                 with col_ops[i % 2]:
                     st.markdown(texto_mostrar)

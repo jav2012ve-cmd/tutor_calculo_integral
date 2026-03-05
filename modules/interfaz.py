@@ -75,23 +75,23 @@ def mostrar_bienvenida():
     
     st.markdown("""
     <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
-        <h4 style="margin-top: 0; color: #0e1117;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
-        <p style="color: #31333f;">Este ecosistema está diseñado para fortalecer el dominio de <strong>Cálculo Integral</strong> y <strong>Ecuaciones Diferenciales</strong> en tu formación como economista. Dos pilares:</p>
-        <ul style="margin-bottom: 10px; color: #31333f;">
+        <h4 style="margin-top: 0; color: #0066cc;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
+        <p style="color: #0066cc;">Este ecosistema está diseñado para fortalecer el dominio de <strong>Cálculo Integral</strong> y <strong>Ecuaciones Diferenciales</strong> en tu formación como economista. Dos pilares:</p>
+        <ul style="margin-bottom: 10px; color: #0066cc;">
             <li><strong>Cálculo Integral:</strong> Métodos de integración, aplicaciones (excedentes, áreas, volúmenes, probabilidad).</li>
             <li><strong>Ecuaciones Diferenciales:</strong> Primer orden, orden superior; modelos de crecimiento, enfriamiento de Newton, estabilidad y ciclos económicos.</li>
         </ul>
     </div>
     
-    ### 🛠️ Mejoras recientes
-    Hemos actualizado el tutor para que aproveches mejor el contenido y la evaluación:
-    
-    * **Temario y banco alineados** por tema; numeración unificada para filtrar bien por parcial.
-    * **Informe en PDF** al terminar la autoevaluación: descarga tu calificación y las explicaciones de cada pregunta.
-    * **Tutor de preguntas abiertas** con historial limitado para respuestas más estables; aviso cuando la conversación es larga.
-    * **Mejor visualización de fórmulas** en preguntas y explicaciones (LaTeX corregido).
-    * **Ayuda en el menú:** en el lateral puedes abrir **📖 Ayuda / Modos** para ver qué hace cada modo. Al cambiar de modo se reinicia el estado para evitar datos residuales.
-    
+    <p style="color: #0066cc;"><strong>🛠️ Mejoras recientes</strong><br>
+    Hemos actualizado el tutor para que aproveches mejor el contenido y la evaluación:</p>
+    <ul style="color: #0066cc;">
+        <li><strong>Temario y banco alineados</strong> por tema; numeración unificada para filtrar bien por parcial.</li>
+        <li><strong>Informe en PDF</strong> al terminar la autoevaluación: descarga tu calificación y las explicaciones de cada pregunta.</li>
+        <li><strong>Tutor de preguntas abiertas</strong> con historial limitado; aviso cuando la conversación es larga.</li>
+        <li><strong>Fórmulas (LaTeX)</strong> corregidas en preguntas, opciones y explicaciones.</li>
+        <li><strong>Ayuda en el menú:</strong> abre 📖 Ayuda / Modos en el lateral. Al cambiar de modo se reinicia el estado.</li>
+    </ul>
     <hr style="margin-top: 20px; margin-bottom: 20px;">
     """, unsafe_allow_html=True)
     
