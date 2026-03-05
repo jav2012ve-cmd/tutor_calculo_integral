@@ -38,3 +38,10 @@ streamlit run app.py
 - **Respuesta guiada:** subes foto o texto de un ejercicio y el tutor te guía.
 - **Autoevaluación (Quiz):** simulacro de parcial (Primer, Segundo o temas personalizados).
 - **Tutor preguntas abiertas:** chat sobre teoría y ejercicios de la cátedra.
+
+## Tests (opcional)
+
+```bash
+pip install pytest
+python -m pytest tests/ -v
+```

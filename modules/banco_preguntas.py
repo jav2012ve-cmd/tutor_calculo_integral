@@ -413,12 +413,12 @@ BANCO_FIXED = [
         "tema": "1.2.3 Integrales Impropias",
         "pregunta": r"Convergencia de $\int_{0}^{\infty} x^2 e^{-x} dx$:",
         "opciones": [
-            r"A) Converge a 2$",
+            r"A) Converge a $2$",
             r"B) Converge a 1$",
             r"C) Diverge$",
             r"D) Converge a 0$"
         ],
-        "respuesta_correcta": r"A) Converge a 2$",
+        "respuesta_correcta": r"A) Converge a $2$",
         "explicacion": r"Es $\Gamma(3) = 2!$."
     },
     {

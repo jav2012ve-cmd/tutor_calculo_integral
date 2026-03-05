@@ -1,9 +1,22 @@
-import streamlit as st
+from __future__ import annotations
+
 import json
+import re
 import time
-import re   
+from typing import Any, List, Optional, Union
+
+import streamlit as st
 from PIL import Image
+
 from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras
+
+# --- CONFIGURACIÓN CENTRALIZADA ---
+NUM_EJERCICIOS_ENTRENAMIENTO = 5
+NUM_PREGUNTAS_QUIZ = 5
+INTENTOS_MAX_IA = 3
+MULTIPLICADOR_ESPERA_429 = 4  # segundos por intento ante error 429
+MAX_MENSAJES_HISTORIAL_TUTOR = 10  # últimos N mensajes para contexto IA
+AVISO_HISTORIAL_LARGO = 20  # si hay más mensajes, mostrar aviso
 
 # --- 1. CONFIGURACIÓN INICIAL ---
 interfaz.configurar_pagina()
@@ -17,11 +30,16 @@ model, nombre_modelo = ia_core.iniciar_modelo()
 # FUNCIONES DE SEGURIDAD Y UTILIDADES
 # =======================================================
 
-def generar_contenido_seguro(prompt_parts, intentos_max=3):
+def generar_contenido_seguro(
+    prompt_parts: Union[str, list],
+    intentos_max: Optional[int] = None,
+) -> Optional[Any]:
     """
-    Intenta llamar a la IA con texto o imágenes. 
+    Intenta llamar a la IA con texto o imágenes.
     Soporta lista de partes (prompt + imagen) o solo texto.
     """
+    if intentos_max is None:
+        intentos_max = INTENTOS_MAX_IA
     errores_recientes = ""
     for i in range(intentos_max):
         try:
@@ -29,7 +47,7 @@ def generar_contenido_seguro(prompt_parts, intentos_max=3):
         except Exception as e:
             errores_recientes = str(e)
             if "429" in str(e):
-                tiempo_espera = 4 * (i + 1)
+                tiempo_espera = MULTIPLICADOR_ESPERA_429 * (i + 1)
                 st.toast(f"🚦 Tráfico alto. Reintentando en {tiempo_espera}s...", icon="⏳")
                 time.sleep(tiempo_espera)
             else:
@@ -38,9 +56,46 @@ def generar_contenido_seguro(prompt_parts, intentos_max=3):
     st.error(f"❌ Error de conexión: {errores_recientes}")
     return None
 
-def limpiar_json(texto):
+def preparar_latex_para_streamlit(texto: Optional[str]) -> str:
+    """
+    Sanea texto con LaTeX para que Streamlit lo renderice bien.
+    Quita literales molestos, envuelve \\frac/\\int/\\left en math y líneas que son solo ecuación en $$.
+    """
+    if not texto:
+        return ""
+    t = texto
+    # Quitar espaciado LaTeX que se muestra literal
+    t = re.sub(r"\\\[\s*[\d.]*em\s*\]", " ", t)
+    t = t.replace("$$$$", "$$").replace("\\\\", "\n")
+    # Líneas que son claramente ecuación: envolver en $$ para display math
+    lineas = t.split("\n")
+    result = []
+    for linea in lineas:
+        linea = linea.strip()
+        if not linea:
+            result.append("")
+            continue
+        # Si la línea empieza o contiene \int, \frac, \left y no está ya entre $$
+        if ("$" not in linea or linea.count("$") % 2 != 0) and (
+            "\\int" in linea or "\\frac" in linea or "\\left" in linea or "\\right" in linea
+        ):
+            # Escapar posibles $ interiores y envolver toda la línea
+            linea = linea.replace("$$", "")
+            result.append(f"$${linea}$$")
+        else:
+            # Envolver \frac{...}{...} sueltos
+            def wrap_frac(m):
+                return f"$\\frac{{{m.group(1)}}}{{{m.group(2)}}}$"
+            linea = re.sub(r"(?<!\$)\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)", wrap_frac, linea)
+            linea = re.sub(r"(?<!\$)\\\cdot(?!\$)", r"$\\cdot$", linea)
+            result.append(linea)
+    t = "\n".join(result)
+    return t.strip()
+
+def limpiar_json(texto: Optional[str]) -> Optional[Any]:
     """
     Limpieza quirúrgica para respuestas con LaTeX.
+    Devuelve dict o list si parsea correctamente; None en caso contrario.
     """
     if not texto: return None
     texto = texto.replace("```json", "").replace("```", "").strip()
@@ -63,8 +118,8 @@ def limpiar_json(texto):
         except:
              return None
 
-def generar_tutor_paso_a_paso(pregunta_texto, tema):
-    """ Genera la tutoría para el modo Entrenamiento (Banco/IA) """
+def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
+    """Genera la tutoría para el modo Entrenamiento (Banco/IA)."""
     prompt = f"""
     Actúa como un profesor experto de cálculo. Para el siguiente ejercicio de {tema}:
     "{pregunta_texto}"
@@ -89,10 +144,13 @@ def generar_tutor_paso_a_paso(pregunta_texto, tema):
         return limpiar_json(response.text)
     return None
 
-def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
+def analizar_problema_usuario(
+    texto_usuario: Optional[str],
+    imagen_usuario: Any = None,
+) -> Optional[dict]:
     """
-    Analiza un problema subido por el alumno (Texto o Imagen).
-    Distingue entre Integrales/EDO (Rígido) y Aplicaciones (Flexible).
+    Analiza un problema subido por el alumno (texto o imagen).
+    Distingue entre Integrales/EDO (rígido) y Aplicaciones (flexible).
     """
     prompt_base = """
     Actúa como un Tutor Experto de Matemáticas III.
@@ -134,9 +192,12 @@ def analizar_problema_usuario(texto_usuario, imagen_usuario=None):
     if response:
         return limpiar_json(response.text)
     return None
-def generar_respuesta_tutor_abierto(pregunta_usuario, historial_previo):
+def generar_respuesta_tutor_abierto(
+    pregunta_usuario: str,
+    historial_previo: str,
+) -> str:
     """
-    NUEVA FUNCIÓN: Tutor de Preguntas Abiertas.
+    Tutor de Preguntas Abiertas.
     Usa el contexto de banco_muestras y banco_preguntas para personalizar la respuesta.
     """
     # 1. Construimos el contexto (tomamos una muestra para no saturar)
@@ -182,7 +243,7 @@ def generar_respuesta_tutor_abierto(pregunta_usuario, historial_previo):
         return response.text
     return "Lo siento, tuve un problema pensando la respuesta."
 
-def _sanitizar_para_pdf(texto):
+def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     """Reduce LaTeX y caracteres especiales para PDF legible (fuente estándar)."""
     if not texto:
         return ""
@@ -192,7 +253,10 @@ def _sanitizar_para_pdf(texto):
         t = t.replace(c, r).replace(c.upper(), r.upper())
     return t[:500] if len(t) > 500 else t
 
-def generar_pdf_informe_quiz(respuestas_usuario, nota_final):
+def generar_pdf_informe_quiz(
+    respuestas_usuario: List[dict],
+    nota_final: float,
+) -> Union[bytes, bytearray]:
     """Genera bytes del PDF con calificación y detalle del examen."""
     from fpdf import FPDF
     pdf = FPDF()
@@ -214,7 +278,8 @@ def generar_pdf_informe_quiz(respuestas_usuario, nota_final):
             pdf.cell(0, 4, "Correcta: " + _sanitizar_para_pdf(r.get("correcta", "")), ln=True)
         pdf.cell(0, 4, "Comentario: " + _sanitizar_para_pdf(r.get("explicacion", "")), ln=True)
         pdf.ln(2)
-    return pdf.output()
+    out = pdf.output()
+    return bytes(out) if not isinstance(out, bytes) else out
 
 # --- 2. GESTIÓN DE ESTADO ---
 if "quiz_activo" not in st.session_state: st.session_state.quiz_activo = False
@@ -252,7 +317,7 @@ if ruta == "a) Entrenamiento (Temario)":
             placeholder="Ej. Ecuaciones Diferenciales Lineales..."
         )
 
-        if st.button("⚡ Iniciar Sesión (5 Ejercicios)", type="primary", use_container_width=True):
+        if st.button(f"⚡ Iniciar Sesión ({NUM_EJERCICIOS_ENTRENAMIENTO} Ejercicios)", type="primary", use_container_width=True):
             if not temas_entrenamiento:
                 st.error("⚠️ Selecciona al menos un tema.")
             else:
@@ -271,7 +336,7 @@ if ruta == "a) Entrenamiento (Temario)":
                             print(f"Aviso: Banco no disponible {e}")
 
                         # 2. Generación IA (Protegida)
-                        faltantes = 5 - len(lista_entrenamiento)
+                        faltantes = NUM_EJERCICIOS_ENTRENAMIENTO - len(lista_entrenamiento)
                         if faltantes > 0:
                             prompt_train = temario.generar_prompt_quiz(temas_entrenamiento, faltantes)
                             respuesta_ia = generar_contenido_seguro(prompt_train)
@@ -282,10 +347,10 @@ if ruta == "a) Entrenamiento (Temario)":
                                     lista_entrenamiento.extend(preguntas_ia)
                         
                         if not lista_entrenamiento:
-                            st.error("No se encontraron preguntas. Intenta con otro tema.")
+                            st.error("No se encontraron preguntas. No se pudo interpretar la respuesta de la IA; intenta con otro tema o de nuevo.")
                         else:
                             random.shuffle(lista_entrenamiento)
-                            st.session_state.entrenamiento_lista = lista_entrenamiento[:5]
+                            st.session_state.entrenamiento_lista = lista_entrenamiento[:NUM_EJERCICIOS_ENTRENAMIENTO]
                             st.session_state.entrenamiento_idx = 0
                             st.session_state.entrenamiento_step = 1
                             st.session_state.entrenamiento_data_ia = None
@@ -307,9 +372,9 @@ if ruta == "a) Entrenamiento (Temario)":
         if idx < len(lista):
             ejercicio = lista[idx]
             
-            st.progress((idx + 1) / 5, text=f"Ejercicio {idx + 1} de 5")
+            st.progress((idx + 1) / NUM_EJERCICIOS_ENTRENAMIENTO, text=f"Ejercicio {idx + 1} de {NUM_EJERCICIOS_ENTRENAMIENTO}")
             st.markdown(f"**Tema:** `{ejercicio.get('tema', 'General')}`")
-            st.markdown(f"### {ejercicio['pregunta']}")
+            st.markdown("### " + preparar_latex_para_streamlit(ejercicio["pregunta"]))
             st.divider()
 
             # --- LLAMADA A LA IA TUTOR ---
@@ -320,7 +385,7 @@ if ruta == "a) Entrenamiento (Temario)":
                         st.session_state.entrenamiento_data_ia = datos_tutor
                         st.rerun()
                     else:
-                        st.error("Error conectando con el tutor IA. Saltando ejercicio.")
+                        st.error("No se pudo interpretar la respuesta del tutor. Saltando ejercicio; puedes continuar con el siguiente.")
                         st.session_state.entrenamiento_idx += 1
                         time.sleep(2)
                         st.rerun()
@@ -387,7 +452,7 @@ if ruta == "a) Entrenamiento (Temario)":
                 st.success(f"$$ {latex_final} $$")
                 
                 with st.expander("Ver explicación completa"):
-                    st.write(ejercicio.get('explicacion', 'Procedimiento estándar aplicado correctamente.'))
+                    st.markdown(preparar_latex_para_streamlit(ejercicio.get("explicacion", "Procedimiento estándar aplicado correctamente.")))
 
                 if st.button("Siguiente Ejercicio ➡️", type="primary", key=f"btn_next_{idx}"):
                     st.session_state.entrenamiento_idx += 1
@@ -425,19 +490,18 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
                 exito_analisis = False
                 with st.spinner("🤖 Analizando el tipo de problema..."):
                     try:
-                        # Procesar imagen si existe
-                        img_pil = Image.open(imagen_subida) if imagen_subida else None
-                        
-                        # Llamada a la IA con la función de análisis
-                        datos_problema = analizar_problema_usuario(texto_subido, img_pil)
-                        
+                        # Solo abrir imagen si el usuario subió un archivo (flujo texto-only no usa imagen)
+                        img_pil = None
+                        if imagen_subida:
+                            img_pil = Image.open(imagen_subida)
+                        datos_problema = analizar_problema_usuario(texto_subido or None, img_pil)
                         if datos_problema:
                             st.session_state.consulta_data = datos_problema
                             st.session_state.consulta_step = 1
                             st.session_state.consulta_validada = False
                             exito_analisis = True
                         else:
-                            st.error("No pude entender el problema. Intenta mejorar la foto o el texto.")
+                            st.error("No se pudo interpretar la respuesta del tutor. Intenta de nuevo con otra redacción o imagen más clara.")
                     except Exception as e:
                         st.error(f"Error técnico: {e}")
                 
@@ -539,13 +603,13 @@ elif ruta == "c) Autoevaluación (Quiz)":
         with col1:
             if st.button("🏆 Generar Primer Parcial (Simulacro)", use_container_width=True):
                 st.session_state.config_temas = temario.TEMAS_PARCIAL_1
-                st.session_state.config_cant = 5 
+                st.session_state.config_cant = NUM_PREGUNTAS_QUIZ 
                 st.session_state.trigger_quiz = True
                 st.rerun()
         with col2:
             if st.button("🏆 Generar Segundo Parcial (Simulacro)", use_container_width=True):
                 st.session_state.config_temas = temario.TEMAS_PARCIAL_2
-                st.session_state.config_cant = 5
+                st.session_state.config_cant = NUM_PREGUNTAS_QUIZ
                 st.session_state.trigger_quiz = True
                 st.rerun()
 
@@ -556,7 +620,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                     st.error("Selecciona tema.")
                 else:
                     st.session_state.config_temas = temas_custom
-                    st.session_state.config_cant = 5
+                    st.session_state.config_cant = NUM_PREGUNTAS_QUIZ
                     st.session_state.trigger_quiz = True
                     st.rerun()
 
@@ -594,7 +658,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                     lista_final_preguntas = lista_final_preguntas[:cantidad_total]
 
                     if not lista_final_preguntas:
-                         st.error("No se pudieron generar preguntas.")
+                         st.error("No se pudieron generar preguntas. No se pudo interpretar la respuesta de la IA; intenta de nuevo.")
                          st.session_state.trigger_quiz = False
                     else:
                         st.session_state.preguntas_quiz = lista_final_preguntas
@@ -622,7 +686,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
             st.progress((actual) / total, text=f"Pregunta {actual + 1} de {total}")
             
             # 1. RENDERIZADO DE LA PREGUNTA
-            st.markdown(f"#### {pregunta_data['pregunta']}")
+            st.markdown("#### " + preparar_latex_para_streamlit(pregunta_data["pregunta"]))
             st.divider()
             
             # 2. RENDERIZADO DE LAS OPCIONES (VISUAL)
@@ -697,7 +761,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                     st.error(f"❌ Incorrecto. La correcta era: {ultimo_dato['correcta']}")
                 
                 with st.expander("💡 Ver Explicación", expanded=True):
-                    st.write(ultimo_dato['explicacion'])
+                    st.markdown(preparar_latex_para_streamlit(ultimo_dato["explicacion"]))
                 
                 if st.button("Siguiente Pregunta ➡️", type="primary"):
                     st.session_state.indice_pregunta += 1
@@ -724,7 +788,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
 
             for i, r in enumerate(st.session_state.respuestas_usuario):
                 st.markdown(f"#### 🔹 Pregunta {i+1} ({r['puntos']} pts)")
-                st.markdown(r['pregunta']) 
+                st.markdown(preparar_latex_para_streamlit(r["pregunta"])) 
                 
                 col_res1, col_res2 = st.columns(2)
                 with col_res1:
@@ -738,7 +802,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                         st.warning(f"✔ **Correcta:** {r['correcta']}")
 
                 st.markdown("**📝 Explicación:**")
-                st.write(r['explicacion']) 
+                st.markdown(preparar_latex_para_streamlit(r["explicacion"])) 
                 st.markdown("---")
 
             st.markdown("### 🏁 Resumen Final")
@@ -751,6 +815,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
             col_pdf, col_nuevo = st.columns(2)
             with col_pdf:
                 pdf_bytes = generar_pdf_informe_quiz(st.session_state.respuestas_usuario, nota_final)
+                pdf_bytes = bytes(pdf_bytes) if isinstance(pdf_bytes, bytearray) else pdf_bytes
                 st.download_button(
                     "📥 Descargar informe (PDF)",
                     data=pdf_bytes,
@@ -770,32 +835,27 @@ elif ruta == "c) Autoevaluación (Quiz)":
 elif ruta == "d) Tutor: Preguntas Abiertas":
     st.markdown("### 💬 Preguntas Abiertas al Tutor")
     st.markdown("""
-    Haz cualquier pregunta teórica. El tutor te responderá **vinculando la teoría con 
+    Haz cualquier pregunta teórica. El tutor te responderá **vinculando la teoría con
     los ejercicios y estilos de examen** de nuestra cátedra.
     """)
 
-    # Mostrar historial de chat
+    if len(st.session_state.historial_tutor_abierto) > AVISO_HISTORIAL_LARGO:
+        st.info("💬 **Conversación larga.** Para respuestas más precisas, considera usar **Reiniciar** en el menú y empezar una nueva.")
+
     for mensaje in st.session_state.historial_tutor_abierto:
         with st.chat_message(mensaje["role"]):
             st.markdown(mensaje["content"])
 
-    # Input del usuario (Texto actualizado)
     if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de las ejercicios del profesor"):
-        # 1. Guardar y mostrar mensaje usuario
         st.session_state.historial_tutor_abierto.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # 2. Generar respuesta con la IA
         with st.chat_message("assistant"):
             with st.spinner("Consultando guías de la cátedra..."):
-                # Preparamos contexto del chat previo
-                historial_texto = "\n".join([f"{m['role']}: {m['content']}" for m in st.session_state.historial_tutor_abierto[-4:]])
-                
-                # Llamamos a la función del tutor (Asegúrate de haber hecho el PASO 2)
+                ultimos = st.session_state.historial_tutor_abierto[-MAX_MENSAJES_HISTORIAL_TUTOR:]
+                historial_texto = "\n".join([f"{m['role']}: {m['content']}" for m in ultimos])
                 respuesta_tutor = generar_respuesta_tutor_abierto(prompt, historial_texto)
-                
                 st.markdown(respuesta_tutor)
-                
-        # 3. Guardar respuesta asistente
+
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
