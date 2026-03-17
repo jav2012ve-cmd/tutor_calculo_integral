@@ -123,6 +123,14 @@ def limpiar_json(texto: Optional[str]) -> Optional[Any]:
 
 def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
     """Genera la tutoría para el modo Entrenamiento (Banco/IA)."""
+    regla_tema = ""
+    if "Integrales Directas" in (tema or ""):
+        regla_tema = """
+    RESTRICCIÓN DE CONTENIDO (CRÍTICO para este tema):
+    - El tema "Integrales Directas" es EXCLUSIVO de integrales INDEFINIDAS.
+    - NO uses integrales definidas: ni límites de integración (ej. \\int_a^b, \\int_0^1), ni "evalúe la integral definida", ni aplicación del teorema fundamental.
+    - Si el ejercicio que te pasan tiene integral definida, reescríbelo como integral INDEFINIDA equivalente (misma función a integrar, sin límites) o genera un ejercicio de integral indefinida acorde al tema.
+    """
     prompt = f"""
     Actúa como un profesor experto de cálculo. Para el siguiente ejercicio de {tema}:
     "{pregunta_texto}"
