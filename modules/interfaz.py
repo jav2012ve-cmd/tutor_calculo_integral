@@ -3,7 +3,7 @@ from modules.temario import LISTA_TEMAS
 
 def configurar_pagina():
     st.set_page_config(
-        page_title="Matemáticas III - Economía UCAB V 1.0",
+        page_title="Matemáticas III - Economía UCAB V 2.0",
         page_icon="📈",
         layout="wide"
     )
