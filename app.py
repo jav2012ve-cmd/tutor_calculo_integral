@@ -10,11 +10,19 @@ from typing import Any, List, Optional, Union
 import streamlit as st
 from PIL import Image
 
-# Asegura que el directorio donde vive `app.py` esté en sys.path,
-# así `import modules.*` funciona igual en Streamlit Cloud.
-HERE = os.path.dirname(os.path.abspath(__file__))
-if HERE not in sys.path:
-    sys.path.insert(0, HERE)
+# Asegura que la carpeta `modules/` esté en `sys.path` aunque Streamlit Cloud
+# ejecute desde una ubicación distinta (o "App location" no sea la raíz del repo).
+HERE = os.path.abspath(os.path.dirname(__file__))
+modules_parent = None
+for candidate in [HERE] + [os.path.abspath(os.path.join(HERE, os.pardir))] + [
+    os.path.abspath(os.path.join(HERE, os.pardir, os.pardir))
+]:
+    if os.path.isdir(os.path.join(candidate, "modules")):
+        modules_parent = candidate
+        break
+
+if modules_parent and modules_parent not in sys.path:
+    sys.path.insert(0, modules_parent)
 
 from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras, uso_stats
 
