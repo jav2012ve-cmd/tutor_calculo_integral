@@ -1,12 +1,20 @@
 from __future__ import annotations
 
 import json
+import os
 import re
+import sys
 import time
 from typing import Any, List, Optional, Union
 
 import streamlit as st
 from PIL import Image
+
+# Asegura que el directorio donde vive `app.py` esté en sys.path,
+# así `import modules.*` funciona igual en Streamlit Cloud.
+HERE = os.path.dirname(os.path.abspath(__file__))
+if HERE not in sys.path:
+    sys.path.insert(0, HERE)
 
 from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras, uso_stats
 
