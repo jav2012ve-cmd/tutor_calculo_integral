@@ -1,5 +1,5 @@
 from __future__ import annotations
-from modules import
+from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras, uso_stats
 import json
 import os
 import re
