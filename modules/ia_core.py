@@ -1,20 +1,29 @@
+import os
 import streamlit as st
 import google.generativeai as genai
 
 def configurar_gemini():
-    if "GOOGLE_API_KEY" in st.secrets:
-        genai.configure(api_key=st.secrets["GOOGLE_API_KEY"])
+    api_key = None
+    try:
+        if "GOOGLE_API_KEY" in st.secrets:
+            api_key = st.secrets["GOOGLE_API_KEY"]
+    except (Exception, FileNotFoundError):
+        pass
+    if not api_key:
+        api_key = os.environ.get("GOOGLE_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key)
         return True
-    else:
-        st.error(
-            "⚠️ **Falta la API Key de Google (Gemini).**\n\n"
-            "Para que el tutor funcione, configura la clave:\n\n"
-            "• **En local:** crea el archivo `.streamlit/secrets.toml` con:\n"
-            "  `GOOGLE_API_KEY = \"tu-clave-aqui\"`\n\n"
-            "• **En Streamlit Cloud:** en la app → Settings → Secrets, añade `GOOGLE_API_KEY`.\n\n"
-            "Obtén la clave en [Google AI Studio](https://aistudio.google.com/apikey)."
-        )
-        return False
+    st.error(
+        "⚠️ **Falta la API Key de Google (Gemini).**\n\n"
+        "Para que el tutor funcione, configura la clave:\n\n"
+        "• **En local:** crea el archivo `.streamlit/secrets.toml` (carpeta del proyecto) con:\n"
+        "  `GOOGLE_API_KEY = \"tu-clave-aqui\"`\n\n"
+        "• **Variable de entorno:** también puedes definir `GOOGLE_API_KEY` en tu sistema.\n\n"
+        "• **En Streamlit Cloud:** en la app → Settings → Secrets, añade `GOOGLE_API_KEY`.\n\n"
+        "Obtén la clave en [Google AI Studio](https://aistudio.google.com/apikey)."
+    )
+    return False
 
 def obtener_modelo_robusto():
     try:
@@ -33,7 +42,7 @@ def iniciar_modelo():
         model = genai.GenerativeModel(
             model_name=nombre_modelo,
             generation_config={
-                "temperature": 0.7, # Aumentado de 0.3 a 0.7
+                "temperature": 0.2,  # Menor creatividad = más rigor en formato
                 "top_p": 0.95,
             }
         )

@@ -8,7 +8,7 @@ from typing import Any, List, Optional, Union
 import streamlit as st
 from PIL import Image
 
-from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras
+from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras, uso_stats
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
 NUM_EJERCICIOS_ENTRENAMIENTO = 5
@@ -20,6 +20,7 @@ AVISO_HISTORIAL_LARGO = 20  # si hay más mensajes, mostrar aviso
 
 # --- 1. CONFIGURACIÓN INICIAL ---
 interfaz.configurar_pagina()
+interfaz.inyectar_estilo_matematico()
 
 if not ia_core.configurar_gemini():
     st.stop()
@@ -56,44 +57,187 @@ def generar_contenido_seguro(
     st.error(f"❌ Error de conexión: {errores_recientes}")
     return None
 
+def _parece_formula(contenido: str) -> bool:
+    """True si el contenido entre backticks parece una fórmula (no texto largo)."""
+    c = contenido.strip()
+    if not c or len(c) > 80:
+        return False
+    # Exponente, LaTeX, fracción numérica, variable sola, dx/dt
+    if re.search(r"\^|\\\\|\\frac|\\sqrt|\\int|\\cdot", c):
+        return True
+    if re.match(r"^\d+/\d+$", c):
+        return True
+    if re.match(r"^[a-zA-Z]$", c) or c in ("dx", "dt"):
+        return True
+    if re.search(r"[a-zA-Z]\^\d|[a-zA-Z]\^\{", c):
+        return True
+    return False
+
+
 def preparar_latex_para_streamlit(texto: Optional[str]) -> str:
+    if not texto:
+        return ""
+
+    # 1. Normalización de escapes de barra invertida de la IA
+    t = str(texto).replace('\\\\', '\\').replace(r'\$', '$')
+
+    # 2. Unificación: Si hay fragmentos pegados tipo "$ \int $ $ x $", los une en "$ \int x $"
+    t = re.sub(r'\$\s*\$', ' ', t)
+
+    # 3. PROTECCIÓN: Si el texto ya tiene bloques delimitados, no los tocamos.
+    # Pero si detectamos comandos LaTeX fuera de $, envolvemos la frase matemática completa.
+
+    # Expresión regular para detectar una fórmula completa (incluyendo paréntesis y potencias)
+    # (reservada para extensiones; el envoltorio de integrales usa el bloque siguiente)
+    patron_formula_completa = (
+        r'(\\int|\\frac|\\sqrt|\\alpha|\\beta|[\w\d\s\+\-\*\/\^\(\)]+?)(?=\s|$|\.|\,)'
+    )
+
+    # Bloque integral completo (grupo), no token a token
+    if ("\\int" in t or "\\frac" in t) and "$" not in t:
+        t = re.sub(r'(\\int.*?(?:dx|dy|dt|dz))', r' $\1$ ', t)
+
+    return t
+
+
+def latex_display_puro(texto: Optional[str]) -> str:
     """
-    Sanea texto con LaTeX para que Streamlit lo renderice bien.
-    Quita literales molestos, envuelve \\frac/\\int/\\left en math y líneas que son solo ecuación en $$.
+    Para campos que la IA devuelve como LaTeX puro (sin texto natural):
+    paso_intermedio, resultado_final, enunciado_latex. Quita cualquier $
+    residual y envuelve en $$...$$ para display math (estilo VVappy).
+    Evita delimitadores rotos o dobles.
     """
     if not texto:
         return ""
-    t = texto
-    # Quitar espaciado LaTeX que se muestra literal
-    t = re.sub(r"\\\[\s*[\d.]*em\s*\]", " ", t)
-    t = t.replace("$$$$", "$$").replace("\\\\", "\n")
-    # Envolver \sqrt, \int y \frac sueltos (no ya dentro de $) para render en Streamlit
-    def wrap_frac(m):
-        return f"$\\frac{{{m.group(1)}}}{{{m.group(2)}}}$"
-    t = re.sub(r"(?<!\$)\\frac\{([^{}]+)\}\{([^{}]+)\}(?!\$)", wrap_frac, t)
-    # Python 3.13: \c en el patrón es bad escape; construir patrón sin \cdot
-    t = re.sub(r"(?<!\$)\\" + "cdot" + r"(?!\$)", lambda _: "$\\cdot$", t)
-    def wrap_sqrt(m):
-        return f"$\\sqrt{{{m.group(1)}}}$"
-    # Evitar \s en patrón como escape: buscar backslash + "sqrt"
-    t = re.sub(r"(?<!\$)\\" + "sqrt" + r"\{([^{}]+)\}(?!\$)", wrap_sqrt, t)
-    # Líneas que son claramente ecuación: envolver en $$ para display math
-    lineas = t.split("\n")
-    result = []
-    for linea in lineas:
-        linea = linea.strip()
-        if not linea:
-            result.append("")
+    s = str(texto).replace("$", "").strip()
+    if not s:
+        return ""
+    return f"$${s}$$"
+
+def _limpiar_para_st_latex(texto: Any) -> str:
+    """
+    Streamlit `st.latex()` espera una expresión LaTeX sin delimitadores ($$ o $).
+    Si la IA devolvió $...$ o $$...$$, los removemos.
+    """
+    s = str(texto).strip()
+    if s.startswith("$$") and s.endswith("$$"):
+        return s[2:-2].strip()
+    if s.startswith("$") and s.endswith("$"):
+        return s[1:-1].strip()
+    if s.startswith("$"):
+        s = s[1:].strip()
+    if s.endswith("$"):
+        s = s[:-1].strip()
+    return s
+
+def _split_enunciado_texto_formula(pregunta: Optional[str]) -> tuple[str, Optional[str]]:
+    """
+    Para mejorar el renderizado del enunciado:
+    - Devuelve (texto_natural, formula_latex) donde la fórmula va al final.
+    - Si no detectamos una fórmula LaTeX al final, formula_latex será None.
+    """
+    if not pregunta:
+        return "", None
+
+    t = str(pregunta).strip()
+    # Normalización básica por si la IA escapó barras.
+    t = t.replace('\\\\', '\\')
+
+    # Estrategia: buscamos inicio de fórmula típica al final del enunciado.
+    # Priorizamos integrales (\int). Si no hay, probamos \frac o \sqrt.
+    inicio = None
+    for token in ("\\int", "\\frac", "\\sqrt"):
+        idx = t.find(token)
+        if idx != -1:
+            inicio = idx
+            break
+
+    if inicio is None:
+        return t, None
+
+    texto_natural = t[:inicio].rstrip()
+    # Si el IA dejó el "$" de apertura en el texto natural (p.ej. "...: $ \\int ..."),
+    # eliminamos ese "$" suelto para que el markdown no se rompa.
+    if texto_natural.endswith("$"):
+        texto_natural = texto_natural[:-1].rstrip()
+    formula_latex = t[inicio:].strip()
+
+    # Limpieza del separador típico (p.ej. "..." + ":" + " \int ...")
+    if texto_natural.endswith(":"):
+        texto_natural = texto_natural[:-1].rstrip()
+
+    return texto_natural, formula_latex
+
+def _render_texto_con_latex(texto: Optional[str]) -> None:
+    """
+    Renderiza texto mixto separando por delimitadores $...$ / $$...$$.
+    - Texto: `st.markdown`
+    - Fórmulas: `st.latex` (sin $ / $$)
+
+    Esto reduce fallos cuando el markdown recibe delimitadores rotos o
+    cuando hay un '$' molesto en el texto natural.
+    """
+    if not texto:
+        return
+
+    s = preparar_latex_para_streamlit(texto)
+    s = str(s)
+
+    # Si hay un '$' suelto al final, lo quitamos (caso típico del enunciado).
+    if s.count("$") % 2 != 0:
+        s = re.sub(r'\$\s*$', '', s).strip()
+
+    i = 0
+    n = len(s)
+    while i < n:
+        if s.startswith("$$", i):
+            j = s.find("$$", i + 2)
+            if j == -1:
+                st.markdown(s[i:])
+                break
+            expr = s[i + 2 : j].strip()
+            if expr:
+                st.latex(expr)
+            i = j + 2
             continue
-        if ("$" not in linea or linea.count("$") % 2 != 0) and (
-            "\\int" in linea or "\\frac" in linea or "\\left" in linea or "\\right" in linea or "\\sqrt" in linea
-        ):
-            linea = linea.replace("$$", "")
-            result.append(f"$${linea}$$")
-        else:
-            result.append(linea)
-    t = "\n".join(result)
-    return t.strip()
+
+        if s[i] == "$":
+            j = s.find("$", i + 1)
+            if j == -1:
+                st.markdown(s[i:])
+                break
+            expr = s[i + 1 : j].strip()
+            if expr:
+                st.latex(expr)
+            i = j + 1
+            continue
+
+        # Captura texto hasta el siguiente '$'
+        j = s.find("$", i)
+        if j == -1:
+            j = n
+        chunk = s[i:j]
+        if chunk.strip():
+            st.markdown(chunk)
+        i = j
+
+
+def mostrar_como_formula_si_corresponde(texto: Optional[str]) -> str:
+    """
+    Para enunciados y fórmulas sueltas (pregunta, paso_intermedio, resultado_final).
+    Pasa por preparar_latex; si el resultado es una sola fórmula sin $/$$, la envuelve en $$.
+    Misma pauta que en Corrección de Manuscritos: no tocar texto mixto.
+    """
+    t = preparar_latex_para_streamlit(texto or "")
+    s = t.strip()
+    if not s:
+        return t
+    if s.startswith(("$", "$$")):
+        return t
+    if "\\int" in s or "\\sqrt" in s or "\\frac" in s:
+        return "$$" + s + "$$"
+    return t
+
 
 def limpiar_json(texto: Optional[str]) -> Optional[Any]:
     """
@@ -117,9 +261,9 @@ def limpiar_json(texto: Optional[str]) -> Optional[Any]:
     except Exception:
         # Intento 3: Fuerza bruta si falla regex
         try:
-             return json.loads(texto.replace("\\", "\\\\"))
-        except:
-             return None
+            return json.loads(texto.replace("\\", "\\\\"))
+        except Exception:
+            return None
 
 def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
     """Genera la tutoría para el modo Entrenamiento (Banco/IA)."""
@@ -129,17 +273,33 @@ def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
     RESTRICCIÓN DE CONTENIDO (CRÍTICO para este tema):
     - El tema "Integrales Directas" es EXCLUSIVO de integrales INDEFINIDAS.
     - NO uses integrales definidas: ni límites de integración (ej. \\int_a^b, \\int_0^1), ni "evalúe la integral definida", ni aplicación del teorema fundamental.
+    - PROHIBIDO cambios de variable / sustitución: NUNCA escribas "u =", "cambio de variable", "sustitución", ni resuelvas con $du$.
+    - Usa SOLO métodos directos:
+      * Regla de la potencia para $x^n$ y polinomios ya expandidos.
+      * Regla de exponentiales: integrales de $e^{ax}$.
+      * Distribución por división en fracciones racionales simples (reducir por álgebra antes de integrar).
+      * Multiplicación por constantes y suma distributiva.
     - Si el ejercicio que te pasan tiene integral definida, reescríbelo como integral INDEFINIDA equivalente (misma función a integrar, sin límites) o genera un ejercicio de integral indefinida acorde al tema.
     """
     prompt = f"""
-    Actúa como un profesor experto de cálculo. Para el siguiente ejercicio de {tema}:
-    "{pregunta_texto}"
-    
-    Genera un objeto JSON estricto.
-    REGLAS LATEX (CRÍTICO):
-    1. Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
-    2. Usa DOBLE BARRA para comandos: \\\\frac, \\\\int.
-    
+    Actúa como un profesor experto. Para el ejercicio: "{pregunta_texto}"
+    {regla_tema}
+    Genera un objeto JSON.
+
+    REGLAS DE FORMATO (CRÍTICO):
+    1. El campo "feedback_estrategia" es texto natural.
+    2. Si incluyes fórmulas dentro del texto, úsalas ASÍ: $f(x) = x^2$.
+    3. NUNCA escribas párrafos largos dentro de símbolos $.
+
+    PROHIBICIÓN DE FRAGMENTACIÓN: No cierres y abras dólares para la misma expresión.
+    MAL: $\\int$ $x^2$ $dx$
+    BIEN: $\\int x^2 dx$
+    Escribe cada término matemático como una unidad atómica (una sola expresión debe tener un solo par $...$).
+
+    REGLAS LATEX para paso_intermedio y resultado_final:
+    - Escribe la fórmula pura. NO incluyas signos "$$" dentro del JSON.
+    - Usa DOBLE BARRA para comandos: \\\\frac, \\\\int.
+
     Estructura JSON:
     {{
         "estrategias": ["Estrategia Correcta", "Estrategia Incorrecta 1", "Estrategia Incorrecta 2"],
@@ -203,6 +363,67 @@ def analizar_problema_usuario(
     if response:
         return limpiar_json(response.text)
     return None
+
+
+def evaluar_manuscrito(imagen_manuscrito: Any) -> Optional[dict]:
+    """
+    Analiza un manuscrito (foto de resolución del estudiante).
+    Identifica el enunciado, valora la resolución y emite juicio con sugerencias.
+    """
+    prompt = """
+    Eres un corrector experto de Matemáticas III (Cálculo Integral y Ecuaciones Diferenciales) para Economía.
+
+    En la imagen verás un manuscrito del estudiante: suele incluir el enunciado del ejercicio y su resolución escrita.
+
+    Realiza en orden:
+
+    1) ENUNCIADO: Identifica y transcribe con claridad el enunciado del ejercicio (qué pide el problema). Si hay fórmulas, escríbelas en LaTeX puro (usa \\\\frac, \\\\int, etc., sin $$ dentro del JSON).
+
+    2) VALORACIÓN: Evalúa la resolución del estudiante (cálculos, método usado, resultado final). Considera si el método es correcto, si hay errores de desarrollo y si el resultado final es correcto.
+
+    3) JUICIO: Emite exactamente uno de estos tres valores: "correcto", "parcialmente_correcto" o "incorrecto".
+       - correcto: método adecuado, desarrollo sin errores relevantes y resultado final correcto.
+       - parcialmente_correcto: idea o método correcto pero hay errores de cálculo o un paso mal ejecutado; o resultado final incorrecto por un desliz.
+       - incorrecto: método equivocado, desarrollo mayormente erróneo o resultado final incorrecto sin rescate.
+
+    4) ERRORES Y OMISIONES: Lista errores detectados (cálculos erróneos, signos, aplicaciones incorrectas de reglas). Lista pasos importantes que el estudiante omitió (por ejemplo, no justificar un cambio de variable, no verificar condiciones, saltarse un paso algebraico clave).
+
+    5) SUGERENCIAS: Da sugerencias concretas de ajuste para corregir errores o completar pasos omitidos. Sé breve y didáctico.
+
+    REGLAS DE FORMATO OBLIGATORIAS:
+    1. CADA VEZ que menciones una variable (x, t, y), una función o una integral, 
+       DEBES envolverla en símbolos de dólar. Ejemplo: "la variable $x$ se convierte en $t^2$".
+    2. PARA EXPRESIONES LARGAS: Usa doble dólar para centrarlas. 
+       Ejemplo: "La integral resultante es: $$ \\int (t^2-2) 2t dt $$"
+    3. ESPACIOS: Nunca pegues texto a un símbolo $. Deja un espacio: "en $t$," en lugar de "en$t$,".
+    4. JSON ESCAPE: Recuerda que en el JSON debes usar DOBLE barra invertida (\\\\int) 
+       para que el sistema la reciba correctamente.
+
+    INSTRUCCIONES DE TIPOGRAFÍA SUPERIOR (CRÍTICO):
+    1. TODA expresión matemática, por mínima que sea ($x$, $t$, $dx$, $dt$), DEBE ir entre símbolos de dólar.
+    2. TRANSFORMACIONES COMPLETAS: Cuando escribas una integral completa resultante de un cambio de variable
+       o una simplificación mayor, DEBES usar doble dólar ($$ ... $$) en una línea independiente.
+    3. No fragmentes: No escribas $\\int$ $x^2$ $dx$. Escribe $\\int x^2 dx$.
+    ...
+
+    Responde ÚNICAMENTE con un objeto JSON válido (sin markdown ni texto alrededor) con esta estructura exacta:
+    {
+        "enunciado": "Texto o LaTeX del ejercicio identificado",
+        "juicio": "correcto" | "parcialmente_correcto" | "incorrecto",
+        "resumen_valoracion": "Breve explicación del juicio en 1-3 oraciones.",
+        "errores_detectados": ["error 1", "error 2"],
+        "pasos_omitidos": ["paso omitido 1", "paso omitido 2"],
+        "sugerencias": ["sugerencia 1", "sugerencia 2"]
+    }
+    Si no hay errores o pasos omitidos, usa listas vacías [].
+    """
+    contenido = [prompt, imagen_manuscrito]
+    response = generar_contenido_seguro(contenido)
+    if response:
+        return limpiar_json(response.text)
+    return None
+
+
 def generar_respuesta_tutor_abierto(
     pregunta_usuario: str,
     historial_previo: str,
@@ -255,13 +476,89 @@ def generar_respuesta_tutor_abierto(
     return "Lo siento, tuve un problema pensando la respuesta."
 
 def _sanitizar_para_pdf(texto: Optional[str]) -> str:
-    """Reduce LaTeX y caracteres especiales para PDF legible (fuente estándar)."""
+    """
+    Convierte LaTeX a texto legible en el PDF: fracciones como (num/den),
+    raíces como sqrt(...), integrales, exponentes, etc., sin código LaTeX crudo.
+    """
     if not texto:
         return ""
+
     t = texto.replace("$$", "").replace("$", "").strip()
-    t = t.replace("\\frac", " frac ").replace("\\int", " int ").replace("\\ln", " ln ")
-    for c, r in [("á", "a"), ("é", "e"), ("í", "i"), ("ó", "o"), ("ú", "u"), ("ñ", "n"), ("¿", "?"), ("¡", "")]:
-        t = t.replace(c, r).replace(c.upper(), r.upper())
+
+    # \frac con contenido posiblemente anidado (ej. \frac{x^3}{3})
+    def _reemplazar_frac(s: str) -> str:
+        out = []
+        i = 0
+        while i < len(s):
+            if s[i : i + 6] == "\\frac{" and i + 6 < len(s):
+                depth = 1
+                j = i + 6
+                start = j
+                while j < len(s) and depth > 0:
+                    if s[j] == "{":
+                        depth += 1
+                    elif s[j] == "}":
+                        depth -= 1
+                    j += 1
+                num = s[start : j - 1]
+                if j < len(s) and s[j] == "{":
+                    depth = 1
+                    j += 1
+                    start_den = j
+                    while j < len(s) and depth > 0:
+                        if s[j] == "{":
+                            depth += 1
+                        elif s[j] == "}":
+                            depth -= 1
+                        j += 1
+                    den = s[start_den : j - 1]
+                    out.append(f" ({_sanitizar_para_pdf(num)}/{_sanitizar_para_pdf(den)}) ")
+                    i = j
+                else:
+                    out.append(s[i:j])
+                    i = j
+            else:
+                out.append(s[i])
+                i += 1
+        return "".join(out)
+
+    t = _reemplazar_frac(t)
+
+    # Raíz: \sqrt{...} -> sqrt(...) (contenido puede tener llaves anidadas)
+    def _reemplazar_sqrt(s: str) -> str:
+        idx = s.find("\\sqrt{")
+        if idx == -1:
+            return s
+        depth = 1
+        j = idx + 6
+        while j < len(s) and depth > 0:
+            if s[j] == "{":
+                depth += 1
+            elif s[j] == "}":
+                depth -= 1
+            j += 1
+        contenido = s[idx + 6 : j - 1]
+        return s[:idx] + " sqrt(" + _sanitizar_para_pdf(contenido) + ") " + _reemplazar_sqrt(s[j:])
+    t = _reemplazar_sqrt(t)
+
+    # Exponentes: e^{...} -> e^(...), x^{...} -> x^(...)
+    t = re.sub(r"e\^\{([^{}]*)\}", r"e^(\1)", t)
+    t = re.sub(r"(\w)\^\{([^{}]*)\}", r"\1^(\2)", t)
+    # \left( \right) \left[ \right] -> ( ) [ ]
+    t = re.sub(r"\\left\s*\(\s*", " ( ", t)
+    t = re.sub(r"\s*\\right\s*\)\s*", " ) ", t)
+    t = re.sub(r"\\left\s*\[\s*", " [ ", t)
+    t = re.sub(r"\s*\\right\s*\]\s*", " ] ", t)
+    # Comandos LaTeX -> texto
+    t = t.replace("\\int", " integral ")
+    t = t.replace("\\ln", " ln ")
+    t = t.replace("\\cdot", " ")
+    t = t.replace("\\left", " ")
+    t = t.replace("\\right", " ")
+    # Raíz simple por si quedó algo
+    t = re.sub(r"\\sqrt\{([^{}]+)\}", r" sqrt(\1) ", t)
+    # Espacios múltiples y recorte
+    t = re.sub(r"\s+", " ", t).strip()
     return t[:500] if len(t) > 500 else t
 
 def generar_pdf_informe_quiz(
@@ -303,17 +600,23 @@ if "consulta_step" not in st.session_state: st.session_state.consulta_step = 0
 if "consulta_data" not in st.session_state: st.session_state.consulta_data = None
 if "consulta_validada" not in st.session_state: st.session_state.consulta_validada = False
 
-# Estado D: Tutor Preguntas Abiertas (NUEVO)  <-- AGREGA ESTAS DOS LÍNEAS
+# Estado D: Tutor Preguntas Abiertas
 if "historial_tutor_abierto" not in st.session_state: st.session_state.historial_tutor_abierto = []
+
+# Estado E: Corrección de Manuscritos
+if "manuscrito_correccion" not in st.session_state: st.session_state.manuscrito_correccion = None
 
 # --- 3. INTERFAZ PRINCIPAL ---
 ruta, tema_actual = interfaz.mostrar_sidebar()
-interfaz.mostrar_bienvenida()
+
+# Mostrar presentación solo si no hay modo seleccionado; con modo activo, centrar vista en el modo
+if not ruta:
+    interfaz.mostrar_bienvenida()
 
 # =======================================================
 # LÓGICA A: MODO ENTRENAMIENTO (Dojo Matemático)
 # =======================================================
-if ruta == "a) Entrenamiento (Temario)":
+elif ruta == "a) Entrenamiento (Temario)":
     st.markdown("### 🥋 Dojo de Matemáticas (Entrenamiento Guiado)")
     st.info("Resolución paso a paso: **1. Elegir Estrategia** -> **2. Hito Intermedio** -> **3. Resultado Final**.")
 
@@ -368,6 +671,7 @@ if ruta == "a) Entrenamiento (Temario)":
                             st.session_state.entrenamiento_validado = False 
                             st.session_state.entrenamiento_activo = True
                             cargar_exito = True
+                            uso_stats.registrar_uso("Entrenamiento")
 
                     except Exception as e:
                         st.error(f"Error técnico al iniciar: {e}")
@@ -385,7 +689,14 @@ if ruta == "a) Entrenamiento (Temario)":
             
             st.progress((idx + 1) / NUM_EJERCICIOS_ENTRENAMIENTO, text=f"Ejercicio {idx + 1} de {NUM_EJERCICIOS_ENTRENAMIENTO}")
             st.markdown(f"**Tema:** `{ejercicio.get('tema', 'General')}`")
-            st.markdown("### " + preparar_latex_para_streamlit(ejercicio["pregunta"]))
+            # Enunciado: dividimos en texto natural + fórmula en línea aparte (mejor para KaTeX/overflow)
+            texto_natural, formula_latex = _split_enunciado_texto_formula(ejercicio.get("pregunta"))
+            if formula_latex:
+                st.markdown("### " + texto_natural)
+                st.latex(_limpiar_para_st_latex(formula_latex))
+            else:
+                # Fallback: ruta anterior si no detectamos la fórmula
+                st.markdown("### " + preparar_latex_para_streamlit(ejercicio["pregunta"]))
             st.divider()
 
             # --- LLAMADA A LA IA TUTOR ---
@@ -418,13 +729,13 @@ if ruta == "a) Entrenamiento (Temario)":
                             st.session_state.entrenamiento_validado = True 
                         else:
                             st.error("❌ Mmm, no es el mejor camino.")
-                            st.warning(f"Pista: {tutor['feedback_estrategia']}")
+                            st.warning("Pista: " + preparar_latex_para_streamlit(tutor['feedback_estrategia']))
                     else:
                         st.warning("Debes seleccionar una opción.")
 
                 if st.session_state.get("entrenamiento_validado", False):
                     st.success("✅ ¡Exacto! Esa es la ruta.")
-                    st.info(f"👨‍🏫 **Feedback:** {tutor['feedback_estrategia']}")
+                    st.info("👨‍🏫 **Feedback:** " + preparar_latex_para_streamlit(tutor['feedback_estrategia']))
                     
                     if st.button("Ir al Paso Intermedio ➡️", type="primary", key=f"btn_go_step2_{idx}"):
                         st.session_state.entrenamiento_step = 2
@@ -437,9 +748,7 @@ if ruta == "a) Entrenamiento (Temario)":
                 st.markdown("#### 2️⃣ Paso 2: Ejecución Intermedia")
                 st.write("Aplica la estrategia seleccionada. Deberías llegar a una expresión similar a esta:")
                 
-                # CORRECCIÓN LATEX: Limpiamos por seguridad
-                latex_limpio = tutor['paso_intermedio'].replace('$', '')
-                st.info(f"$${latex_limpio}$$")
+                st.latex(_limpiar_para_st_latex(tutor["paso_intermedio"]))
                 
                 st.write("¿Lograste llegar a este punto o algo equivalente?")
                 
@@ -458,12 +767,11 @@ if ruta == "a) Entrenamiento (Temario)":
                 st.markdown("#### 3️⃣ Paso 3: Resolución Final")
                 st.write("El resultado definitivo es:")
                 
-                # CORRECCIÓN LATEX
-                latex_final = tutor['resultado_final'].replace('$', '')
-                st.success(f"$$ {latex_final} $$")
+                st.success("✅ Resultado final:")
+                st.latex(_limpiar_para_st_latex(tutor["resultado_final"]))
                 
                 with st.expander("Ver explicación completa"):
-                    st.markdown(preparar_latex_para_streamlit(ejercicio.get("explicacion", "Procedimiento estándar aplicado correctamente.")))
+                    _render_texto_con_latex(ejercicio.get("explicacion", "Procedimiento estándar aplicado correctamente."))
 
                 if st.button("Siguiente Ejercicio ➡️", type="primary", key=f"btn_next_{idx}"):
                     st.session_state.entrenamiento_idx += 1
@@ -511,6 +819,7 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
                             st.session_state.consulta_step = 1
                             st.session_state.consulta_validada = False
                             exito_analisis = True
+                            uso_stats.registrar_uso("Respuesta Guiada")
                         else:
                             st.error("No se pudo interpretar la respuesta del tutor. Intenta de nuevo con otra redacción o imagen más clara.")
                     except Exception as e:
@@ -533,9 +842,8 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
         st.divider()
         st.markdown(f"**Tema Detectado:** `{datos.get('tema_detectado', 'Matemáticas')}`")
         if datos.get('enunciado_latex'):
-            # CORRECCIÓN LATEX
-            enunciado_limpio = datos['enunciado_latex'].replace('$', '')
-            st.markdown(f"**Problema Identificado:**\n$$ {enunciado_limpio} $$")
+            st.markdown("**Problema Identificado:**")
+            st.markdown(latex_display_puro(datos['enunciado_latex']))
         
         # PASO 1: Identificar Técnica/Tipo o Planteamiento
         if step == 1:
@@ -559,7 +867,7 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
                     st.rerun()
                 else:
                     st.error("❌ No es lo más eficiente.")
-                    st.warning(datos['feedback_estrategia'])
+                    st.warning(preparar_latex_para_streamlit(datos['feedback_estrategia']))
             
             if st.session_state.consulta_validada:
                 st.success("✅ ¡Correcto! Vamos a desarrollarlo.")
@@ -574,25 +882,22 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
             st.subheader("2️⃣ Paso 2: Desarrollo")
             st.write("Aplicando la técnica, deberías llegar a esta expresión intermedia:")
             
-            # CORRECCIÓN LATEX
-            intermedio_limpio = datos['paso_intermedio'].replace('$', '')
-            st.info(f"$$ {intermedio_limpio} $$")
+            st.latex(_limpiar_para_st_latex(datos["paso_intermedio"]))
             
             c1, c2 = st.columns(2)
             if c1.button("👍 Llegué a eso"):
                 st.session_state.consulta_step = 3
                 st.rerun()
             if c2.button("👎 Me perdí, explícame"):
-                st.info(f"💡 Pista: {datos.get('feedback_estrategia', 'Revisa las operaciones algebraicas.')}")
+                st.info("💡 Pista: " + preparar_latex_para_streamlit(datos.get('feedback_estrategia', 'Revisa las operaciones algebraicas.')))
 
         # PASO 3: Solución Final
         if step == 3:
             st.success("✅ Desarrollo intermedio correcto")
             st.subheader("3️⃣ Solución Final")
             
-            # CORRECCIÓN LATEX
-            final_limpio = datos['resultado_final'].replace('$', '')
-            st.success(f"### $$ {final_limpio} $$")
+            st.success("✅ Resultado final:")
+            st.latex(_limpiar_para_st_latex(datos["resultado_final"]))
             
             st.balloons()
             if st.button("🏁 Terminar ejercicio"):
@@ -678,6 +983,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                         st.session_state.quiz_activo = True
                         st.session_state.trigger_quiz = False
                         quiz_generado = True
+                        uso_stats.registrar_uso("Quiz")
                     
                 except Exception as e:
                     st.error(f"Error generando examen: {e}")
@@ -697,6 +1003,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
             st.progress((actual) / total, text=f"Pregunta {actual + 1} de {total}")
             
             # 1. RENDERIZADO DE LA PREGUNTA
+            # Enunciado tipo texto + LaTeX inline -> usar solo preparar_latex (no envolver todo en $$)
             st.markdown("#### " + preparar_latex_para_streamlit(pregunta_data["pregunta"]))
             st.divider()
             
@@ -797,6 +1104,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
 
             for i, r in enumerate(st.session_state.respuestas_usuario):
                 st.markdown(f"#### 🔹 Pregunta {i+1} ({r['puntos']} pts)")
+                # Enunciado de la pregunta en el informe: mismo criterio que en pantalla
                 st.markdown(preparar_latex_para_streamlit(r["pregunta"])) 
                 
                 col_res1, col_res2 = st.columns(2)
@@ -856,6 +1164,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
             st.markdown(mensaje["content"])
 
     if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de las ejercicios del profesor"):
+        uso_stats.registrar_uso("Tutor Preguntas Abiertas")
         st.session_state.historial_tutor_abierto.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -868,3 +1177,91 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
                 st.markdown(respuesta_tutor)
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
+# =======================================================
+# LÓGICA E: CORRECCIÓN DE MANUSCRITOS
+# =======================================================
+elif ruta == "e) Corrección de Manuscritos":
+    st.markdown("### 📄 Corrección de Manuscritos")
+    st.info("Sube una foto de tu resolución escrita. La app identificará el enunciado, valorará tu solución y te dará un juicio (correcto / parcialmente correcto / incorrecto) con sugerencias de ajuste.")
+
+    imagen_manuscrito = st.file_uploader(
+        "📸 Sube la foto de tu manuscrito (enunciado + resolución)",
+        type=["png", "jpg", "jpeg"],
+        key="upload_manuscrito"
+    )
+
+    if imagen_manuscrito:
+        st.image(imagen_manuscrito, caption="Tu manuscrito", use_container_width=True)
+
+        if st.button("🔍 Evaluar manuscrito", type="primary", use_container_width=True):
+            with st.spinner("Analizando enunciado y valorando tu resolución..."):
+                try:
+                    img_pil = Image.open(imagen_manuscrito)
+                    resultado = evaluar_manuscrito(img_pil)
+                    if resultado:
+                        uso_stats.registrar_uso("Corrección de Manuscritos")
+                        st.session_state.manuscrito_correccion = resultado
+                        st.rerun()
+                    else:
+                        st.error("No se pudo interpretar la corrección. Intenta con una imagen más clara o con otro manuscrito.")
+                except Exception as e:
+                    st.error(f"Error al procesar la imagen: {e}")
+
+    if st.session_state.manuscrito_correccion:
+        datos = st.session_state.manuscrito_correccion
+        st.divider()
+        st.subheader("📋 Enunciado identificado")
+        enunciado = datos.get("enunciado", "")
+        if enunciado:
+            s = enunciado.strip().replace("\\\\", "\n")
+            # Si es solo una fórmula (sin texto tipo "Calcular..."): un solo bloque $$ sin $ internos
+            es_solo_formula = ("\\int" in s or "\\sqrt" in s or "\\frac" in s) and not any(
+                w in s.lower() for w in ["calcular", "evalúe", "resuelva", "siguiente", "definida", "indefinida", "con respecto", "variable x", "la integral"]
+            )
+            if es_solo_formula:
+                t = "$$" + s.replace("$", "").strip() + "$$"
+            else:
+                t = preparar_latex_para_streamlit(enunciado)
+            st.markdown(t)
+        else:
+            st.caption("(No se pudo extraer enunciado)")
+
+        juicio = (datos.get("juicio") or "").strip().lower()
+        st.subheader("⚖️ Juicio")
+        if juicio == "correcto":
+            st.success("✅ **Correcto** — Tu resolución es correcta.")
+        elif juicio == "parcialmente_correcto":
+            st.warning("⚠️ **Parcialmente correcto** — Hay aspectos a mejorar.")
+        elif juicio == "incorrecto":
+            st.error("❌ **Incorrecto** — La resolución presenta errores importantes.")
+        else:
+            st.info(f"**Juicio:** {juicio or 'No especificado'}")
+
+        resumen = datos.get("resumen_valoracion", "")
+        if resumen:
+            st.markdown("**Valoración:**")
+            st.markdown(preparar_latex_para_streamlit(resumen))
+
+        errores = datos.get("errores_detectados") or []
+        if errores:
+            st.subheader("🔴 Errores detectados")
+            for e in errores:
+                st.markdown("- " + preparar_latex_para_streamlit(e))
+
+        pasos_omitidos = datos.get("pasos_omitidos") or []
+        if pasos_omitidos:
+            st.subheader("📌 Pasos omitidos o importantes")
+            for p in pasos_omitidos:
+                st.markdown("- " + preparar_latex_para_streamlit(p))
+
+        sugerencias = datos.get("sugerencias") or []
+        if sugerencias:
+            st.subheader("💡 Sugerencias de ajuste")
+            for s in sugerencias:
+                st.markdown("- " + preparar_latex_para_streamlit(s))
+
+        st.divider()
+        if st.button("🔄 Evaluar otro manuscrito", key="btn_nuevo_manuscrito"):
+            st.session_state.manuscrito_correccion = None
+            st.rerun()

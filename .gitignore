@@ -1,0 +1,13 @@
+# Secrets (no subir claves al repositorio)
+.streamlit/secrets.toml
+
+# Estadísticas de uso (anonimas, no versionar)
+data/uso_stats.json
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env

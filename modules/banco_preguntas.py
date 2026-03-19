@@ -9,27 +9,27 @@ BANCO_FIXED = [
     # --- CÁLCULO INTEGRAL: MÉTODOS BÁSICOS ---
     {
         "tema": "1.1.1 Integrales Directas",
-        "pregunta": r"Resuelva la siguiente integral con respecto a la variable $x$: $$ \int (3y-2x)^{20} dx $$",
+        "pregunta": r"Calcule la integral indefinida: $$ \int (6x^5 - 4x^2 + 3)\, dx $$",
         "opciones": [
-            r"A) $-\frac{1}{42}(3y-2x)^{21} + C$",
-            r"B) $\frac{1}{21}(3y-2x)^{21} + C$",
-            r"C) $\frac{1}{63}(3y-2x)^{21} + C$",
-            r"D) $20(3y-2x)^{19} + C$"
+            r"A) $x^6 - \frac{4}{3}x^3 + 3x + C$",
+            r"B) $x^6 + \frac{4}{3}x^3 + 3x + C$",
+            r"C) $x^6 - \frac{2}{3}x^3 + 3x + C$",
+            r"D) $x^5 - \frac{4}{3}x^3 + 3x + C$"
         ],
-        "respuesta_correcta": r"A) $-\frac{1}{42}(3y-2x)^{21} + C$",
-        "explicacion": r"Al integrar respecto a $x$, $3y$ es constante. Usamos sustitución $u = 3y-2x \Rightarrow du = -2dx$."
+        "respuesta_correcta": r"A) $x^6 - \frac{4}{3}x^3 + 3x + C$",
+        "explicacion": r"Aplicamos la regla de la potencia término a término: $\int 6x^5 dx = x^6$, $\int (-4x^2)dx = -\frac{4}{3}x^3$ y $\int 3dx = 3x$."
     },
     {
         "tema": "1.1.1 Integrales Directas",
-        "pregunta": r"Resuelva la integral respecto a $y$: $$ \int \frac{e^{3y-2x}}{e^{y+2x}} dy $$",
+        "pregunta": r"Calcule la integral indefinida: $$ \int (e^{2y} + 3e^{y})\, dy $$",
         "opciones": [
-            r"A) $\frac{1}{2}e^{2y-4x} + C$",
-            r"B) $e^{2y-4x} + C$",
-            r"C) $\frac{1}{2}e^{2y} + C$",
-            r"D) $2e^{2y-4x} + C$"
+            r"A) $\frac{1}{2}e^{2y} + 3e^{y} + C$",
+            r"B) $e^{2y} + 3e^{y} + C$",
+            r"C) $\frac{1}{2}e^{2y} + \frac{3}{2}e^{y} + C$",
+            r"D) $\frac{1}{2}e^{2y} - 3e^{y} + C$"
         ],
-        "respuesta_correcta": r"A) $\frac{1}{2}e^{2y-4x} + C$",
-        "explicacion": r"Simplificamos exponentes: $(3y-2x) - (y+2x) = 2y - 4x$. Integramos $e^{2y-4x}$ respecto a $y$ dividiendo por 2."
+        "respuesta_correcta": r"A) $\frac{1}{2}e^{2y} + 3e^{y} + C$",
+        "explicacion": r"Usamos reglas de exponenciales: $\int e^{2y}dy = \frac{1}{2}e^{2y}$ y $\int 3e^{y}dy = 3e^{y}$. Sumamos y agregamos $+C$."
     },
     {
         "tema": "1.1.1 Integrales Directas",
@@ -45,15 +45,15 @@ BANCO_FIXED = [
     },
     {
         "tema": "1.1.1 Integrales Directas",
-        "pregunta": r"Calcule la integral definida: $$ \int_{1}^{2} \frac{x^2-1}{x^2} dx $$",
+        "pregunta": r"Calcule la integral indefinida: $$ \int \frac{x^2-1}{x^2} dx $$",
         "opciones": [
-            r"A) $0.5$",
-            r"B) $1.5$",
-            r"C) $2.0$",
-            r"D) $\ln(2)$"
+            r"A) $x + \frac{1}{x} + C$",
+            r"B) $x - \frac{1}{x} + C$",
+            r"C) $\ln|x| + C$",
+            r"D) $\frac{x^3}{3} - x + C$"
         ],
-        "respuesta_correcta": r"A) $0.5$",
-        "explicacion": r"Separamos: $1 - x^{-2}$. Integral: $[x + 1/x]_1^2 = (2.5) - (2) = 0.5$."
+        "respuesta_correcta": r"A) $x + \frac{1}{x} + C$",
+        "explicacion": r"Separamos: $\frac{x^2-1}{x^2}=1-x^{-2}$. Integramos término a término: $\int 1\,dx=x$ y $\int (-x^{-2})dx=+x^{-1}$. Resultado: $x+\frac{1}{x}+C$."
     },
     {
         "tema": "1.1.1 Integrales Directas",

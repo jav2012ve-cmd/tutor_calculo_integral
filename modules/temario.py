@@ -59,6 +59,21 @@ Sé riguroso pero cercano.
 # --- NUEVO: Prompt Estructurado para el Quiz ---
 # --- NUEVO: Prompt Estructurado con "Few-Shot Learning" ---
 def generar_prompt_quiz(temas_seleccionados, cantidad):
+    regla_integrales_directas = ""
+    if any("1.1.1 Integrales Directas" in t for t in temas_seleccionados):
+        regla_integrales_directas = """
+    6. Si el tema incluye "1.1.1 Integrales Directas", TODAS las preguntas de ese tema deben ser de integrales INDEFINIDAS.
+       PROHIBIDO en ese tema: límites de integración en el integral (por ejemplo: \\int_{1}^{2}, \\int_0^1), frases como "integral definida" o aplicación del teorema fundamental.
+       La pregunta DEBE usar el lenguaje de "integral indefinida" y el integral NO debe llevar subíndices/supíndices de límites.
+       PROHIBIDO en ese tema: cambios de variable / sustitución (NUNCA escribas "u =" ni "sustitución" ni du). 
+       Debes integrar SOLO con métodos directos: 
+       * regla de la potencia (polinomios ya expandidos y $x^n$),
+       * exponenciales $e^{ax}$ y combinaciones lineales,
+       * distribución por división para fracciones racionales simples (reducir algebraicamente antes de integrar),
+       * suma y multiplicación por constantes.
+       Evita integrales que requieran que detectes una derivada interna (tipo $\\int f(g(x))g'(x)dx$) como camino principal.
+       Si necesitas usar el integrando de un ejemplo definido, conviértelo a versión indefinida (misma función, sin límites).
+    """
     return f"""
     ACTÚA COMO PROFESOR DE MATEMÁTICAS III PARA ECONOMISTAS.
     
@@ -72,6 +87,15 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
     4. ALEATORIEDAD TOTAL: La respuesta correcta DEBE estar distribuida equitativamente entre A, B, C y D. 
        No permitas que la mayoría de las respuestas sean A o B.
     5. Si el ejercicio es de tipo 'PLANTEAR' (como áreas, volúmenes, excedentes o integrales dobles), las 4 opciones de respuesta (A, B, C, D) deben ser expresiones matemáticas de integrales. Tres de ellas deben tener errores comunes de planteamiento (límites invertidos, signos erróneos, funciones restadas en orden incorrecto) y una debe ser el planteamiento correcto.
+    {regla_integrales_directas}
+
+    REGLA DE ORO (CRÍTICO, anti-fragmentación y JSON limpio):
+    - No fragmentes el LaTeX dentro de una misma fórmula: si vas a escribir una expresión matemática, encierra TODA la expresión en un solo par de símbolos $. No cierres y abras dólares dentro de la misma unidad matemática.
+      MAL: $\\int$ $x^2$ $dx$
+      BIEN: $\\int x^2 dx$
+    - Prohibido escribir un símbolo $ suelto en texto natural. Las únicas apariciones de $ deben corresponder exactamente a fórmulas completas envueltas en el patrón $...$.
+    - Para los campos "pregunta" y "opciones": usa SOLO $...$ (no $$...$$).
+    - Cada expresión matemática atómica debe tener un único par $...$.
     
     TEMAS A EVALUAR: 
     {', '.join(temas_seleccionados)}.
@@ -83,8 +107,10 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
     --- FIN EJEMPLOS ---
     
     FORMATO DE SALIDA (JSON PURO):
+    Devuelve SOLO el array JSON. No incluyas markdown, ni etiquetas, ni texto fuera del JSON.
     [
         {{
+            "tema": "Nombre del tema exacto de esta pregunta (ej. 1.1.1 Integrales Directas)",
             "pregunta": "Enunciado LaTeX...",
             "opciones": ["A) ...", "B) ...", "C) ...", "D) ..."],
             "respuesta_correcta": "La opción correcta literal",
