@@ -41,7 +41,7 @@ def inyectar_estilo_matematico():
 
 def configurar_pagina():
     st.set_page_config(
-        page_title="Matemáticas III - Economía UCAB V 2.0",
+        page_title="Matemáticas III - Economías UCAB V3.0",
         page_icon="📈",
         layout="wide"
     )
@@ -123,7 +123,7 @@ def mostrar_sidebar():
 
 def mostrar_bienvenida():
     """Muestra la presentación inicial solo cuando aún no se ha seleccionado un modo."""
-    st.title("Matemáticas III - Economía UCAB")
+    st.title("Matemáticas III - Economías UCAB V3.0")
     
     st.markdown("""
     <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
