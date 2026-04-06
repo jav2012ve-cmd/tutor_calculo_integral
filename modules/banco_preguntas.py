@@ -8,7 +8,7 @@ import random
 BANCO_FIXED = [
     # --- CÁLCULO INTEGRAL: MÉTODOS BÁSICOS ---
     {
-        "tema": "1.1.1 Integrales Directas",
+        "tema": "1.1.1 Integrales Indefinidas Directas",
         "pregunta": r"Calcule la integral indefinida: $$ \int (6x^5 - 4x^2 + 3)\, dx $$",
         "opciones": [
             r"A) $x^6 - \frac{4}{3}x^3 + 3x + C$",
@@ -20,7 +20,7 @@ BANCO_FIXED = [
         "explicacion": r"Aplicamos la regla de la potencia término a término: $\int 6x^5 dx = x^6$, $\int (-4x^2)dx = -\frac{4}{3}x^3$ y $\int 3dx = 3x$."
     },
     {
-        "tema": "1.1.1 Integrales Directas",
+        "tema": "1.1.1 Integrales Indefinidas Directas",
         "pregunta": r"Calcule la integral indefinida: $$ \int (e^{2y} + 3e^{y})\, dy $$",
         "opciones": [
             r"A) $\frac{1}{2}e^{2y} + 3e^{y} + C$",
@@ -32,7 +32,7 @@ BANCO_FIXED = [
         "explicacion": r"Usamos reglas de exponenciales: $\int e^{2y}dy = \frac{1}{2}e^{2y}$ y $\int 3e^{y}dy = 3e^{y}$. Sumamos y agregamos $+C$."
     },
     {
-        "tema": "1.1.1 Integrales Directas",
+        "tema": "1.1.1 Integrales Indefinidas Directas",
         "pregunta": r"Resuelva respecto a $t$: $$ \int \sqrt[3]{x^{-2}t^{-3}} dt $$",
         "opciones": [
             r"A) $x^{-2/3} \ln|t| + C$",
@@ -44,7 +44,7 @@ BANCO_FIXED = [
         "explicacion": r"Reescribimos: $x^{-2/3} t^{-1}$. La integral de $1/t$ es $\ln|t|$."
     },
     {
-        "tema": "1.1.1 Integrales Directas",
+        "tema": "1.1.1 Integrales Indefinidas Directas",
         "pregunta": r"Calcule la integral indefinida: $$ \int \frac{x^2-1}{x^2} dx $$",
         "opciones": [
             r"A) $x + \frac{1}{x} + C$",
@@ -56,7 +56,7 @@ BANCO_FIXED = [
         "explicacion": r"Separamos: $\frac{x^2-1}{x^2}=1-x^{-2}$. Integramos término a término: $\int 1\,dx=x$ y $\int (-x^{-2})dx=+x^{-1}$. Resultado: $x+\frac{1}{x}+C$."
     },
     {
-        "tema": "1.1.1 Integrales Directas",
+        "tema": "1.1.1 Integrales Indefinidas Directas",
         "pregunta": r"Integral de $(x-2y^2)^2$ respecto a $y$:",
         "opciones": [
             r"A) $x^2y - \frac{4}{3}xy^3 + \frac{4}{5}y^5 + C$",
@@ -264,7 +264,7 @@ BANCO_FIXED = [
     },
     # --- ÁREAS ---
     {
-        "tema": "1.2.1 Áreas entre curvas",
+        "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Área entre $y=x^2$ y $y=6-x$:",
         "opciones": [
             r"A) $\int_{-3}^{2} (6 - x - x^2) dx$",
@@ -276,7 +276,7 @@ BANCO_FIXED = [
         "explicacion": r"Cortes en $x=-3, x=2$. La recta está por encima."
     },
     {
-        "tema": "1.2.1 Áreas entre curvas",
+        "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Integral para área entre $y=4-x^2$ y $y=1+2x$:",
         "opciones": [
             r"A) $\int_{-3}^{1} [(4-x^2) - (1+2x)] dx$",
@@ -288,7 +288,7 @@ BANCO_FIXED = [
         "explicacion": r"Raíces de intersección $x=-3, x=1$. Parábola abre hacia abajo y está arriba."
     },
     {
-        "tema": "1.2.1 Áreas entre curvas",
+        "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Área entre $y=x^2+x$ y $y=15-x^2/3$:",
         "opciones": [
             r"A) $\int_{-3.75}^{3} [ (15-x^2/3) - (x^2+x) ] dx$",
@@ -300,7 +300,7 @@ BANCO_FIXED = [
         "explicacion": r"Igualando funciones se obtienen los límites. La segunda función es una parábola que abre hacia abajo (techo)."
     },
     {
-        "tema": "1.2.1 Áreas entre curvas",
+        "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Área región no acotada entre $y=xe^{-x}$ y $y=e^{-x}$ en $[0, \infty)$:",
         "opciones": [
             r"A) $\int_{0}^{1} (e^{-x} - xe^{-x}) dx + \int_{1}^{\infty} (xe^{-x} - e^{-x}) dx$",
@@ -312,7 +312,7 @@ BANCO_FIXED = [
         "explicacion": r"Las curvas se cruzan en $x=1$. Hay cambio de posición relativa."
     },
     {
-        "tema": "1.2.1 Áreas entre curvas",
+        "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Calcule área entre $y=e^{-x}$ y $y=-e^{-2x}$ en $[0, \infty)$:",
         "opciones": [
             r"A) $1.5$",
@@ -325,7 +325,7 @@ BANCO_FIXED = [
     },
     # --- EXCEDENTES ---
     {
-        "tema": "1.2.2 Excedentes del consumidor y productor",
+        "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"Demanda $D(q) = 14 - q^2/4$, Oferta $O(q) = 2q + 2$. Calcule EC:",
         "opciones": [
             r"A) $10.67$",
@@ -337,7 +337,7 @@ BANCO_FIXED = [
         "explicacion": r"Equilibrio $q=4, p=10$. $\int_0^4 (14-q^2/4) dq - 40 = 10.67$."
     },
     {
-        "tema": "1.2.2 Excedentes del consumidor y productor",
+        "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"Demanda $p = 100 - 2q^2$, Oferta $p = 50 + 3q^2$. Calcule EP:",
         "opciones": [
             r"A) $\int_0^{\sqrt{10}} (80 - (50+3q^2)) dq$",
@@ -349,7 +349,7 @@ BANCO_FIXED = [
         "explicacion": r"Equilibrio $q=\sqrt{10}, p=80$. EP es el área sobre la oferta y bajo el precio."
     },
     {
-        "tema": "1.2.2 Excedentes del consumidor y productor",
+        "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"EC dados Oferta $p = x^2/9 + 4$ y Demanda $p = 11 - 2x$:",
         "opciones": [
             r"A) $9$",
@@ -361,7 +361,7 @@ BANCO_FIXED = [
         "explicacion": r"Equilibrio $x=3, p=5$. EC = $\int_0^3 (11-2x - 5) dx = 9$."
     },
     {
-        "tema": "1.2.2 Excedentes del consumidor y productor",
+        "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"EP dados Oferta $p = x^2/4 + 4$ y Demanda $p = 12 - x$:",
         "opciones": [
             r"A) $10.67$",
@@ -373,7 +373,7 @@ BANCO_FIXED = [
         "explicacion": r"Equilibrio $x=4, p=8$. EP = $\int_0^4 (8 - (x^2/4+4)) dx = 10.67$."
     },
     {
-        "tema": "1.2.2 Excedentes del consumidor y productor",
+        "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"Calcule EP con Oferta $p = 4 + 3x^2$ y Demanda $p = 20 - x^2$:",
         "opciones": [
             r"A) $16$",
@@ -386,7 +386,7 @@ BANCO_FIXED = [
     },
     # --- IMPROPIAS ---
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Halle $b$ tal que $\int_{b}^{\infty} \frac{dx}{(1+2x)^2} = \frac{1}{4}$",
         "opciones": [
             r"A) $b = 1/2$",
@@ -398,7 +398,7 @@ BANCO_FIXED = [
         "explicacion": r"Integral da $\frac{1}{2(1+2b)}$. Igualando a 1/4 da $b=1/2$."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Convergencia de $\int_{0}^{\infty} \frac{x^2}{\sqrt{(x^3+4)^3}} dx$:",
         "opciones": [
             r"A) Converge a $1/3$",
@@ -410,7 +410,7 @@ BANCO_FIXED = [
         "explicacion": r"Sustitución $u=x^3+4$. Límite finito."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Convergencia de $\int_{0}^{\infty} x^2 e^{-x} dx$:",
         "opciones": [
             r"A) Converge a $2$",
@@ -422,7 +422,7 @@ BANCO_FIXED = [
         "explicacion": r"Es $\Gamma(3) = 2!$."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Halle $k$ para que $f(x) = k x^2(1-x)$ sea PDF en $[0,1]$:",
         "opciones": [
             r"A) $k = 12$",
@@ -434,7 +434,7 @@ BANCO_FIXED = [
         "explicacion": r"Integral $\int_0^1 k(x^2-x^3)dx = k(1/3-1/4) = k/12 = 1$."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Halle $k$ para que $f(x) = k e^{-x/2}$ sea PDF en $x>0$:",
         "opciones": [
             r"A) $k = 0.5$",
@@ -446,7 +446,7 @@ BANCO_FIXED = [
         "explicacion": r"Integral $\int_0^\infty k e^{-x/2} dx = 2k = 1$."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Evalúe $\int_1^{\infty} x^{-3} dx$:",
         "opciones": [
             r"A) $0.5$",
@@ -458,7 +458,7 @@ BANCO_FIXED = [
         "explicacion": r"$-1/(2x^2)$ evaluado da $0 - (-0.5) = 0.5$."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Determine la convergencia de $\int_1^{\infty} \frac{1}{x^p} dx$:",
         "opciones": [
             r"A) Converge si $p > 1$",
@@ -470,7 +470,7 @@ BANCO_FIXED = [
         "explicacion": r"Es una p-integral básica. Si $p > 1$, el resultado es $\frac{1}{p-1}$. Si $p \le 1$, el área es infinita."
     },
     {
-        "tema": "1.2.3 Integrales Impropias",
+        "tema": "1.2.4 Integrales Impropias",
         "pregunta": r"Evalúe la integral impropia $\int_0^{\infty} e^{-2x} dx$:",
         "opciones": [
             r"A) $1/2$",
@@ -483,7 +483,7 @@ BANCO_FIXED = [
     },
     # --- INTEGRALES DOBLES ---
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Calcule $\int_{0}^{1}\int_{1}^{2} (3x^2 - 6z) dx dz$ (orden $dx, dz$):",
         "opciones": [
             r"A) $-2$",
@@ -495,7 +495,7 @@ BANCO_FIXED = [
         "explicacion": r"Integral interna $x^3-6zx|_1^2 = 7-6z$. Integral externa $7z-3z^2|_0^1 = 4$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Calcule $\int_{0}^{1}\int_{1}^{2} (3x^2 - 6z) dx dz$:",
         "opciones": [
             r"A) $4$",
@@ -507,7 +507,7 @@ BANCO_FIXED = [
         "explicacion": r"Evaluación directa: Interna da $7-6z$. Externa da $4$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Plantee para región entre parábola $x = y^2 - 4y$ y recta $y = x - 6$:",
         "opciones": [
             r"A) $\int_{-1}^{6} \int_{y^2-4y}^{y+6} f(x,y) dx dy$",
@@ -519,7 +519,7 @@ BANCO_FIXED = [
         "explicacion": r"Integración tipo II (dx primero). Límites de y $[-1, 6]$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Cambie orden $\int_0^4 \int_0^x f(x,y) dy dx$:",
         "opciones": [
             r"A) $\int_0^4 \int_y^4 f(x,y) dx dy$",
@@ -531,7 +531,7 @@ BANCO_FIXED = [
         "explicacion": r"Región triangular $0 \le y \le x \le 4$. En orden inverso $y \le x \le 4$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Calcule $\int_0^1 \int_0^2 (x+y) dy dx$:",
         "opciones": [
             r"A) $3$",
@@ -543,7 +543,7 @@ BANCO_FIXED = [
         "explicacion": r"Interna $2x+2$. Externa $1+2=3$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Volumen bajo $z=1+x-y$ sobre región limitada por $y=x^2$ y $y=8-2x$:",
         "opciones": [
             r"A) $\int_{-4}^{2} \int_{x^2}^{8-2x} (1+x-y) dy dx$",
@@ -555,7 +555,7 @@ BANCO_FIXED = [
         "explicacion": r"Cortes en $x=-4, 2$. Recta por encima de parábola."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Calcule la integral doble $\iint_R 2xy \, dA$ sobre el rectángulo $R = [0,2] \times [0,1]$:",
         "opciones": [
             r"A) 2",
@@ -567,7 +567,7 @@ BANCO_FIXED = [
         "explicacion": r"$\int_0^2 \int_0^1 2xy \, dy \, dx = \int_0^2 x [y^2]_0^1 dx = \int_0^2 x dx = [\frac{x^2}{2}]_0^2 = 2$."
     },
     {
-        "tema": "1.2.5 Integrales Dobles",
+        "tema": "1.2.6 Integrales dobles",
         "pregunta": r"Al cambiar el orden de integración en $\int_0^1 \int_x^1 f(x,y) \, dy \, dx$, la nueva integral es:",
         "opciones": [
             r"A) $\int_0^1 \int_0^y f(x,y) \, dx \, dy$",
@@ -580,7 +580,7 @@ BANCO_FIXED = [
     },
     # --- VOLÚMENES DE REVOLUCIÓN ---
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
         "pregunta": r"Volumen de $f(x)=1+x^2$ entre $x=-1, 5$ girando en $y=-1$:",
         "opciones": [
             r"A) $\pi \int_{-1}^{5} (2+x^2)^2 dx$",
@@ -592,7 +592,7 @@ BANCO_FIXED = [
         "explicacion": r"Radio $R = (1+x^2) - (-1) = 2+x^2$. No hay hueco (disco)."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
         "pregunta": r"Volumen región $y=x^2-4x$, $y=0$ girando en $y=4$:",
         "opciones": [
             r"A) $\pi \int_0^4 [ 4^2 - (4-(x^2-4x))^2 ] dx$",
@@ -604,7 +604,7 @@ BANCO_FIXED = [
         "explicacion": r"Arandelas. Radio exterior constante 4 (hasta el eje x). Radio interior hasta la curva."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
         "pregunta": r"Volumen región $x=y^2+2, x=1$ girando en $x=-2$:",
         "opciones": [
             r"A) $\pi \int_{-2}^{2} [ (y^2+4)^2 - 3^2 ] dy$",
@@ -616,7 +616,7 @@ BANCO_FIXED = [
         "explicacion": r"Radio mayor $R=(y^2+2)-(-2)$. Radio menor $r=1-(-2)$."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
         "pregunta": r"Volumen región $y=2+x^2, y=6$ girando en $y=1$:",
         "opciones": [
             r"A) $\pi \int_{-2}^{2} [ (6-1)^2 - (2+x^2-1)^2 ] dx$",
@@ -628,7 +628,7 @@ BANCO_FIXED = [
         "explicacion": r"Radio mayor constante $5$. Radio menor variable $1+x^2$."
     },
     {
-        "tema": "1.2.4 Volúmenes de Sólido de Revolución",
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
         "pregunta": r"Volumen región $y=4-x^2, y=3$ girando en $y=2$:",
         "opciones": [
             r"A) $\pi \int_{0}^{1} [ (4-x^2-2)^2 - (3-2)^2 ] dx$",
@@ -1067,7 +1067,7 @@ BANCO_FIXED = [
         "explicacion": r"Solución analítica estándar."
     },
     {
-        "tema": "2.1.5 Aplicaciones de Ecuaciones Diferenciales en Economía",
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
         "pregunta": r"Si el crecimiento de una inversión $K(t)$ es proporcional a su tamaño actual ($K' = rK$) con una tasa $r=0.05$ y capital inicial $1000$:",
         "opciones": [
             r"A) $K(t) = 1000 e^{0.05t}$",
@@ -1079,7 +1079,7 @@ BANCO_FIXED = [
         "explicacion": r"Es una ED de variables separables típica de crecimiento continuo. La solución es $K(t) = K_0 e^{rt}$."
     },
     {
-        "tema": "2.1.5 Aplicaciones de Ecuaciones Diferenciales en Economía",
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
         "pregunta": r"La elasticidad precio de la demanda es constante e igual a -2. Si $\frac{dQ}{dp} \frac{p}{Q} = -2$, halle la función de demanda $Q(p)$:",
         "opciones": [
             r"A) $Q = C p^{-2}$",
@@ -1091,7 +1091,7 @@ BANCO_FIXED = [
         "explicacion": r"Separando variables: $\frac{dQ}{Q} = -2 \frac{dp}{p} \Rightarrow \ln Q = -2 \ln p + c \Rightarrow Q = e^c p^{-2}$."
     },
     {
-        "tema": "2.1.5 Aplicaciones de Ecuaciones Diferenciales en Economía",
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
         "pregunta": r"En un modelo de ajuste de precios, el precio cambia proporcionalmente al exceso de demanda: $P'(t) = \alpha (Q_d - Q_s)$. Si $Q_d = 10-P$ y $Q_s = P-2$, con $\alpha=0.5$:",
         "opciones": [
             r"A) $P' = 6 - P$",

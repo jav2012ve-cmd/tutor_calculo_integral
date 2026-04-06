@@ -4,7 +4,7 @@
 
 | # | Mejora | Dónde | Motivo |
 |---|--------|--------|--------|
-| 1.1 | **Unificar códigos de tema** entre `temario.py` y `banco_preguntas.py`. En temario: Volúmenes = 1.2.5, Integrales Dobles = 1.2.6. En banco: Volúmenes = 1.2.4, Integrales Dobles = 1.2.5. | `modules/banco_preguntas.py` | Filtrado por tema y simulacros por parcial pueden no coincidir; ejercicios de “Volúmenes” o “Integrales dobles” pueden no aparecer donde el usuario espera. |
+| 1.1 | ~~Unificar códigos de tema~~ **Hecho (2026-04):** `temario.py` y `banco_preguntas.py` alineados; P1 = 1.1.1–1.2.3, P2 desde 1.2.4; `1.2.7` = distribución (antes 1.2.3.1). | `modules/temario.py`, `banco_preguntas.py` | Evita desajuste entre simulacro y banco. |
 | 1.2 | **Documentar y validar API Key** (Gemini). Dejar claro en README o en pantalla que se requiere `GOOGLE_API_KEY` en Secrets; opcional: mensaje más claro si falta (ej. “Configura la clave en .streamlit/secrets.toml”). | `modules/ia_core.py`, README | La app hace `st.stop()` sin indicar cómo solucionarlo; dificulta el primer uso. |
 
 ---

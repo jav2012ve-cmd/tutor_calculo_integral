@@ -358,10 +358,10 @@ Responde ÚNICAMENTE con JSON válido, sin markdown:
 def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
     """Genera la tutoría para el modo Entrenamiento (Banco/IA)."""
     regla_tema = ""
-    if "Integrales Directas" in (tema or ""):
+    if "1.1.1" in (tema or "") or "Integrales Indefinidas" in (tema or ""):
         regla_tema = """
     RESTRICCIÓN DE CONTENIDO (CRÍTICO para este tema):
-    - El tema "Integrales Directas" es EXCLUSIVO de integrales INDEFINIDAS.
+    - El tema "1.1.1 Integrales Indefinidas Directas" es EXCLUSIVO de integrales INDEFINIDAS.
     - NO uses integrales definidas: ni límites de integración (ej. \\int_a^b, \\int_0^1), ni "evalúe la integral definida", ni aplicación del teorema fundamental.
     - PROHIBIDO cambios de variable / sustitución: NUNCA escribas "u =", "cambio de variable", "sustitución", ni resuelvas con $du$.
     - Usa SOLO métodos directos:
