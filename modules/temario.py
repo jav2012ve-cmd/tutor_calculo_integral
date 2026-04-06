@@ -1,4 +1,8 @@
 # modules/temario.py
+from __future__ import annotations
+
+from typing import Any, Optional
+
 from modules import banco_muestras  # <--- NUEVA LÍNEA IMPORTANTE
 
 # --- LISTAS DE TEMAS ---
@@ -33,6 +37,28 @@ TEMAS_PARCIAL_2 = [
 
 # Unimos todo para el menú general
 LISTA_TEMAS = TEMAS_PARCIAL_1 + TEMAS_PARCIAL_2
+
+
+def normalizar_tema_curso(valor: Any) -> Optional[str]:
+    """
+    Convierte texto de la IA (o similar) al string exacto de LISTA_TEMAS, o None.
+    """
+    if valor is None:
+        return None
+    s = str(valor).strip()
+    if not s or s.upper() == "NULL":
+        return None
+    if s in LISTA_TEMAS:
+        return s
+    s_lower = s.lower()
+    for t in LISTA_TEMAS:
+        if t.lower() == s_lower:
+            return t
+    for t in LISTA_TEMAS:
+        if s_lower in t.lower() or t.lower() in s_lower:
+            return t
+    return None
+
 
 # --- CONTENIDO TEÓRICO (Resumido para el ejemplo) ---
 CONTENIDO_TEORICO = {

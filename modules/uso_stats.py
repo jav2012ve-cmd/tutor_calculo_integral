@@ -21,6 +21,8 @@ from typing import Any, Optional
 
 import requests
 
+from modules import temario
+
 MODULOS = (
     "Entrenamiento",
     "Respuesta Guiada",
@@ -32,8 +34,10 @@ MODULOS = (
 STATS_TEMA_NO_ESPECIFICADO = "(No especificado)"
 
 _TABLE_NAME = "app_module_usage"
+_TABLE_TOPIC = "app_topic_usage"
 _RPC_INCREMENT = "increment_module_usage"
 _RPC_INSERT_EVENT = "insert_usage_event"
+_RPC_TOPICS_BATCH = "increment_topic_usage_batch"
 _TIMEOUT_SEC = 12
 
 
@@ -49,6 +53,13 @@ def _ruta_eventos_jsonl() -> str:
     carpeta = os.path.join(base, "data")
     os.makedirs(carpeta, exist_ok=True)
     return os.path.join(carpeta, "usage_events.jsonl")
+
+
+def _ruta_topic_archivo() -> str:
+    base = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    carpeta = os.path.join(base, "data")
+    os.makedirs(carpeta, exist_ok=True)
+    return os.path.join(carpeta, "topic_usage.json")
 
 
 def _credenciales_supabase() -> tuple[Optional[str], Optional[str]]:
@@ -198,6 +209,73 @@ def _registrar_supabase(modulo: str) -> tuple[bool, Optional[str]]:
         return False, str(e)
 
 
+def _extraer_topic_keys_validos(
+    modulo: str, detalle: Optional[dict[str, Any]]
+) -> list[str]:
+    """Temas del temario presentes en ``detalle`` (uno o varios), sin duplicados."""
+    if not detalle:
+        return []
+    valid = set(temario.LISTA_TEMAS)
+    raw: list[str] = []
+    if modulo in ("Entrenamiento", "Quiz"):
+        for x in detalle.get("temas") or []:
+            if isinstance(x, str) and x.strip() in valid:
+                raw.append(x.strip())
+    elif modulo == "Respuesta Guiada":
+        t = temario.normalizar_tema_curso(detalle.get("tema_detectado"))
+        if t:
+            raw.append(t)
+    elif modulo in ("Tutor Preguntas Abiertas", "Corrección de Manuscritos"):
+        t = temario.normalizar_tema_curso(detalle.get("tema_catedra"))
+        if t:
+            raw.append(t)
+    seen: set[str] = set()
+    out: list[str] = []
+    for t in raw:
+        if t not in seen:
+            seen.add(t)
+            out.append(t)
+    return out
+
+
+def _increment_topics_supabase(topics: list[str]) -> bool:
+    if not topics:
+        return True
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return False
+    base = url.rstrip("/")
+    endpoint = f"{base}/rest/v1/rpc/{_RPC_TOPICS_BATCH}"
+    try:
+        r = requests.post(
+            endpoint,
+            headers={**_headers_rest(key), "Prefer": "return=minimal"},
+            json={"p_topics": topics},
+            timeout=_TIMEOUT_SEC,
+        )
+        return r.status_code in (200, 204)
+    except requests.RequestException:
+        return False
+
+
+def _increment_topics_local(topics: list[str]) -> None:
+    path = _ruta_topic_archivo()
+    data: dict[str, int] = {}
+    if os.path.isfile(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            data = {}
+    for t in topics:
+        data[t] = int(data.get(t, 0) or 0) + 1
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except OSError:
+        pass
+
+
 def _insert_event_supabase(modulo: str, payload: dict[str, Any]) -> tuple[bool, Optional[str]]:
     url, key = _credenciales_supabase()
     if not url or not key:
@@ -268,6 +346,14 @@ def registrar_uso(modulo: str, detalle: Optional[dict[str, Any]] = None) -> None
         else:
             _append_evento_local(modulo, detalle)
 
+    topic_keys = _extraer_topic_keys_validos(modulo, detalle)
+    if topic_keys:
+        if url and key:
+            if not _increment_topics_supabase(topic_keys):
+                _increment_topics_local(topic_keys)
+        else:
+            _increment_topics_local(topic_keys)
+
 
 def obtener_estadisticas() -> dict[str, int]:
     """Devuelve los contadores actuales (solo lectura)."""
@@ -275,3 +361,36 @@ def obtener_estadisticas() -> dict[str, int]:
     if remote is not None:
         return remote
     return _cargar_archivo().copy()
+
+
+def obtener_estadisticas_temas() -> dict[str, int]:
+    """
+    Conteos por tema del temario (0 si no hay registro).
+    Origen: Supabase ``app_topic_usage`` o archivo local ``data/topic_usage.json``.
+    """
+    base: dict[str, int] = {t: 0 for t in temario.LISTA_TEMAS}
+    url, key = _credenciales_supabase()
+    if url and key:
+        try:
+            b = url.rstrip("/")
+            endpoint = f"{b}/rest/v1/{_TABLE_TOPIC}?select=topic_key,count"
+            r = requests.get(endpoint, headers=_headers_rest(key), timeout=_TIMEOUT_SEC)
+            if r.status_code == 200:
+                for row in r.json() or []:
+                    k = row.get("topic_key")
+                    if k in base:
+                        base[k] = int(row.get("count") or 0)
+                return base
+        except (requests.RequestException, ValueError, TypeError):
+            pass
+    path = _ruta_topic_archivo()
+    if os.path.isfile(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                local = json.load(f)
+            for t in temario.LISTA_TEMAS:
+                if t in local:
+                    base[t] = int(local[t] or 0)
+        except (json.JSONDecodeError, OSError, TypeError):
+            pass
+    return base

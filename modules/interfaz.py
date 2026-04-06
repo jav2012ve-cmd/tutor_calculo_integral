@@ -125,6 +125,21 @@ def mostrar_sidebar():
             else:
                 st.caption("_Aún no hay registros de uso._")
 
+        with st.expander("📈 Cobertura por tema (temario)"):
+            st.caption(
+                "_Una fila por tema en Supabase (`app_topic_usage`); equivale a llevar columnas dinámicas sin alterar el esquema al cambiar el temario._"
+            )
+            por_tema = uso_stats.obtener_estadisticas_temas()
+            filas = sorted(
+                [{"tema": t, "n": por_tema.get(t, 0)} for t in LISTA_TEMAS],
+                key=lambda x: (-x["n"], x["tema"]),
+            )
+            con_uso = sum(1 for r in filas if r["n"] > 0)
+            st.caption(f"Temas con al menos un registro: **{con_uso}** / {len(LISTA_TEMAS)}")
+            for r in filas:
+                pref = "●" if r["n"] > 0 else "○"
+                st.caption(f"{pref} **{r['n']}** — {r['tema']}")
+
         return st.session_state.get("modo_actual"), tema_seleccionado
 
 def mostrar_bienvenida():

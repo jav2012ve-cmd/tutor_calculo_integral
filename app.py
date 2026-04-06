@@ -305,27 +305,6 @@ def _bloque_lista_temas_oficial() -> str:
     return "\n".join(f"  - {t}" for t in temario.LISTA_TEMAS)
 
 
-def _mapear_tema_lista_catedra(valor: Any) -> Optional[str]:
-    """
-    Normaliza la salida de la IA al texto exacto de temario.LISTA_TEMAS, o None.
-    """
-    if valor is None:
-        return None
-    s = str(valor).strip()
-    if not s or s.upper() == "NULL":
-        return None
-    if s in temario.LISTA_TEMAS:
-        return s
-    s_lower = s.lower()
-    for t in temario.LISTA_TEMAS:
-        if t.lower() == s_lower:
-            return t
-    for t in temario.LISTA_TEMAS:
-        if s_lower in t.lower() or t.lower() in s_lower:
-            return t
-    return None
-
-
 def clasificar_tema_desde_texto(texto_usuario: str) -> Optional[str]:
     """
     Pide a la IA que elija un tema de LISTA_TEMAS alineado a la consulta (estadísticas).
@@ -352,7 +331,7 @@ Responde ÚNICAMENTE con JSON válido, sin markdown:
     data = limpiar_json(resp.text)
     if not isinstance(data, dict):
         return None
-    return _mapear_tema_lista_catedra(data.get("tema_catedra"))
+    return temario.normalizar_tema_curso(data.get("tema_catedra"))
 
 
 def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
@@ -1327,7 +1306,7 @@ elif ruta == "e) Corrección de Manuscritos":
                     img_pil = Image.open(imagen_manuscrito)
                     resultado = evaluar_manuscrito(img_pil)
                     if resultado:
-                        _tm = _mapear_tema_lista_catedra(resultado.get("tema_catedra"))
+                        _tm = temario.normalizar_tema_curso(resultado.get("tema_catedra"))
                         uso_stats.registrar_uso(
                             "Corrección de Manuscritos",
                             detalle={"tema_catedra": _tm},
@@ -1342,7 +1321,7 @@ elif ruta == "e) Corrección de Manuscritos":
     if st.session_state.manuscrito_correccion:
         datos = st.session_state.manuscrito_correccion
         st.divider()
-        _tc_show = _mapear_tema_lista_catedra(datos.get("tema_catedra"))
+        _tc_show = temario.normalizar_tema_curso(datos.get("tema_catedra"))
         if _tc_show:
             st.caption(f"📌 **Tema identificado (cátedra):** `{_tc_show}`")
 
