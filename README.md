@@ -45,7 +45,9 @@ En la nube el disco del contenedor es **efímero**: los contadores en `data/uso_
 
 Si no configuras Supabase, la app sigue funcionando y guardará contadores solo en archivo local (`data/uso_stats.json`). Los detalles de interacción, si no llegan a Supabase, se pueden volcar en `data/usage_events.jsonl` (local).
 
-**Tabla `app_usage_event`:** columnas `modo`, `payload` (JSON), `created_at`. Ejemplos de `payload`: entrenamiento `{"temas": [...]}`, quiz `{"modalidad": "primer_parcial"|"segundo_parcial"|"personalizado", "temas": [...]}`, respuesta guiada `{"tema_detectado": "..."}`, tutor/manuscritos `{"tema_seleccionado": "..."}` y, en tutor, `pregunta_resumen`.
+**Tabla `app_usage_event`:** columnas `id`, `created_at`, **`modo`**, **`payload` (jsonb)**. En el Table Editor de Supabase, desplázate horizontalmente o abre **Edit table** si no ves `payload`. Si la tabla se creó sin esa columna, ejecuta `supabase_usage_events_add_payload.sql` en el SQL Editor.
+
+Ejemplos de `payload`: entrenamiento `{"temas": [...]}`, quiz `{"modalidad": "primer_parcial"|"segundo_parcial"|"personalizado", "temas": [...]}`, respuesta guiada `{"tema_detectado": "..."}`, tutor/manuscritos `{"tema_seleccionado": "..."}` y, en tutor, `pregunta_resumen`.
 
 La app habla con Supabase por la **API REST** de PostgREST (con la librería `requests`); no hace falta instalar el paquete pesado `supabase-py`.
 
