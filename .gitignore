@@ -3,6 +3,7 @@
 
 # Estadísticas de uso (anonimas, no versionar)
 data/uso_stats.json
+data/usage_events.jsonl
 
 # Registro local de consultas al tutor (puede contener datos sensibles)
 interacciones_tutor.csv

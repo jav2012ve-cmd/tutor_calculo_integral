@@ -706,7 +706,10 @@ elif ruta == "a) Entrenamiento (Temario)":
                             st.session_state.entrenamiento_validado = False 
                             st.session_state.entrenamiento_activo = True
                             cargar_exito = True
-                            uso_stats.registrar_uso("Entrenamiento")
+                            uso_stats.registrar_uso(
+                                "Entrenamiento",
+                                detalle={"temas": list(temas_entrenamiento)},
+                            )
 
                     except Exception as e:
                         st.error(f"Error técnico al iniciar: {e}")
@@ -854,7 +857,16 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
                             st.session_state.consulta_step = 1
                             st.session_state.consulta_validada = False
                             exito_analisis = True
-                            uso_stats.registrar_uso("Respuesta Guiada")
+                            uso_stats.registrar_uso(
+                                "Respuesta Guiada",
+                                detalle={
+                                    "tema_detectado": (
+                                        (datos_problema.get("tema_detectado") or "")
+                                        .strip()
+                                        or None
+                                    ),
+                                },
+                            )
                         else:
                             st.error("No se pudo interpretar la respuesta del tutor. Intenta de nuevo con otra redacción o imagen más clara.")
                     except Exception as e:
@@ -953,12 +965,14 @@ elif ruta == "c) Autoevaluación (Quiz)":
         col1, col2 = st.columns(2)
         with col1:
             if st.button("🏆 Generar Primer Parcial (Simulacro)", use_container_width=True):
+                st.session_state.quiz_modalidad = "primer_parcial"
                 st.session_state.config_temas = temario.TEMAS_PARCIAL_1
                 st.session_state.config_cant = NUM_PREGUNTAS_QUIZ 
                 st.session_state.trigger_quiz = True
                 st.rerun()
         with col2:
             if st.button("🏆 Generar Segundo Parcial (Simulacro)", use_container_width=True):
+                st.session_state.quiz_modalidad = "segundo_parcial"
                 st.session_state.config_temas = temario.TEMAS_PARCIAL_2
                 st.session_state.config_cant = NUM_PREGUNTAS_QUIZ
                 st.session_state.trigger_quiz = True
@@ -970,6 +984,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 if not temas_custom:
                     st.error("Selecciona tema.")
                 else:
+                    st.session_state.quiz_modalidad = "personalizado"
                     st.session_state.config_temas = temas_custom
                     st.session_state.config_cant = NUM_PREGUNTAS_QUIZ
                     st.session_state.trigger_quiz = True
@@ -1018,7 +1033,15 @@ elif ruta == "c) Autoevaluación (Quiz)":
                         st.session_state.quiz_activo = True
                         st.session_state.trigger_quiz = False
                         quiz_generado = True
-                        uso_stats.registrar_uso("Quiz")
+                        uso_stats.registrar_uso(
+                            "Quiz",
+                            detalle={
+                                "modalidad": st.session_state.get(
+                                    "quiz_modalidad", "desconocido"
+                                ),
+                                "temas": list(temas),
+                            },
+                        )
                     
                 except Exception as e:
                     st.error(f"Error generando examen: {e}")
@@ -1190,6 +1213,12 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
     Haz cualquier pregunta teórica. El tutor te responderá **vinculando la teoría con
     los ejercicios y estilos de examen** de nuestra cátedra.
     """)
+    _opts_tema_stats = [uso_stats.STATS_TEMA_NO_ESPECIFICADO] + temario.LISTA_TEMAS
+    st.selectbox(
+        "📌 Unidad o tema de la consulta (solo estadísticas anónimas)",
+        _opts_tema_stats,
+        key="stats_tema_tutor_abierto",
+    )
 
     if len(st.session_state.historial_tutor_abierto) > AVISO_HISTORIAL_LARGO:
         st.info("💬 **Conversación larga.** Para respuestas más precisas, considera usar **Reiniciar** en el menú y empezar una nueva.")
@@ -1199,7 +1228,20 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
             st.markdown(mensaje["content"])
 
     if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de las ejercicios del profesor"):
-        uso_stats.registrar_uso("Tutor Preguntas Abiertas")
+        _t_sel = st.session_state.get(
+            "stats_tema_tutor_abierto", uso_stats.STATS_TEMA_NO_ESPECIFICADO
+        )
+        uso_stats.registrar_uso(
+            "Tutor Preguntas Abiertas",
+            detalle={
+                "tema_seleccionado": (
+                    None
+                    if _t_sel == uso_stats.STATS_TEMA_NO_ESPECIFICADO
+                    else _t_sel
+                ),
+                "pregunta_resumen": (prompt or "")[:500],
+            },
+        )
         st.session_state.historial_tutor_abierto.append({"role": "user", "content": prompt})
         with st.chat_message("user"):
             st.markdown(prompt)
@@ -1219,6 +1261,12 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
 elif ruta == "e) Corrección de Manuscritos":
     st.markdown("### 📄 Corrección de Manuscritos")
     st.info("Sube una foto de tu resolución escrita. La app identificará el enunciado, valorará tu solución y te dará un juicio (correcto / parcialmente correcto / incorrecto) con sugerencias de ajuste.")
+    _opts_manu_stats = [uso_stats.STATS_TEMA_NO_ESPECIFICADO] + temario.LISTA_TEMAS
+    st.selectbox(
+        "📌 Unidad o tema del ejercicio (solo estadísticas anónimas)",
+        _opts_manu_stats,
+        key="stats_tema_manuscrito",
+    )
 
     imagen_manuscrito = st.file_uploader(
         "📸 Sube la foto de tu manuscrito (enunciado + resolución)",
@@ -1235,7 +1283,20 @@ elif ruta == "e) Corrección de Manuscritos":
                     img_pil = Image.open(imagen_manuscrito)
                     resultado = evaluar_manuscrito(img_pil)
                     if resultado:
-                        uso_stats.registrar_uso("Corrección de Manuscritos")
+                        _tm = st.session_state.get(
+                            "stats_tema_manuscrito",
+                            uso_stats.STATS_TEMA_NO_ESPECIFICADO,
+                        )
+                        uso_stats.registrar_uso(
+                            "Corrección de Manuscritos",
+                            detalle={
+                                "tema_seleccionado": (
+                                    None
+                                    if _tm == uso_stats.STATS_TEMA_NO_ESPECIFICADO
+                                    else _tm
+                                ),
+                            },
+                        )
                         st.session_state.manuscrito_correccion = resultado
                         st.rerun()
                     else:
