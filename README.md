@@ -26,6 +26,27 @@ La aplicación necesita `GOOGLE_API_KEY` para conectar con Gemini.
 
 Sin esta clave, la app se detendrá y mostrará en pantalla las mismas instrucciones.
 
+## Estadísticas de uso con Supabase (recomendado en Streamlit Cloud)
+
+En la nube el disco del contenedor es **efímero**: los contadores en `data/uso_stats.json` se pierden al reiniciar o cuando la app “duerme”. Para conservar los totales de uso por modo, configura **Supabase**:
+
+1. Crea un proyecto en [Supabase](https://supabase.com/).
+2. En **SQL Editor**, ejecuta el script `supabase_schema.sql` de este repositorio (tabla + función RPC `increment_module_usage`). Si la tabla no recibe filas al usar la app, ejecuta también `supabase_grants.sql`.
+3. **Comprueba la base** (opcional): en SQL Editor ejecuta `SELECT public.increment_module_usage('Entrenamiento');` y luego `SELECT * FROM public.app_module_usage;` — debe aparecer una fila. Si aquí funciona pero la app no escribe, faltan **Secrets** en Streamlit o la app desplegada está desactualizada.
+4. En **Project Settings → API** copia **Project URL** y la clave **service_role** (solo para backend; no la expongas en el navegador).
+5. Añade en `.streamlit/secrets.toml` (local) o en **Streamlit Cloud → Secrets**:
+
+   ```toml
+   SUPABASE_URL = "https://xxxx.supabase.co"
+   SUPABASE_SERVICE_ROLE_KEY = "eyJhbG..."
+   ```
+
+   También puedes usar la variable de entorno `SUPABASE_SERVICE_ROLE_KEY` o, por compatibilidad, `SUPABASE_KEY` con el mismo valor de service role.
+
+Si no configuras Supabase, la app sigue funcionando y guardará contadores solo en archivo local (`data/uso_stats.json`).
+
+La app habla con Supabase por la **API REST** de PostgREST (con la librería `requests`); no hace falta instalar el paquete pesado `supabase-py`.
+
 ## Ejecutar
 
 ```bash

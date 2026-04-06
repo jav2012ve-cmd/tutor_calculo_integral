@@ -110,12 +110,18 @@ def mostrar_sidebar():
             """)
 
         with st.expander("📊 Uso de la app"):
+            warn = st.session_state.get("_uso_stats_supabase_warn")
+            if warn:
+                st.warning(warn)
             stats = uso_stats.obtener_estadisticas()
             if any(stats.get(m, 0) > 0 for m in uso_stats.MODULOS):
                 for mod in uso_stats.MODULOS:
                     n = stats.get(mod, 0)
                     st.caption(f"**{mod}:** {n} consultas")
                 st.caption("_Anónimo, sin identificar usuarios._")
+                st.caption(
+                    "_Totales globales si Supabase está configurado; si no, solo esta máquina (archivo local)._"
+                )
             else:
                 st.caption("_Aún no hay registros de uso._")
 

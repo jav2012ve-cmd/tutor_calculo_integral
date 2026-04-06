@@ -4,6 +4,9 @@
 # Estadísticas de uso (anonimas, no versionar)
 data/uso_stats.json
 
+# Registro local de consultas al tutor (puede contener datos sensibles)
+interacciones_tutor.csv
+
 # Python
 __pycache__/
 *.py[cod]

@@ -1,5 +1,4 @@
 from __future__ import annotations
-from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras, uso_stats
 import json
 import os
 import re
@@ -24,7 +23,15 @@ for candidate in [HERE] + [os.path.abspath(os.path.join(HERE, os.pardir))] + [
 if modules_parent and modules_parent not in sys.path:
     sys.path.insert(0, modules_parent)
 
-from modules import ia_core, interfaz, temario, banco_preguntas, banco_muestras, uso_stats
+from modules import (
+    ia_core,
+    interfaz,
+    temario,
+    banco_preguntas,
+    banco_muestras,
+    uso_stats,
+    registro_interacciones,
+)
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
 NUM_EJERCICIOS_ENTRENAMIENTO = 5
@@ -57,10 +64,17 @@ def generar_contenido_seguro(
     """
     if intentos_max is None:
         intentos_max = INTENTOS_MAX_IA
+    texto_pregunta = registro_interacciones.serializar_pregunta(prompt_parts)
+    modelo_log = nombre_modelo or ""
     errores_recientes = ""
     for i in range(intentos_max):
         try:
-            return model.generate_content(prompt_parts)
+            response = model.generate_content(prompt_parts)
+            texto_respuesta = registro_interacciones.extraer_texto_respuesta(response)
+            registro_interacciones.registrar_interaccion(
+                texto_pregunta, texto_respuesta, modelo_log
+            )
+            return response
         except Exception as e:
             errores_recientes = str(e)
             if "429" in str(e):
@@ -69,8 +83,13 @@ def generar_contenido_seguro(
                 time.sleep(tiempo_espera)
             else:
                 time.sleep(1)
-    
+
     st.error(f"❌ Error de conexión: {errores_recientes}")
+    registro_interacciones.registrar_interaccion(
+        texto_pregunta,
+        f"(sin respuesta tras reintentos) {errores_recientes}",
+        modelo_log,
+    )
     return None
 
 def _parece_formula(contenido: str) -> bool:
