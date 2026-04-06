@@ -1,9 +1,15 @@
+import os
+
 import streamlit as st
 from modules.temario import LISTA_TEMAS
 from modules import uso_stats
 
 # Nombre de la aplicación (pestaña del navegador, títulos principales)
 APP_DISPLAY_NAME = "Matemáticas III - Economía UCAB Versión 4.0"
+
+# Infografía de bienvenida (relativa a la raíz del proyecto, junto a app.py)
+_ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
+INFOGRAFIA_BIENVENIDA = os.path.join(_ASSETS_DIR, "infografia_asistente_v2.png")
 
 def inyectar_estilo_matematico():
     """
@@ -148,7 +154,19 @@ def mostrar_sidebar():
 def mostrar_bienvenida():
     """Muestra la presentación inicial solo cuando aún no se ha seleccionado un modo."""
     st.title(APP_DISPLAY_NAME)
-    
+
+    if os.path.isfile(INFOGRAFIA_BIENVENIDA):
+        st.image(
+            INFOGRAFIA_BIENVENIDA,
+            use_container_width=True,
+            caption=(
+                "Ruta técnica (Gemini, Streamlit, Python, GitHub, Supabase, informe PDF) "
+                "y ruta didáctica (modos de estudio, entrada por imagen, LaTeX)."
+            ),
+        )
+    else:
+        st.caption("_No se encontró la infografía en `assets/infografia_asistente_v2.png`._")
+
     st.markdown("""
     <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
         <h4 style="margin-top: 0; color: #0066cc;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
