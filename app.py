@@ -645,7 +645,7 @@ def generar_pdf_informe_quiz(
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", size=14)
-    pdf.cell(0, 10, "Informe de evaluacion - Matematicas III - Economias UCAB V3.0", ln=True)
+    pdf.cell(0, 10, "Informe de evaluacion - Matematicas III - Economia UCAB V4.0", ln=True)
     pdf.set_font("Helvetica", size=11)
     pdf.cell(0, 8, f"Calificacion final: {nota_final} / 20 pts", ln=True)
     pdf.cell(0, 8, "Aprobado." if nota_final >= 10 else "No aprobado.", ln=True)
@@ -1234,7 +1234,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 st.download_button(
                     "📥 Descargar informe (PDF)",
                     data=pdf_bytes,
-                    file_name=f"informe_Mate3_UCAB_V3_{str(nota_final).replace('.', '_')}.pdf",
+                    file_name=f"informe_Mate3_UCAB_V4_{str(nota_final).replace('.', '_')}.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )

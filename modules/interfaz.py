@@ -2,6 +2,9 @@ import streamlit as st
 from modules.temario import LISTA_TEMAS
 from modules import uso_stats
 
+# Nombre de la aplicación (pestaña del navegador, títulos principales)
+APP_DISPLAY_NAME = "Matemáticas III - Economía UCAB Versión 4.0"
+
 def inyectar_estilo_matematico():
     """
     CSS para mejorar renderizado KaTeX y evitar que el texto matemático se rompa.
@@ -41,7 +44,7 @@ def inyectar_estilo_matematico():
 
 def configurar_pagina():
     st.set_page_config(
-        page_title="Matemáticas III - Economías UCAB V3.0",
+        page_title=APP_DISPLAY_NAME,
         page_icon="📈",
         layout="wide"
     )
@@ -144,7 +147,7 @@ def mostrar_sidebar():
 
 def mostrar_bienvenida():
     """Muestra la presentación inicial solo cuando aún no se ha seleccionado un modo."""
-    st.title("Matemáticas III - Economías UCAB V3.0")
+    st.title(APP_DISPLAY_NAME)
     
     st.markdown("""
     <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
