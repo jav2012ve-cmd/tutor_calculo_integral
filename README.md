@@ -47,7 +47,7 @@ Si no configuras Supabase, la app sigue funcionando y guardará contadores solo 
 
 **Tabla `app_usage_event`:** columnas `id`, `created_at`, **`modo`**, **`payload` (jsonb)**. En el Table Editor de Supabase, desplázate horizontalmente o abre **Edit table** si no ves `payload`. Si la tabla se creó sin esa columna, ejecuta `supabase_usage_events_add_payload.sql` en el SQL Editor.
 
-Ejemplos de `payload`: entrenamiento `{"temas": [...]}`, quiz `{"modalidad": "primer_parcial"|"segundo_parcial"|"personalizado", "temas": [...]}`, respuesta guiada `{"tema_detectado": "..."}`, tutor/manuscritos `{"tema_seleccionado": "..."}` y, en tutor, `pregunta_resumen`.
+Ejemplos de `payload`: entrenamiento `{"temas": [...]}`, quiz `{"modalidad": "primer_parcial"|"segundo_parcial"|"personalizado", "temas": [...]}`, respuesta guiada `{"tema_detectado": "..."}`, tutor `{"tema_catedra": "..."|null, "pregunta_resumen": "..."}` (tema clasificado por IA según el temario), manuscritos `{"tema_catedra": "..."|null}` (mismo criterio, en la misma respuesta JSON del corrector).
 
 La app habla con Supabase por la **API REST** de PostgREST (con la librería `requests`); no hace falta instalar el paquete pesado `supabase-py`.
 

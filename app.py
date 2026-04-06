@@ -300,6 +300,61 @@ def limpiar_json(texto: Optional[str]) -> Optional[Any]:
         except Exception:
             return None
 
+
+def _bloque_lista_temas_oficial() -> str:
+    return "\n".join(f"  - {t}" for t in temario.LISTA_TEMAS)
+
+
+def _mapear_tema_lista_catedra(valor: Any) -> Optional[str]:
+    """
+    Normaliza la salida de la IA al texto exacto de temario.LISTA_TEMAS, o None.
+    """
+    if valor is None:
+        return None
+    s = str(valor).strip()
+    if not s or s.upper() == "NULL":
+        return None
+    if s in temario.LISTA_TEMAS:
+        return s
+    s_lower = s.lower()
+    for t in temario.LISTA_TEMAS:
+        if t.lower() == s_lower:
+            return t
+    for t in temario.LISTA_TEMAS:
+        if s_lower in t.lower() or t.lower() in s_lower:
+            return t
+    return None
+
+
+def clasificar_tema_desde_texto(texto_usuario: str) -> Optional[str]:
+    """
+    Pide a la IA que elija un tema de LISTA_TEMAS alineado a la consulta (estadísticas).
+    """
+    t = (texto_usuario or "").strip()
+    if not t:
+        return None
+    lista_txt = _bloque_lista_temas_oficial()
+    prompt = f"""Eres asistente de catalogación para Matemáticas III (Economía UCAB).
+Indica a qué tema del temario oficial corresponde mejor la consulta del estudiante.
+
+LISTA OFICIAL (elige UN solo texto EXACTO como aparece abajo, carácter por carácter, o null si ninguno encaja):
+{lista_txt}
+
+Consulta:
+\"\"\"{t[:4000]}\"\"\"
+
+Responde ÚNICAMENTE con JSON válido, sin markdown:
+{{"tema_catedra": "<texto exacto de la lista>" | null}}
+"""
+    resp = generar_contenido_seguro(prompt)
+    if not resp:
+        return None
+    data = limpiar_json(resp.text)
+    if not isinstance(data, dict):
+        return None
+    return _mapear_tema_lista_catedra(data.get("tema_catedra"))
+
+
 def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
     """Genera la tutoría para el modo Entrenamiento (Banco/IA)."""
     regla_tema = ""
@@ -405,12 +460,17 @@ def evaluar_manuscrito(imagen_manuscrito: Any) -> Optional[dict]:
     Analiza un manuscrito (foto de resolución del estudiante).
     Identifica el enunciado, valora la resolución y emite juicio con sugerencias.
     """
-    prompt = """
+    lista_txt = _bloque_lista_temas_oficial()
+    prompt = f"""
     Eres un corrector experto de Matemáticas III (Cálculo Integral y Ecuaciones Diferenciales) para Economía.
 
     En la imagen verás un manuscrito del estudiante: suele incluir el enunciado del ejercicio y su resolución escrita.
 
     Realiza en orden:
+
+    0) TEMARIO: Según el enunciado y la resolución visibles, indica a cuál de estos temas oficiales corresponde mejor el ejercicio.
+       Copia UN texto EXACTO de la lista (mismo texto, carácter por carácter) o usa null si no encaja ninguno:
+{lista_txt}
 
     1) ENUNCIADO: Identifica y transcribe con claridad el enunciado del ejercicio (qué pide el problema). Si hay fórmulas, escríbelas en LaTeX puro (usa \\\\frac, \\\\int, etc., sin $$ dentro del JSON).
 
@@ -442,14 +502,15 @@ def evaluar_manuscrito(imagen_manuscrito: Any) -> Optional[dict]:
     ...
 
     Responde ÚNICAMENTE con un objeto JSON válido (sin markdown ni texto alrededor) con esta estructura exacta:
-    {
+    {{
+        "tema_catedra": "<texto exacto de la lista oficial>" | null,
         "enunciado": "Texto o LaTeX del ejercicio identificado",
         "juicio": "correcto" | "parcialmente_correcto" | "incorrecto",
         "resumen_valoracion": "Breve explicación del juicio en 1-3 oraciones.",
         "errores_detectados": ["error 1", "error 2"],
         "pasos_omitidos": ["paso omitido 1", "paso omitido 2"],
         "sugerencias": ["sugerencia 1", "sugerencia 2"]
-    }
+    }}
     Si no hay errores o pasos omitidos, usa listas vacías [].
     """
     contenido = [prompt, imagen_manuscrito]
@@ -1213,12 +1274,6 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
     Haz cualquier pregunta teórica. El tutor te responderá **vinculando la teoría con
     los ejercicios y estilos de examen** de nuestra cátedra.
     """)
-    _opts_tema_stats = [uso_stats.STATS_TEMA_NO_ESPECIFICADO] + temario.LISTA_TEMAS
-    st.selectbox(
-        "📌 Unidad o tema de la consulta (solo estadísticas anónimas)",
-        _opts_tema_stats,
-        key="stats_tema_tutor_abierto",
-    )
 
     if len(st.session_state.historial_tutor_abierto) > AVISO_HISTORIAL_LARGO:
         st.info("💬 **Conversación larga.** Para respuestas más precisas, considera usar **Reiniciar** en el menú y empezar una nueva.")
@@ -1228,17 +1283,12 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
             st.markdown(mensaje["content"])
 
     if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de las ejercicios del profesor"):
-        _t_sel = st.session_state.get(
-            "stats_tema_tutor_abierto", uso_stats.STATS_TEMA_NO_ESPECIFICADO
-        )
+        with st.spinner("Clasificando tema para estadísticas…"):
+            _tema_stats = clasificar_tema_desde_texto(prompt)
         uso_stats.registrar_uso(
             "Tutor Preguntas Abiertas",
             detalle={
-                "tema_seleccionado": (
-                    None
-                    if _t_sel == uso_stats.STATS_TEMA_NO_ESPECIFICADO
-                    else _t_sel
-                ),
+                "tema_catedra": _tema_stats,
                 "pregunta_resumen": (prompt or "")[:500],
             },
         )
@@ -1261,12 +1311,6 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
 elif ruta == "e) Corrección de Manuscritos":
     st.markdown("### 📄 Corrección de Manuscritos")
     st.info("Sube una foto de tu resolución escrita. La app identificará el enunciado, valorará tu solución y te dará un juicio (correcto / parcialmente correcto / incorrecto) con sugerencias de ajuste.")
-    _opts_manu_stats = [uso_stats.STATS_TEMA_NO_ESPECIFICADO] + temario.LISTA_TEMAS
-    st.selectbox(
-        "📌 Unidad o tema del ejercicio (solo estadísticas anónimas)",
-        _opts_manu_stats,
-        key="stats_tema_manuscrito",
-    )
 
     imagen_manuscrito = st.file_uploader(
         "📸 Sube la foto de tu manuscrito (enunciado + resolución)",
@@ -1283,19 +1327,10 @@ elif ruta == "e) Corrección de Manuscritos":
                     img_pil = Image.open(imagen_manuscrito)
                     resultado = evaluar_manuscrito(img_pil)
                     if resultado:
-                        _tm = st.session_state.get(
-                            "stats_tema_manuscrito",
-                            uso_stats.STATS_TEMA_NO_ESPECIFICADO,
-                        )
+                        _tm = _mapear_tema_lista_catedra(resultado.get("tema_catedra"))
                         uso_stats.registrar_uso(
                             "Corrección de Manuscritos",
-                            detalle={
-                                "tema_seleccionado": (
-                                    None
-                                    if _tm == uso_stats.STATS_TEMA_NO_ESPECIFICADO
-                                    else _tm
-                                ),
-                            },
+                            detalle={"tema_catedra": _tm},
                         )
                         st.session_state.manuscrito_correccion = resultado
                         st.rerun()
@@ -1307,6 +1342,10 @@ elif ruta == "e) Corrección de Manuscritos":
     if st.session_state.manuscrito_correccion:
         datos = st.session_state.manuscrito_correccion
         st.divider()
+        _tc_show = _mapear_tema_lista_catedra(datos.get("tema_catedra"))
+        if _tc_show:
+            st.caption(f"📌 **Tema identificado (cátedra):** `{_tc_show}`")
+
         st.subheader("📋 Enunciado identificado")
         enunciado = datos.get("enunciado", "")
         if enunciado:
