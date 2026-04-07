@@ -128,9 +128,21 @@ def preparar_latex_para_streamlit(texto: Optional[str]) -> str:
         r'(\\int|\\frac|\\sqrt|\\alpha|\\beta|[\w\d\s\+\-\*\/\^\(\)]+?)(?=\s|$|\.|\,)'
     )
 
-    # Bloque integral completo (grupo), no token a token
+    # Bloque integral completo (grupo), no token a token (DOTALL: \int en línea siguiente al texto)
     if ("\\int" in t or "\\frac" in t) and "$" not in t:
-        t = re.sub(r'(\\int.*?(?:dx|dy|dt|dz))', r' $\1$ ', t)
+        t = re.sub(
+            r'(\\int.*?(?:dx|dy|dt|dz))',
+            r' $\1$ ',
+            t,
+            flags=re.DOTALL,
+        )
+
+    # Opciones de quiz / fórmulas cortas con \frac, \ln, etc. sin delimitadores
+    if "$" not in t and len(t.strip()) <= 280 and re.search(
+        r'\\(?:frac|sqrt|ln|int|sum|cdot|left|right|infty|partial|alpha|beta|gamma|delta|theta|pi)\b',
+        t,
+    ):
+        t = f"${t.strip()}$"
 
     return t
 
@@ -1057,26 +1069,24 @@ elif ruta == "c) Autoevaluación (Quiz)":
             
             st.progress((actual) / total, text=f"Pregunta {actual + 1} de {total}")
             
-            # 1. RENDERIZADO DE LA PREGUNTA
-            # Enunciado tipo texto + LaTeX inline -> usar solo preparar_latex (no envolver todo en $$)
-            st.markdown("#### " + preparar_latex_para_streamlit(pregunta_data["pregunta"]))
+            # 1. RENDERIZADO DE LA PREGUNTA (misma ruta que entrenamiento: markdown + st.latex)
+            st.markdown("#### Pregunta")
+            _render_texto_con_latex(pregunta_data["pregunta"])
             st.divider()
             
-            # 2. RENDERIZADO DE LAS OPCIONES (VISUAL) — LaTeX renderizado como fórmula
+            # 2. RENDERIZADO DE LAS OPCIONES — letra en markdown, fórmula vía _render_texto_con_latex
             st.write("Opciones:")
             col_ops = st.columns(2)
             opciones_completas = pregunta_data["opciones"]
 
             for i, opcion_texto in enumerate(opciones_completas):
-                if ")" in opcion_texto:
-                    letra, resto = opcion_texto.split(")", 1)
-                    resto = preparar_latex_para_streamlit(resto.strip())
-                    texto_mostrar = f"**{letra})** {resto}"
-                else:
-                    texto_mostrar = preparar_latex_para_streamlit(opcion_texto)
-
                 with col_ops[i % 2]:
-                    st.markdown(texto_mostrar)
+                    if ")" in opcion_texto:
+                        letra, resto = opcion_texto.split(")", 1)
+                        st.markdown(f"**{letra.strip()})**")
+                        _render_texto_con_latex(resto.strip())
+                    else:
+                        _render_texto_con_latex(opcion_texto)
             
             st.divider()
 
@@ -1123,16 +1133,17 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 # FEEDBACK INMEDIATO (Si ya respondió pero no ha pasado a la siguiente)
                 ultimo_dato = st.session_state.respuestas_usuario[actual]
                 
-                # Renderizamos la elección del usuario de forma bonita
-                st.info(f"Tu respuesta: **{ultimo_dato['elegida']}**")
+                st.info("**Tu respuesta:**")
+                _render_texto_con_latex(ultimo_dato["elegida"])
                 
                 if ultimo_dato['es_correcta']:
                     st.success("✅ ¡Correcto!")
                 else:
-                    st.error(f"❌ Incorrecto. La correcta era: {ultimo_dato['correcta']}")
+                    st.error("❌ Incorrecto. **La correcta era:**")
+                    _render_texto_con_latex(ultimo_dato["correcta"])
                 
                 with st.expander("💡 Ver Explicación", expanded=True):
-                    st.markdown(preparar_latex_para_streamlit(ultimo_dato["explicacion"]))
+                    _render_texto_con_latex(ultimo_dato["explicacion"])
                 
                 if st.button("Siguiente Pregunta ➡️", type="primary"):
                     st.session_state.indice_pregunta += 1
@@ -1159,22 +1170,23 @@ elif ruta == "c) Autoevaluación (Quiz)":
 
             for i, r in enumerate(st.session_state.respuestas_usuario):
                 st.markdown(f"#### 🔹 Pregunta {i+1} ({r['puntos']} pts)")
-                # Enunciado de la pregunta en el informe: mismo criterio que en pantalla
-                st.markdown(preparar_latex_para_streamlit(r["pregunta"])) 
+                _render_texto_con_latex(r["pregunta"])
                 
                 col_res1, col_res2 = st.columns(2)
                 with col_res1:
                     if r['es_correcta']:
-                        st.success(f"✅ **Tu respuesta:** {r['elegida']}")
+                        st.success("✅ **Tu respuesta:**")
                     else:
-                        st.error(f"❌ **Tu respuesta:** {r['elegida']}")
+                        st.error("❌ **Tu respuesta:**")
+                    _render_texto_con_latex(r["elegida"])
                 
                 with col_res2:
                     if not r['es_correcta']:
-                        st.warning(f"✔ **Correcta:** {r['correcta']}")
+                        st.warning("✔ **Correcta:**")
+                        _render_texto_con_latex(r["correcta"])
 
                 st.markdown("**📝 Explicación:**")
-                st.markdown(preparar_latex_para_streamlit(r["explicacion"])) 
+                _render_texto_con_latex(r["explicacion"])
                 st.markdown("---")
 
             st.markdown("### 🏁 Resumen Final")
