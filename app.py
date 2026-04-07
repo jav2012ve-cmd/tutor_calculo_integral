@@ -165,44 +165,6 @@ def _limpiar_para_st_latex(texto: Any) -> str:
         s = s[:-1].strip()
     return s
 
-def _split_enunciado_texto_formula(pregunta: Optional[str]) -> tuple[str, Optional[str]]:
-    """
-    Para mejorar el renderizado del enunciado:
-    - Devuelve (texto_natural, formula_latex) donde la fórmula va al final.
-    - Si no detectamos una fórmula LaTeX al final, formula_latex será None.
-    """
-    if not pregunta:
-        return "", None
-
-    t = str(pregunta).strip()
-    # Normalización básica por si la IA escapó barras.
-    t = t.replace('\\\\', '\\')
-
-    # Estrategia: buscamos inicio de fórmula típica al final del enunciado.
-    # Priorizamos integrales (\int). Si no hay, probamos \frac o \sqrt.
-    inicio = None
-    for token in ("\\int", "\\frac", "\\sqrt"):
-        idx = t.find(token)
-        if idx != -1:
-            inicio = idx
-            break
-
-    if inicio is None:
-        return t, None
-
-    texto_natural = t[:inicio].rstrip()
-    # Si el IA dejó el "$" de apertura en el texto natural (p.ej. "...: $ \\int ..."),
-    # eliminamos ese "$" suelto para que el markdown no se rompa.
-    if texto_natural.endswith("$"):
-        texto_natural = texto_natural[:-1].rstrip()
-    formula_latex = t[inicio:].strip()
-
-    # Limpieza del separador típico (p.ej. "..." + ":" + " \int ...")
-    if texto_natural.endswith(":"):
-        texto_natural = texto_natural[:-1].rstrip()
-
-    return texto_natural, formula_latex
-
 def _render_texto_con_latex(texto: Optional[str]) -> None:
     """
     Renderiza texto mixto separando por delimitadores $...$ / $$...$$.
@@ -767,14 +729,9 @@ elif ruta == "a) Entrenamiento (Temario)":
             
             st.progress((idx + 1) / NUM_EJERCICIOS_ENTRENAMIENTO, text=f"Ejercicio {idx + 1} de {NUM_EJERCICIOS_ENTRENAMIENTO}")
             st.markdown(f"**Tema:** `{ejercicio.get('tema', 'General')}`")
-            # Enunciado: dividimos en texto natural + fórmula en línea aparte (mejor para KaTeX/overflow)
-            texto_natural, formula_latex = _split_enunciado_texto_formula(ejercicio.get("pregunta"))
-            if formula_latex:
-                st.markdown("### " + texto_natural)
-                st.latex(_limpiar_para_st_latex(formula_latex))
-            else:
-                # Fallback: ruta anterior si no detectamos la fórmula
-                st.markdown("### " + preparar_latex_para_streamlit(ejercicio["pregunta"]))
+            # Mismo pipeline que la explicación final: texto mixto vía $/$$ → markdown + st.latex
+            st.markdown("### Enunciado")
+            _render_texto_con_latex(ejercicio.get("pregunta"))
             st.divider()
 
             # --- LLAMADA A LA IA TUTOR ---
