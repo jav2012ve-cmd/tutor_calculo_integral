@@ -1,0 +1,156 @@
+"""
+Figuras Plotly para apoyo visual en modo entrenamiento.
+Los datos vienen del banco (clave `grafico`); no se evalúa texto libre del usuario.
+"""
+from __future__ import annotations
+
+from typing import Any, Dict, List, Optional
+
+import numpy as np
+import plotly.graph_objects as go
+import sympy as sp
+
+_x = sp.symbols("x")
+
+
+def _lambdify_expr(expr_str: str):
+    s = expr_str.strip().replace("^", "**")
+    local = {
+        "exp": sp.exp,
+        "E": sp.E,
+        "log": sp.log,
+        "ln": sp.log,
+        "sqrt": sp.sqrt,
+        "pi": sp.pi,
+        "sin": sp.sin,
+        "cos": sp.cos,
+        "tan": sp.tan,
+    }
+    e = sp.sympify(s, locals=local)
+    return sp.lambdify(_x, e, modules=["numpy"])
+
+
+def _eval_on_grid(fn, xs: np.ndarray) -> np.ndarray:
+    ys = fn(xs)
+    if np.isscalar(ys) or ys.shape == ():
+        ys = np.full_like(xs, float(ys), dtype=float)
+    return np.asarray(ys, dtype=float)
+
+
+def figura_area_entre_curvas(
+    bandas: List[Dict[str, Any]],
+    titulo: str = "",
+) -> go.Figure:
+    fig = go.Figure()
+    for k, b in enumerate(bandas):
+        ys = str(b["y_superior"])
+        yi = str(b["y_inferior"])
+        x0, x1 = float(b["x_min"]), float(b["x_max"])
+        if x1 <= x0:
+            continue
+        npts = min(400, max(60, int((x1 - x0) * 50)))
+        xs = np.linspace(x0, x1, npts)
+        fn_s = _lambdify_expr(ys)
+        fn_i = _lambdify_expr(yi)
+        sup = _eval_on_grid(fn_s, xs)
+        infy = _eval_on_grid(fn_i, xs)
+
+        lab_s = f"Arriba ({k + 1})" if len(bandas) > 1 else "Curva superior"
+        lab_i = f"Abajo ({k + 1})" if len(bandas) > 1 else "Curva inferior"
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=sup,
+                mode="lines",
+                name=lab_s,
+                line=dict(width=2, color="#1f77b4"),
+                legendgroup=f"g{k}s",
+            )
+        )
+        fig.add_trace(
+            go.Scatter(
+                x=xs,
+                y=infy,
+                mode="lines",
+                name=lab_i,
+                line=dict(width=2, color="#d62728"),
+                legendgroup=f"g{k}i",
+            )
+        )
+        x_poly = np.concatenate([xs, xs[::-1]])
+        y_poly = np.concatenate([sup, infy[::-1]])
+        fig.add_trace(
+            go.Scatter(
+                x=x_poly,
+                y=y_poly,
+                fill="toself",
+                fillcolor="rgba(100, 149, 237, 0.28)",
+                line=dict(width=0),
+                showlegend=False,
+                hoverinfo="skip",
+            )
+        )
+
+    fig.update_layout(
+        title=titulo or "Área entre curvas",
+        xaxis_title="x",
+        yaxis_title="y",
+        height=440,
+        margin=dict(l=48, r=24, t=56, b=48),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    return fig
+
+
+def figura_desde_spec(spec: Optional[Dict[str, Any]]) -> Optional[go.Figure]:
+    if not spec or spec.get("tipo") != "area_entre_curvas":
+        return None
+    titulo = spec.get("titulo") or ""
+    if "bandas" in spec:
+        bandas = spec["bandas"]
+        if not bandas:
+            return None
+        return figura_area_entre_curvas(bandas, titulo)
+    if all(k in spec for k in ("y_superior", "y_inferior", "x_min", "x_max")):
+        banda = {
+            "y_superior": spec["y_superior"],
+            "y_inferior": spec["y_inferior"],
+            "x_min": spec["x_min"],
+            "x_max": spec["x_max"],
+        }
+        return figura_area_entre_curvas([banda], titulo)
+    return None
+
+
+def mostrar_si_aplica(
+    ejercicio: Dict[str, Any],
+    *,
+    en_paso_intermedio: bool = False,
+) -> None:
+    """Si el ejercicio trae `grafico` y el tema admite figura, muestra Plotly."""
+    import streamlit as st
+
+    from . import temario
+
+    tema = ejercicio.get("tema")
+    if not temario.tema_admite_grafico_plotly_entrenamiento(tema):
+        return
+    spec = ejercicio.get("grafico")
+    if not spec:
+        return
+    try:
+        fig = figura_desde_spec(spec)
+        if fig is None:
+            return
+        if en_paso_intermedio:
+            st.subheader("Apoyo gráfico — valida tu planteamiento")
+            st.caption(
+                "Compara la región sombreada con los límites y la función que integraste "
+                "tras elegir la estrategia (referencia del banco)."
+            )
+        else:
+            st.subheader("Apoyo gráfico")
+            st.caption("Misma región que el planteamiento del banco (referencia visual).")
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception:
+        st.caption("_No se pudo generar la figura para este ítem._")

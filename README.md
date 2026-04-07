@@ -1,6 +1,6 @@
-# Matemáticas III - Economía UCAB Versión 4.0
+# Matemáticas III - Economías UCAB Versión 5.0
 
-Tutor virtual para la cátedra de **Matemáticas III** (Cálculo Integral y Ecuaciones Diferenciales), Escuela de Economía, UCAB. Incluye entrenamiento guiado, consultas con foto o texto, quiz de autoevaluación (con **informe descargable en PDF** al finalizar) y tutor de preguntas abiertas, usando **Streamlit** y **Google Gemini**.
+Tutor virtual para la cátedra de **Matemáticas III** (Cálculo Integral y Ecuaciones Diferenciales), Escuela de Economía, UCAB. Incluye entrenamiento guiado (**apoyo gráfico interactivo con Plotly** en el paso intermedio para temas del banco que lo incorporen), consultas con foto o texto, quiz de autoevaluación (con **informe descargable en PDF** al finalizar) y tutor de preguntas abiertas, usando **Streamlit** y **Google Gemini**.
 
 ## Requisitos
 

@@ -5,7 +5,7 @@ from modules.temario import LISTA_TEMAS
 from modules import uso_stats
 
 # Nombre de la aplicación (pestaña del navegador, títulos principales)
-APP_DISPLAY_NAME = "Matemáticas III - Economía UCAB Versión 4.0"
+APP_DISPLAY_NAME = "Matemáticas III - Economías UCAB Versión 5.0"
 
 # Infografía de bienvenida (relativa a la raíz del proyecto, junto a app.py)
 _ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
@@ -111,7 +111,7 @@ def mostrar_sidebar():
         st.divider()
         with st.expander("📖 Ayuda / Modos"):
             st.markdown("""
-            **a) Entrenamiento:** Serie de ejercicios paso a paso (estrategia → hito → resultado).  
+            **a) Entrenamiento:** Serie de ejercicios paso a paso (estrategia → hito → resultado); en temas con datos en el banco, **apoyo gráfico** en el hito intermedio.  
             **b) Respuesta Guiada:** Subes foto o texto de un ejercicio y el tutor te guía.  
             **c) Autoevaluación:** Simulacro de parcial (Primer, Segundo o temas personalizados).  
             **d) Tutor abierto:** Chat sobre teoría y ejercicios de la cátedra.  
@@ -155,6 +155,12 @@ def mostrar_bienvenida():
     """Muestra la presentación inicial solo cuando aún no se ha seleccionado un modo."""
     st.title(APP_DISPLAY_NAME)
 
+    st.success(
+        "**Versión 5.0 — Apoyo gráfico en Entrenamiento:** al practicar **temas del temario que incluyen figura en el banco** "
+        "(p. ej. áreas entre curvas y otros temas habilitados), en el **paso intermedio** —después de acertar la estrategia— "
+        "verás un **gráfico interactivo (Plotly)** para **cotejar** límites y región con el planteamiento que obtuviste."
+    )
+
     if os.path.isfile(INFOGRAFIA_BIENVENIDA):
         st.image(
             INFOGRAFIA_BIENVENIDA,
@@ -173,7 +179,7 @@ def mostrar_bienvenida():
         <p style="color: #0066cc;">Este ecosistema está diseñado para fortalecer el dominio de <strong>Cálculo Integral</strong> y <strong>Ecuaciones Diferenciales</strong> en tu formación como economista.</p>
         <p style="color: #0066cc;"><strong>Modos de estudio:</strong></p>
         <ul style="margin-bottom: 10px; color: #0066cc;">
-            <li><strong>a) Entrenamiento:</strong> Serie de ejercicios paso a paso (estrategia → hito → resultado).</li>
+            <li><strong>a) Entrenamiento:</strong> Serie de ejercicios paso a paso (estrategia → hito → resultado). En temas seleccionados con apoyo en el banco, el hito incluye <strong>figura interactiva</strong> para validar tu planteamiento.</li>
             <li><strong>b) Respuesta Guiada:</strong> Sube foto o texto de un ejercicio y el tutor te guía.</li>
             <li><strong>c) Autoevaluación:</strong> Simulacro de parcial (Primer, Segundo o temas personalizados).</li>
             <li><strong>d) Tutor Preguntas Abiertas:</strong> Chat sobre teoría y ejercicios de la cátedra.</li>
@@ -185,6 +191,7 @@ def mostrar_bienvenida():
     <p style="color: #0066cc;"><strong>🛠️ Recursos</strong></p>
     <ul style="color: #0066cc;">
         <li>Temario y banco alineados por tema; informe en PDF al terminar la autoevaluación.</li>
+        <li><strong>Gráficos en entrenamiento (temas preparados):</strong> visualización en el paso intermedio con Plotly.</li>
         <li>Fórmulas (LaTeX) en preguntas, opciones y explicaciones. Ayuda en 📖 Ayuda / Modos (lateral).</li>
     </ul>
     <hr style="margin-top: 20px; margin-bottom: 20px;">

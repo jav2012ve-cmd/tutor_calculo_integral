@@ -266,6 +266,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Área entre $y=x^2$ y $y=6-x$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "6 - x",
+            "y_inferior": "x**2",
+            "x_min": -3.0,
+            "x_max": 2.0,
+            "titulo": "Área entre y = x² y y = 6 − x",
+        },
         "opciones": [
             r"A) $\int_{-3}^{2} (6 - x - x^2) dx$",
             r"B) $\int_{-3}^{2} (x^2 - (6-x)) dx$",
@@ -278,6 +286,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Integral para área entre $y=4-x^2$ y $y=1+2x$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "4 - x**2",
+            "y_inferior": "1 + 2*x",
+            "x_min": -3.0,
+            "x_max": 1.0,
+            "titulo": "Área entre y = 4 − x² y y = 1 + 2x",
+        },
         "opciones": [
             r"A) $\int_{-3}^{1} [(4-x^2) - (1+2x)] dx$",
             r"B) $\int_{-3}^{1} [(1+2x) - (4-x^2)] dx$",
@@ -290,6 +306,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Área entre $y=x^2+x$ y $y=15-x^2/3$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "15 - x**2/3",
+            "y_inferior": "x**2 + x",
+            "x_min": -3.75,
+            "x_max": 3.0,
+            "titulo": "Área entre y = x² + x y y = 15 − x²/3",
+        },
         "opciones": [
             r"A) $\int_{-3.75}^{3} [ (15-x^2/3) - (x^2+x) ] dx$",
             r"B) $\int_{-3}^{3} [ (x^2+x) - (15-x^2/3) ] dx$",
@@ -302,6 +326,24 @@ BANCO_FIXED = [
     {
         "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Área región no acotada entre $y=xe^{-x}$ y $y=e^{-x}$ en $[0, \infty)$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "titulo": "xe⁻ˣ y e⁻ˣ (tramo ilustrativo 0 ≤ x ≤ 5; cruce en x = 1)",
+            "bandas": [
+                {
+                    "y_superior": "exp(-x)",
+                    "y_inferior": "x*exp(-x)",
+                    "x_min": 0.0,
+                    "x_max": 1.0,
+                },
+                {
+                    "y_superior": "x*exp(-x)",
+                    "y_inferior": "exp(-x)",
+                    "x_min": 1.0,
+                    "x_max": 5.0,
+                },
+            ],
+        },
         "opciones": [
             r"A) $\int_{0}^{1} (e^{-x} - xe^{-x}) dx + \int_{1}^{\infty} (xe^{-x} - e^{-x}) dx$",
             r"B) $\int_{0}^{\infty} (xe^{-x} - e^{-x}) dx$",
@@ -314,6 +356,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.2 Áreas entre curvas",
         "pregunta": r"Calcule área entre $y=e^{-x}$ y $y=-e^{-2x}$ en $[0, \infty)$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "exp(-x)",
+            "y_inferior": "-exp(-2*x)",
+            "x_min": 0.0,
+            "x_max": 6.0,
+            "titulo": "e⁻ˣ y −e⁻²ˣ en tramo acotado (ilustración)",
+        },
         "opciones": [
             r"A) $1.5$",
             r"B) $1.0$",

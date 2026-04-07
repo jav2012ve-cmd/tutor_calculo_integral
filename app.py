@@ -31,6 +31,7 @@ from modules import (
     banco_muestras,
     uso_stats,
     registro_interacciones,
+    graficos_entrenamiento,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -619,7 +620,7 @@ def generar_pdf_informe_quiz(
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", size=14)
-    pdf.cell(0, 10, "Informe de evaluacion - Matematicas III - Economia UCAB V4.0", ln=True)
+    pdf.cell(0, 10, "Informe de evaluacion - Matematicas III - Economias UCAB V5.0", ln=True)
     pdf.set_font("Helvetica", size=11)
     pdf.cell(0, 8, f"Calificacion final: {nota_final} / 20 pts", ln=True)
     pdf.cell(0, 8, "Aprobado." if nota_final >= 10 else "No aprobado.", ln=True)
@@ -692,7 +693,10 @@ elif ruta == "a) Entrenamiento (Temario)":
                         
                         # 1. Banco de Preguntas (Protegido)
                         try:
-                            preguntas_banco = banco_preguntas.obtener_preguntas_fijas(temas_entrenamiento, 2)
+                            # Hasta completar la sesión con banco si hay ítems (incl. los que traen `grafico`)
+                            preguntas_banco = banco_preguntas.obtener_preguntas_fijas(
+                                temas_entrenamiento, NUM_EJERCICIOS_ENTRENAMIENTO
+                            )
                             if preguntas_banco:
                                 lista_entrenamiento.extend(preguntas_banco)
                         except Exception as e:
@@ -796,6 +800,8 @@ elif ruta == "a) Entrenamiento (Temario)":
                 st.write("Aplica la estrategia seleccionada. Deberías llegar a una expresión similar a esta:")
                 
                 st.latex(_limpiar_para_st_latex(tutor["paso_intermedio"]))
+
+                graficos_entrenamiento.mostrar_si_aplica(ejercicio, en_paso_intermedio=True)
                 
                 st.write("¿Lograste llegar a este punto o algo equivalente?")
                 
@@ -1203,7 +1209,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 st.download_button(
                     "📥 Descargar informe (PDF)",
                     data=pdf_bytes,
-                    file_name=f"informe_Mate3_UCAB_V4_{str(nota_final).replace('.', '_')}.pdf",
+                    file_name=f"informe_Mate3_UCAB_V5_{str(nota_final).replace('.', '_')}.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
