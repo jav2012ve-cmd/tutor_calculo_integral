@@ -281,7 +281,11 @@ BANCO_FIXED = [
             r"D) $\int_{-2}^{3} (6 - x - x^2) dx$"
         ],
         "respuesta_correcta": r"A) $\int_{-3}^{2} (6 - x - x^2) dx$",
-        "explicacion": r"Cortes en $x=-3, x=2$. La recta está por encima."
+        "explicacion": (
+            r"**Intersección:** $x^2 = 6-x \Rightarrow x=-3,\; x=2$. En $[-3,2]$ la recta $y=6-x$ va **por encima** de $y=x^2$. "
+            r"**Integral:** $$A = \int_{-3}^{2} \bigl((6-x) - x^2\bigr)\,dx = \int_{-3}^{2} (6 - x - x^2)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \Bigl[6x - \frac{x^2}{2} - \frac{x^3}{3}\Bigr]_{-3}^{2} = \frac{125}{6} \approx 20.83$ unidades de área."
+        ),
     },
     {
         "tema": "1.2.2 Áreas entre curvas",
@@ -301,7 +305,11 @@ BANCO_FIXED = [
             r"D) $\int_{-1}^{3} \dots dx$"
         ],
         "respuesta_correcta": r"A) $\int_{-3}^{1} [(4-x^2) - (1+2x)] dx$",
-        "explicacion": r"Raíces de intersección $x=-3, x=1$. Parábola abre hacia abajo y está arriba."
+        "explicacion": (
+            r"**Intersección:** $4-x^2 = 1+2x \Rightarrow x=-3,\; x=1$. La parábola $y=4-x^2$ (abre hacia abajo) queda **arriba** de la recta $y=1+2x$. "
+            r"**Integral:** $$A = \int_{-3}^{1} \bigl[(4-x^2)-(1+2x)\bigr]\,dx = \int_{-3}^{1} (3 - 2x - x^2)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \Bigl[3x - x^2 - \frac{x^3}{3}\Bigr]_{-3}^{1} = \frac{32}{3} \approx 10.67$ unidades de área."
+        ),
     },
     {
         "tema": "1.2.2 Áreas entre curvas",
@@ -321,7 +329,13 @@ BANCO_FIXED = [
             r"D) $\int_{-4}^{4} \dots dx$"
         ],
         "respuesta_correcta": r"A) $\int_{-3.75}^{3} [ (15-x^2/3) - (x^2+x) ] dx$",
-        "explicacion": r"Igualando funciones se obtienen los límites. La segunda función es una parábola que abre hacia abajo (techo)."
+        "explicacion": (
+            r"**Intersección:** $15-\frac{x^2}{3} = x^2+x \Rightarrow x=-\frac{15}{4}$ ($-3.75$), $x=3$. "
+            r"La curva $y=15-\frac{x^2}{3}$ es el **techo** y $y=x^2+x$ la base. "
+            r"**Integral:** $$A = \int_{-15/4}^{3} \Bigl(15 - x - \frac{4x^2}{3}\Bigr)\,dx.$$ "
+            r"(Equivale a $\int_{-3.75}^{3}\bigl[(15-x^2/3)-(x^2+x)\bigr]dx$.) "
+            r"**Resultado:** $\displaystyle \frac{2187}{32} \approx 68.34$ unidades de área."
+        ),
     },
     {
         "tema": "1.2.2 Áreas entre curvas",
@@ -351,7 +365,13 @@ BANCO_FIXED = [
             r"D) $\int_{0}^{1} xe^{-x} dx$"
         ],
         "respuesta_correcta": r"A) $\int_{0}^{1} (e^{-x} - xe^{-x}) dx + \int_{1}^{\infty} (xe^{-x} - e^{-x}) dx$",
-        "explicacion": r"Las curvas se cruzan en $x=1$. Hay cambio de posición relativa."
+        "explicacion": (
+            r"**Cruce:** $xe^{-x}=e^{-x} \Rightarrow x=1$. Para $x<1$, $e^{-x}$ está **arriba**; para $x>1$, $xe^{-x}$ está arriba. "
+            r"**Integral:** $$A=\int_{0}^{1}\bigl(e^{-x}-xe^{-x}\bigr)\,dx+\int_{1}^{\infty}\bigl(xe^{-x}-e^{-x}\bigr)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \int_{0}^{1} e^{-x}(1-x)\,dx=\Bigl[xe^{-x}\Bigr]_{0}^{1}=e^{-1}$; "
+            r"$\displaystyle \int_{1}^{\infty} e^{-x}(x-1)\,dx=e^{-1}$ (sustitución $t=x-1$, $\Gamma(2)=1$). "
+            r"**Resultado:** $A=\dfrac{2}{e}\approx 0.736$ unidades de área."
+        ),
     },
     {
         "tema": "1.2.2 Áreas entre curvas",
@@ -371,7 +391,12 @@ BANCO_FIXED = [
             r"D) $2.0$"
         ],
         "respuesta_correcta": r"A) $1.5$",
-        "explicacion": r"No se cruzan. $\int_0^\infty (e^{-x} + e^{-2x}) dx = [ -e^{-x} - 0.5e^{-2x} ]_0^\infty = 0 - (-1.5) = 1.5$."
+        "explicacion": (
+            r"En $[0,\infty)$ se cumple $e^{-x} > -e^{-2x}$ (no hay cruce en $x\ge 0$). "
+            r"**Integral:** $$A=\int_{0}^{\infty}\bigl(e^{-x}-(-e^{-2x})\bigr)\,dx=\int_{0}^{\infty}\bigl(e^{-x}+e^{-2x}\bigr)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \Bigl[-e^{-x}-\tfrac{1}{2}e^{-2x}\Bigr]_{0}^{\infty} = 0 - \Bigl(-1-\tfrac{1}{2}\Bigr)=\frac{3}{2}$. "
+            r"**Resultado:** $A=\dfrac{3}{2}=1.5$ unidades de área."
+        ),
     },
     # --- EXCEDENTES ---
     {
