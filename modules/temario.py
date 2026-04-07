@@ -38,6 +38,30 @@ TEMAS_PARCIAL_2 = [
 # Unimos todo para el menú general
 LISTA_TEMAS = TEMAS_PARCIAL_1 + TEMAS_PARCIAL_2
 
+# --- Gráficos (Plotly) en modo ENTRENAMIENTO ---
+# Política: solo algunos temas; el gráfico se muestra si el planteamiento del ejercicio lo permite
+# (metadato en banco / enunciado geométrico), no en todos los ítems del tema.
+#
+# Incluye:
+# - 1.2.1: integrales definidas sencillas donde se correlaciona el resultado con el área bajo la curva
+#   (p. ej. f ≥ 0 en [a,b], interpretación geométrica explícita).
+# - 1.2.7: PDF/CDF; área bajo la densidad ↔ probabilidad de sucesos (intervalos, colas, etc.).
+TEMAS_ENTRENAMIENTO_GRAFICO_PLOTLY_OPCIONAL = [
+    "1.2.1 Integral Definida",
+    "1.2.2 Áreas entre curvas",
+    "1.2.3 Excedentes del consumidor y productor",
+    "1.2.5 Volúmenes Sólidos de Revolución",
+    "1.2.6 Integrales dobles",
+    "1.2.7 Funciones de Distribución de probabilidad",
+    "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+    "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+]
+
+# Resto de temas del temario: no se usa Plotly en entrenamiento (por defecto).
+TEMAS_ENTRENAMIENTO_SIN_GRAFICO_PLOTLY = [
+    t for t in LISTA_TEMAS if t not in TEMAS_ENTRENAMIENTO_GRAFICO_PLOTLY_OPCIONAL
+]
+
 
 def normalizar_tema_curso(valor: Any) -> Optional[str]:
     """
@@ -58,6 +82,12 @@ def normalizar_tema_curso(valor: Any) -> Optional[str]:
         if s_lower in t.lower() or t.lower() in s_lower:
             return t
     return None
+
+
+def tema_admite_grafico_plotly_entrenamiento(tema: Any) -> bool:
+    """True si el tema puede mostrar gráfico Plotly en entrenamiento cuando el ejercicio lo amerite."""
+    n = normalizar_tema_curso(tema)
+    return n is not None and n in TEMAS_ENTRENAMIENTO_GRAFICO_PLOTLY_OPCIONAL
 
 
 # --- CONTENIDO TEÓRICO (Resumido para el ejemplo) ---
