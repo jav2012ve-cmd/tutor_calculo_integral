@@ -398,10 +398,67 @@ BANCO_FIXED = [
             r"**Resultado:** $A=\dfrac{3}{2}=1.5$ unidades de área."
         ),
     },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Calcule el área entre $y=2x+3$ y $y=x^2$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "2*x + 3",
+            "y_inferior": "x**2",
+            "x_min": -1.0,
+            "x_max": 3.0,
+            "titulo": "Área entre y = 2x + 3 y y = x²",
+        },
+        "opciones": [
+            r"A) $10.67$",
+            r"B) $8.00$",
+            r"C) $12.00$",
+            r"D) $16.00$"
+        ],
+        "respuesta_correcta": r"A) $10.67$",
+        "explicacion": (
+            r"**Intersección:** $x^2=2x+3 \Rightarrow x=-1,\;x=3$. "
+            r"En $[-1,3]$ la recta queda por arriba de la parábola. "
+            r"**Integral:** $$A=\int_{-1}^{3}\bigl((2x+3)-x^2\bigr)\,dx.$$ "
+            r"**Resultado:** $\displaystyle \Bigl[x^2+3x-\frac{x^3}{3}\Bigr]_{-1}^{3}=\frac{32}{3}\approx 10.67$."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Área entre $y=x+2$ y $y=x^2-2$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "x + 2",
+            "y_inferior": "x**2 - 2",
+            "x_min": -2.0,
+            "x_max": 1.0,
+            "titulo": "Área entre y = x + 2 y y = x² − 2",
+        },
+        "opciones": [
+            r"A) $7.50$",
+            r"B) $9.00$",
+            r"C) $6.00$",
+            r"D) $5.25$"
+        ],
+        "respuesta_correcta": r"A) $7.50$",
+        "explicacion": (
+            r"**Intersección:** $x+2=x^2-2 \Rightarrow x=-2,\;x=1$. "
+            r"**Integral:** $$A=\int_{-2}^{1}\bigl[(x+2)-(x^2-2)\bigr]\,dx=\int_{-2}^{1}(-x^2+x+4)\,dx.$$ "
+            r"**Resultado:** $\displaystyle \Bigl[-\frac{x^3}{3}+\frac{x^2}{2}+4x\Bigr]_{-2}^{1}=\frac{15}{2}=7.5$."
+        ),
+    },
     # --- EXCEDENTES ---
     {
         "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"Demanda $D(q) = 14 - q^2/4$, Oferta $O(q) = 2q + 2$. Calcule EC:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "14 - x**2/4",
+            "y_inferior": "2*x + 2",
+            "x_min": 0.0,
+            "x_max": 4.0,
+            "titulo": "Excedente con D(q)=14-q²/4 y O(q)=2q+2 (0≤q≤q*)",
+        },
         "opciones": [
             r"A) $10.67$",
             r"B) $32.00$",
@@ -414,6 +471,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"Demanda $p = 100 - 2q^2$, Oferta $p = 50 + 3q^2$. Calcule EP:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "100 - 2*x**2",
+            "y_inferior": "50 + 3*x**2",
+            "x_min": 0.0,
+            "x_max": 3.16227766,
+            "titulo": "Excedente con D(q)=100-2q² y O(q)=50+3q² (q*=√10)",
+        },
         "opciones": [
             r"A) $\int_0^{\sqrt{10}} (80 - (50+3q^2)) dq$",
             r"B) $\int_0^{10} ((100-2q^2) - 80) dq$",
@@ -426,6 +491,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"EC dados Oferta $p = x^2/9 + 4$ y Demanda $p = 11 - 2x$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "11 - 2*x",
+            "y_inferior": "x**2/9 + 4",
+            "x_min": 0.0,
+            "x_max": 3.0,
+            "titulo": "Excedente con D(x)=11-2x y O(x)=x²/9+4 (0≤x≤3)",
+        },
         "opciones": [
             r"A) $9$",
             r"B) $18$",
@@ -438,6 +511,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"EP dados Oferta $p = x^2/4 + 4$ y Demanda $p = 12 - x$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "12 - x",
+            "y_inferior": "x**2/4 + 4",
+            "x_min": 0.0,
+            "x_max": 4.0,
+            "titulo": "Excedente con D(x)=12-x y O(x)=x²/4+4 (0≤x≤4)",
+        },
         "opciones": [
             r"A) $10.67$",
             r"B) $32.00$",
@@ -450,6 +531,14 @@ BANCO_FIXED = [
     {
         "tema": "1.2.3 Excedentes del consumidor y productor",
         "pregunta": r"Calcule EP con Oferta $p = 4 + 3x^2$ y Demanda $p = 20 - x^2$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "20 - x**2",
+            "y_inferior": "4 + 3*x**2",
+            "x_min": 0.0,
+            "x_max": 2.0,
+            "titulo": "Excedente con D(x)=20-x² y O(x)=4+3x² (0≤x≤2)",
+        },
         "opciones": [
             r"A) $16$",
             r"B) $32$",
