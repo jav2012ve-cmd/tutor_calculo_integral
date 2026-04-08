@@ -102,8 +102,111 @@ def figura_area_entre_curvas(
     return fig
 
 
+def figura_excedentes(
+    demanda: str,
+    oferta: str,
+    q_min: float,
+    q_max: float,
+    titulo: str = "",
+) -> go.Figure:
+    if q_max <= q_min:
+        q_max = q_min + 1.0
+
+    qs = np.linspace(q_min, q_max, 220)
+    f_d = _lambdify_expr(demanda)
+    f_o = _lambdify_expr(oferta)
+    p_d = _eval_on_grid(f_d, qs)
+    p_o = _eval_on_grid(f_o, qs)
+    p_eq = float(_eval_on_grid(f_d, np.array([q_max]))[0])
+
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=qs,
+            y=p_d,
+            mode="lines",
+            name="Demanda",
+            line=dict(width=2, color="#1f77b4"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=qs,
+            y=p_o,
+            mode="lines",
+            name="Oferta",
+            line=dict(width=2, color="#d62728"),
+        )
+    )
+
+    # EC: área entre demanda y línea horizontal de precio de equilibrio
+    x_ec = np.concatenate([qs, qs[::-1]])
+    y_ec = np.concatenate([p_d, np.full_like(qs, p_eq)[::-1]])
+    fig.add_trace(
+        go.Scatter(
+            x=x_ec,
+            y=y_ec,
+            fill="toself",
+            fillcolor="rgba(34, 139, 34, 0.28)",
+            line=dict(width=0),
+            name="Excedente del consumidor (EC)",
+            hoverinfo="skip",
+        )
+    )
+
+    # EP: área entre precio de equilibrio y oferta
+    x_ep = np.concatenate([qs, qs[::-1]])
+    y_ep = np.concatenate([np.full_like(qs, p_eq), p_o[::-1]])
+    fig.add_trace(
+        go.Scatter(
+            x=x_ep,
+            y=y_ep,
+            fill="toself",
+            fillcolor="rgba(255, 140, 0, 0.30)",
+            line=dict(width=0),
+            name="Excedente del productor (EP)",
+            hoverinfo="skip",
+        )
+    )
+
+    fig.add_hline(y=p_eq, line_dash="dash", line_color="gray", opacity=0.9)
+    fig.add_vline(x=q_max, line_dash="dot", line_color="gray", opacity=0.6)
+    fig.add_trace(
+        go.Scatter(
+            x=[q_max],
+            y=[p_eq],
+            mode="markers",
+            marker=dict(size=8, color="black"),
+            name="Equilibrio",
+        )
+    )
+
+    fig.update_layout(
+        title=titulo or "Excedente del consumidor y del productor",
+        xaxis_title="Cantidad",
+        yaxis_title="Precio",
+        height=440,
+        margin=dict(l=48, r=24, t=56, b=48),
+        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+    )
+    return fig
+
+
 def figura_desde_spec(spec: Optional[Dict[str, Any]]) -> Optional[go.Figure]:
-    if not spec or spec.get("tipo") != "area_entre_curvas":
+    if not spec:
+        return None
+    tipo = spec.get("tipo")
+    if tipo == "excedentes":
+        if not all(k in spec for k in ("demanda", "oferta", "q_max")):
+            return None
+        return figura_excedentes(
+            demanda=str(spec["demanda"]),
+            oferta=str(spec["oferta"]),
+            q_min=float(spec.get("q_min", 0.0)),
+            q_max=float(spec["q_max"]),
+            titulo=spec.get("titulo") or "",
+        )
+    if tipo != "area_entre_curvas":
         return None
     titulo = spec.get("titulo") or ""
     if "bandas" in spec:
