@@ -1,0 +1,1377 @@
+import random
+
+# ==============================================================================
+# BANCO DE PREGUNTAS - TUTOR DE CÁLCULO INTEGRAL
+# Versión: 88 Ejercicios (Sintaxis Corregida y Blindada)
+# ==============================================================================
+
+BANCO_FIXED = [
+    # --- CÁLCULO INTEGRAL: MÉTODOS BÁSICOS ---
+    {
+        "tema": "1.1.1 Integrales Indefinidas Directas",
+        "pregunta": r"Calcule la integral indefinida: $$ \int (6x^5 - 4x^2 + 3)\, dx $$",
+        "opciones": [
+            r"A) $x^6 - \frac{4}{3}x^3 + 3x + C$",
+            r"B) $x^6 + \frac{4}{3}x^3 + 3x + C$",
+            r"C) $x^6 - \frac{2}{3}x^3 + 3x + C$",
+            r"D) $x^5 - \frac{4}{3}x^3 + 3x + C$"
+        ],
+        "respuesta_correcta": r"A) $x^6 - \frac{4}{3}x^3 + 3x + C$",
+        "explicacion": r"Aplicamos la regla de la potencia término a término: $\int 6x^5 dx = x^6$, $\int (-4x^2)dx = -\frac{4}{3}x^3$ y $\int 3dx = 3x$."
+    },
+    {
+        "tema": "1.1.1 Integrales Indefinidas Directas",
+        "pregunta": r"Calcule la integral indefinida: $$ \int (e^{2y} + 3e^{y})\, dy $$",
+        "opciones": [
+            r"A) $\frac{1}{2}e^{2y} + 3e^{y} + C$",
+            r"B) $e^{2y} + 3e^{y} + C$",
+            r"C) $\frac{1}{2}e^{2y} + \frac{3}{2}e^{y} + C$",
+            r"D) $\frac{1}{2}e^{2y} - 3e^{y} + C$"
+        ],
+        "respuesta_correcta": r"A) $\frac{1}{2}e^{2y} + 3e^{y} + C$",
+        "explicacion": r"Usamos reglas de exponenciales: $\int e^{2y}dy = \frac{1}{2}e^{2y}$ y $\int 3e^{y}dy = 3e^{y}$. Sumamos y agregamos $+C$."
+    },
+    {
+        "tema": "1.1.1 Integrales Indefinidas Directas",
+        "pregunta": r"Resuelva respecto a $t$: $$ \int \sqrt[3]{x^{-2}t^{-3}} dt $$",
+        "opciones": [
+            r"A) $x^{-2/3} \ln|t| + C$",
+            r"B) $\frac{3}{2} x^{-2/3} t^{2/3} + C$",
+            r"C) $-3 x^{-2/3} t^{-2} + C$",
+            r"D) $x^{-2/3} \frac{t^{-2}}{-2} + C$"
+        ],
+        "respuesta_correcta": r"A) $x^{-2/3} \ln|t| + C$",
+        "explicacion": r"Reescribimos: $x^{-2/3} t^{-1}$. La integral de $1/t$ es $\ln|t|$."
+    },
+    {
+        "tema": "1.1.1 Integrales Indefinidas Directas",
+        "pregunta": r"Calcule la integral indefinida: $$ \int \frac{x^2-1}{x^2} dx $$",
+        "opciones": [
+            r"A) $x + \frac{1}{x} + C$",
+            r"B) $x - \frac{1}{x} + C$",
+            r"C) $\ln|x| + C$",
+            r"D) $\frac{x^3}{3} - x + C$"
+        ],
+        "respuesta_correcta": r"A) $x + \frac{1}{x} + C$",
+        "explicacion": r"Separamos: $\frac{x^2-1}{x^2}=1-x^{-2}$. Integramos término a término: $\int 1\,dx=x$ y $\int (-x^{-2})dx=+x^{-1}$. Resultado: $x+\frac{1}{x}+C$."
+    },
+    {
+        "tema": "1.1.1 Integrales Indefinidas Directas",
+        "pregunta": r"Integral de $(x-2y^2)^2$ respecto a $y$:",
+        "opciones": [
+            r"A) $x^2y - \frac{4}{3}xy^3 + \frac{4}{5}y^5 + C$",
+            r"B) $\frac{1}{3}(x-2y^2)^3 + C$",
+            r"C) $- \frac{(x-2y^2)^3}{4y} + C$",
+            r"D) $2(x-2y^2) + C$"
+        ],
+        "respuesta_correcta": r"A) $x^2y - \frac{4}{3}xy^3 + \frac{4}{5}y^5 + C$",
+        "explicacion": r"Expandir binomio: $x^2 - 4xy^2 + 4y^4$. Integrar término a término respecto a $y$."
+    },
+    # --- SUSTITUCIÓN ---
+    {
+        "tema": "1.1.2 Cambios de variables (Sustitución)",
+        "pregunta": r"Resuelva: $$ \int \frac{\sqrt{1-4\ln x}}{x} dx $$",
+        "opciones": [
+            r"A) $-\frac{1}{6}(1-4\ln x)^{3/2} + C$",
+            r"B) $\frac{2}{3}(1-4\ln x)^{3/2} + C$",
+            r"C) $-\frac{1}{4}\sqrt{1-4\ln x} + C$",
+            r"D) $\ln|1-4\ln x| + C$"
+        ],
+        "respuesta_correcta": r"A) $-\frac{1}{6}(1-4\ln x)^{3/2} + C$",
+        "explicacion": r"Sustitución $u = 1-4\ln x \Rightarrow du = -4/x dx$. Integral $-\frac{1}{4}\int u^{1/2} du$."
+    },
+    {
+        "tema": "1.1.2 Cambios de variables (Sustitución)",
+        "pregunta": r"Teoría: Si $z = f(x)$, la integral $\int g(f(x)) f'(x) dx$ es equivalente a:",
+        "opciones": [
+            r"A) $\int g(z) dz$",
+            r"B) $\int g(z) f'(z) dz$",
+            r"C) $\int \frac{g(z)}{f'(x)} dz$",
+            r"D) Ninguna de las anteriores"
+        ],
+        "respuesta_correcta": r"A) $\int g(z) dz$",
+        "explicacion": r"Definición directa del diferencial $dz = f'(x)dx$."
+    },
+    {
+        "tema": "1.1.2 Cambios de variables (Sustitución)",
+        "pregunta": r"Resuelva: $$ \int (1-3x)^{-2} dx $$",
+        "opciones": [
+            r"A) $\frac{1}{3(1-3x)} + C$",
+            r"B) $-\frac{1}{1-3x} + C$",
+            r"C) $\frac{3}{1-3x} + C$",
+            r"D) $\frac{(1-3x)^{-3}}{-3} + C$"
+        ],
+        "respuesta_correcta": r"A) $\frac{1}{3(1-3x)} + C$",
+        "explicacion": r"$u=1-3x \Rightarrow du=-3dx$. Integral $-\frac{1}{3} \int u^{-2} du = \frac{1}{3}u^{-1}$."
+    },
+    {
+        "tema": "1.1.2 Cambios de variables (Sustitución)",
+        "pregunta": r"Evalúe: $$ \int \frac{\cos(1-2\ln x)}{x} dx $$",
+        "opciones": [
+            r"A) $-\frac{1}{2}\sin(1-2\ln x) + C$",
+            r"B) $\sin(1-2\ln x) + C$",
+            r"C) $-2\sin(1-2\ln x) + C$",
+            r"D) $\cos(1-2\ln x) + C$"
+        ],
+        "respuesta_correcta": r"A) $-\frac{1}{2}\sin(1-2\ln x) + C$",
+        "explicacion": r"$u=1-2\ln x \Rightarrow du = -2/x dx$. Integral $-\frac{1}{2}\int \cos u du$."
+    },
+    {
+        "tema": "1.1.2 Cambios de variables (Sustitución)",
+        "pregunta": r"Resuelva: $$ \int \frac{(1-2\sqrt{x})^3}{\sqrt{x}} dx $$",
+        "opciones": [
+            r"A) $-\frac{1}{4}(1-2\sqrt{x})^4 + C$",
+            r"B) $\frac{1}{4}(1-2\sqrt{x})^4 + C$",
+            r"C) $-\frac{1}{2}(1-2\sqrt{x})^4 + C$",
+            r"D) $4(1-2\sqrt{x})^4 + C$"
+        ],
+        "respuesta_correcta": r"A) $-\frac{1}{4}(1-2\sqrt{x})^4 + C$",
+        "explicacion": r"$u=1-2\sqrt{x} \Rightarrow du = -1/\sqrt{x} dx$. Integral $-\int u^3 du$."
+    },
+    # --- FRACCIONES SIMPLES ---
+    {
+        "tema": "1.1.4 Fracciones Simples",
+        "pregunta": r"Forma correcta de descomponer $\frac{2x+x^2+2x^3+4}{(x^2+4)(x^2+1)}$:",
+        "opciones": [
+            r"A) $\frac{Ax+B}{x^2+4} + \frac{Cx+D}{x^2+1}$",
+            r"B) $\frac{A}{x^2+4} + \frac{B}{x^2+1}$",
+            r"C) $\frac{Ax}{x^2+4} + \frac{Bx}{x^2+1}$",
+            r"D) $\frac{A}{(x^2+4)^2} + \frac{B}{x^2+1}$"
+        ],
+        "respuesta_correcta": r"A) $\frac{Ax+B}{x^2+4} + \frac{Cx+D}{x^2+1}$",
+        "explicacion": r"Factores cuadráticos irreducibles requieren numeradores lineales ($Ax+B$)."
+    },
+    {
+        "tema": "1.1.4 Fracciones Simples",
+        "pregunta": r"Resuelva (división primero): $$ \int \frac{2x+1}{x-4} dx $$",
+        "opciones": [
+            r"A) $2x + 9\ln|x-4| + C$",
+            r"B) $2x + \ln|x-4| + C$",
+            r"C) $x^2 + \ln|x-4| + C$",
+            r"D) $2 + 9(x-4)^{-1} + C$"
+        ],
+        "respuesta_correcta": r"A) $2x + 9\ln|x-4| + C$",
+        "explicacion": r"División: $2 + 9/(x-4)$. Integral directa."
+    },
+    {
+        "tema": "1.1.4 Fracciones Simples",
+        "pregunta": r"Calcule: $$ \int \frac{1}{x^2 - 5x + 6} dx $$",
+        "opciones": [
+            r"A) $\ln|x-3| - \ln|x-2| + C$",
+            r"B) $\ln|x-2| - \ln|x-3| + C$",
+            r"C) $\ln|(x-3)(x-2)| + C$",
+            r"D) $\frac{1}{2x-5} + C$"
+        ],
+        "respuesta_correcta": r"A) $\ln|x-3| - \ln|x-2| + C$",
+        "explicacion": r"Factorización $(x-3)(x-2)$. A/(x-3) + B/(x-2). A=1, B=-1."
+    },
+    {
+        "tema": "1.1.4 Fracciones Simples",
+        "pregunta": r"Resuelva: $$ \int \left( \frac{2}{x-1} - \frac{4}{x+1} + \frac{2x}{x^2+1} \right) dx $$",
+        "opciones": [
+            r"A) $2\ln|x-1| - 4\ln|x+1| + \ln(x^2+1) + C$",
+            r"B) $2\ln|x-1| - 4\ln|x+1| + 2\arctan x + C$",
+            r"C) $\ln \frac{(x-1)^2}{(x+1)^4} + \frac{1}{x^2+1}$",
+            r"D) $2(x-1)^{-1} + C$"
+        ],
+        "respuesta_correcta": r"A) $2\ln|x-1| - 4\ln|x+1| + \ln(x^2+1) + C$",
+        "explicacion": r"Integrales logarítmicas directas. El último término tiene la derivada en el numerador."
+    },
+    {
+        "tema": "1.1.4 Fracciones Simples",
+        "pregunta": r"Descomposición de $\frac{x^2+1}{x(x-1)^2}$:",
+        "opciones": [
+            r"A) $\frac{A}{x} + \frac{B}{x-1} + \frac{C}{(x-1)^2}$",
+            r"B) $\frac{A}{x} + \frac{Bx+C}{(x-1)^2}$",
+            r"C) $\frac{A}{x} + \frac{B}{x-1} + \frac{Cx+D}{(x-1)^2}$",
+            r"D) $\frac{A}{x} + \frac{B}{(x-1)^2}$"
+        ],
+        "respuesta_correcta": r"A) $\frac{A}{x} + \frac{B}{x-1} + \frac{C}{(x-1)^2}$",
+        "explicacion": r"Factor lineal $x$ y factor lineal repetido $(x-1)^2$."
+    },
+    # --- POR PARTES ---
+    {
+        "tema": "1.1.5 Integral por partes",
+        "pregunta": r"Elección $u, dv$ para $\int x^3 \ln(x^2-4) dx$:",
+        "opciones": [
+            r"A) $u = \ln(x^2-4)$, $dv = x^3 dx$",
+            r"B) $u = x^3$, $dv = \ln(x^2-4) dx$",
+            r"C) $u = x^2$, $dv = x \ln(...) dx$",
+            r"D) $u = 1$, $dv = x^3 \ln(...) dx$"
+        ],
+        "respuesta_correcta": r"A) $u = \ln(x^2-4)$, $dv = x^3 dx$",
+        "explicacion": r"LIATE: Logarítmica va antes que Algebraica para $u$."
+    },
+    {
+        "tema": "1.1.5 Integral por partes",
+        "pregunta": r"Resultado de la cíclica $\int e^{-x} \cos x dx$:",
+        "opciones": [
+            r"A) $\frac{e^{-x}}{2}(\sin x - \cos x) + C$",
+            r"B) $e^{-x}(\sin x + \cos x) + C$",
+            r"C) $\frac{e^{-x}}{2}(\cos x - \sin x) + C$",
+            r"D) $-e^{-x}\sin x + C$"
+        ],
+        "respuesta_correcta": r"A) $\frac{e^{-x}}{2}(\sin x - \cos x) + C$",
+        "explicacion": r"Aplicando partes dos veces y despejando la integral original."
+    },
+    {
+        "tema": "1.1.5 Integral por partes",
+        "pregunta": r"Resuelva: $$ \int 6x e^{1-2x} dx $$",
+        "opciones": [
+            r"A) $-3xe^{1-2x} - \frac{3}{2}e^{1-2x} + C$",
+            r"B) $3xe^{1-2x} - 3e^{1-2x} + C$",
+            r"C) $6xe^{1-2x} - 6e^{1-2x} + C$",
+            r"D) $3x^2 e^{1-2x} + C$"
+        ],
+        "respuesta_correcta": r"A) $-3xe^{1-2x} - \frac{3}{2}e^{1-2x} + C$",
+        "explicacion": r"$u=6x, dv=e^{1-2x}dx$. Fórmula $uv - \int v du$."
+    },
+    {
+        "tema": "1.1.5 Integral por partes",
+        "pregunta": r"Resuelva: $$ \int x \ln x dx $$",
+        "opciones": [
+            r"A) $\frac{x^2}{2}\ln x - \frac{x^2}{4} + C$",
+            r"B) $\frac{x^2}{2}\ln x - \frac{x^2}{2} + C$",
+            r"C) $x\ln x - x + C$",
+            r"D) $\frac{1}{x} + C$"
+        ],
+        "respuesta_correcta": r"A) $\frac{x^2}{2}\ln x - \frac{x^2}{4} + C$",
+        "explicacion": r"$u=\ln x, dv=x dx \Rightarrow v=x^2/2$. $\int v du = \int x/2 dx = x^2/4$."
+    },
+    {
+        "tema": "1.1.5 Integral por partes",
+        "pregunta": r"Resuelva: $$ \int \arcsin(x) dx $$",
+        "opciones": [
+            r"A) $x \arcsin x + \sqrt{1-x^2} + C$",
+            r"B) $x \arcsin x - \sqrt{1-x^2} + C$",
+            r"C) $\frac{1}{\sqrt{1-x^2}} + C$",
+            r"D) $\cos(\arcsin x) + C$"
+        ],
+        "respuesta_correcta": r"A) $x \arcsin x + \sqrt{1-x^2} + C$",
+        "explicacion": r"$u=\arcsin x, dv=dx$. La integral resultante se hace por sustitución $w=1-x^2$."
+    },
+    {
+        "tema": "1.1.5 Integral por partes",
+        "pregunta": r"Resuelva: $$ \int x^3 e^{-x} dx $$",
+        "opciones": [
+            r"A) $-e^{-x}(x^3 + 3x^2 + 6x + 6) + C$",
+            r"B) $e^{-x}(x^3 - 3x^2 + 6x - 6) + C$",
+            r"C) $-x^3 e^{-x} + 3x^2 e^{-x} + C$",
+            r"D) $-\frac{x^4}{4} e^{-x} + C$"
+        ],
+        "respuesta_correcta": r"A) $-e^{-x}(x^3 + 3x^2 + 6x + 6) + C$",
+        "explicacion": r"Método tabular. Signos alternados. Derivadas de $x^3$: $3x^2, 6x, 6, 0$."
+    },
+    # --- ÁREAS ---
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Área entre $y=x^2$ y $y=6-x$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "6 - x",
+            "y_inferior": "x**2",
+            "x_min": -3.0,
+            "x_max": 2.0,
+            "titulo": "Área entre y = x² y y = 6 − x",
+        },
+        "opciones": [
+            r"A) $\int_{-3}^{2} (6 - x - x^2) dx$",
+            r"B) $\int_{-3}^{2} (x^2 - (6-x)) dx$",
+            r"C) $\int_{0}^{6} (6 - x - x^2) dx$",
+            r"D) $\int_{-2}^{3} (6 - x - x^2) dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-3}^{2} (6 - x - x^2) dx$",
+        "explicacion": (
+            r"**Intersección:** $x^2 = 6-x \Rightarrow x=-3,\; x=2$. En $[-3,2]$ la recta $y=6-x$ va **por encima** de $y=x^2$. "
+            r"**Integral:** $$A = \int_{-3}^{2} \bigl((6-x) - x^2\bigr)\,dx = \int_{-3}^{2} (6 - x - x^2)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \Bigl[6x - \frac{x^2}{2} - \frac{x^3}{3}\Bigr]_{-3}^{2} = \frac{125}{6} \approx 20.83$ unidades de área."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Integral para área entre $y=4-x^2$ y $y=1+2x$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "4 - x**2",
+            "y_inferior": "1 + 2*x",
+            "x_min": -3.0,
+            "x_max": 1.0,
+            "titulo": "Área entre y = 4 − x² y y = 1 + 2x",
+        },
+        "opciones": [
+            r"A) $\int_{-3}^{1} [(4-x^2) - (1+2x)] dx$",
+            r"B) $\int_{-3}^{1} [(1+2x) - (4-x^2)] dx$",
+            r"C) $\int_{0}^{4} \dots dx$",
+            r"D) $\int_{-1}^{3} \dots dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-3}^{1} [(4-x^2) - (1+2x)] dx$",
+        "explicacion": (
+            r"**Intersección:** $4-x^2 = 1+2x \Rightarrow x=-3,\; x=1$. La parábola $y=4-x^2$ (abre hacia abajo) queda **arriba** de la recta $y=1+2x$. "
+            r"**Integral:** $$A = \int_{-3}^{1} \bigl[(4-x^2)-(1+2x)\bigr]\,dx = \int_{-3}^{1} (3 - 2x - x^2)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \Bigl[3x - x^2 - \frac{x^3}{3}\Bigr]_{-3}^{1} = \frac{32}{3} \approx 10.67$ unidades de área."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Área entre $y=x^2+x$ y $y=15-x^2/3$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "15 - x**2/3",
+            "y_inferior": "x**2 + x",
+            "x_min": -3.75,
+            "x_max": 3.0,
+            "titulo": "Área entre y = x² + x y y = 15 − x²/3",
+        },
+        "opciones": [
+            r"A) $\int_{-3.75}^{3} [ (15-x^2/3) - (x^2+x) ] dx$",
+            r"B) $\int_{-3}^{3} [ (x^2+x) - (15-x^2/3) ] dx$",
+            r"C) $\int_{0}^{3} \dots dx$",
+            r"D) $\int_{-4}^{4} \dots dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-3.75}^{3} [ (15-x^2/3) - (x^2+x) ] dx$",
+        "explicacion": (
+            r"**Intersección:** $15-\frac{x^2}{3} = x^2+x \Rightarrow x=-\frac{15}{4}$ ($-3.75$), $x=3$. "
+            r"La curva $y=15-\frac{x^2}{3}$ es el **techo** y $y=x^2+x$ la base. "
+            r"**Integral:** $$A = \int_{-15/4}^{3} \Bigl(15 - x - \frac{4x^2}{3}\Bigr)\,dx.$$ "
+            r"(Equivale a $\int_{-3.75}^{3}\bigl[(15-x^2/3)-(x^2+x)\bigr]dx$.) "
+            r"**Resultado:** $\displaystyle \frac{2187}{32} \approx 68.34$ unidades de área."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Área región no acotada entre $y=xe^{-x}$ y $y=e^{-x}$ en $[0, \infty)$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "titulo": "xe⁻ˣ y e⁻ˣ (tramo ilustrativo 0 ≤ x ≤ 5; cruce en x = 1)",
+            "bandas": [
+                {
+                    "y_superior": "exp(-x)",
+                    "y_inferior": "x*exp(-x)",
+                    "x_min": 0.0,
+                    "x_max": 1.0,
+                },
+                {
+                    "y_superior": "x*exp(-x)",
+                    "y_inferior": "exp(-x)",
+                    "x_min": 1.0,
+                    "x_max": 5.0,
+                },
+            ],
+        },
+        "opciones": [
+            r"A) $\int_{0}^{1} (e^{-x} - xe^{-x}) dx + \int_{1}^{\infty} (xe^{-x} - e^{-x}) dx$",
+            r"B) $\int_{0}^{\infty} (xe^{-x} - e^{-x}) dx$",
+            r"C) $\int_{0}^{\infty} (e^{-x} - xe^{-x}) dx$",
+            r"D) $\int_{0}^{1} xe^{-x} dx$"
+        ],
+        "respuesta_correcta": r"A) $\int_{0}^{1} (e^{-x} - xe^{-x}) dx + \int_{1}^{\infty} (xe^{-x} - e^{-x}) dx$",
+        "explicacion": (
+            r"**Cruce:** $xe^{-x}=e^{-x} \Rightarrow x=1$. Para $x<1$, $e^{-x}$ está **arriba**; para $x>1$, $xe^{-x}$ está arriba. "
+            r"**Integral:** $$A=\int_{0}^{1}\bigl(e^{-x}-xe^{-x}\bigr)\,dx+\int_{1}^{\infty}\bigl(xe^{-x}-e^{-x}\bigr)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \int_{0}^{1} e^{-x}(1-x)\,dx=\Bigl[xe^{-x}\Bigr]_{0}^{1}=e^{-1}$; "
+            r"$\displaystyle \int_{1}^{\infty} e^{-x}(x-1)\,dx=e^{-1}$ (sustitución $t=x-1$, $\Gamma(2)=1$). "
+            r"**Resultado:** $A=\dfrac{2}{e}\approx 0.736$ unidades de área."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Calcule área entre $y=e^{-x}$ y $y=-e^{-2x}$ en $[0, \infty)$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "exp(-x)",
+            "y_inferior": "-exp(-2*x)",
+            "x_min": 0.0,
+            "x_max": 6.0,
+            "titulo": "e⁻ˣ y −e⁻²ˣ en tramo acotado (ilustración)",
+        },
+        "opciones": [
+            r"A) $1.5$",
+            r"B) $1.0$",
+            r"C) $0.5$",
+            r"D) $2.0$"
+        ],
+        "respuesta_correcta": r"A) $1.5$",
+        "explicacion": (
+            r"En $[0,\infty)$ se cumple $e^{-x} > -e^{-2x}$ (no hay cruce en $x\ge 0$). "
+            r"**Integral:** $$A=\int_{0}^{\infty}\bigl(e^{-x}-(-e^{-2x})\bigr)\,dx=\int_{0}^{\infty}\bigl(e^{-x}+e^{-2x}\bigr)\,dx.$$ "
+            r"**Cálculo:** $\displaystyle \Bigl[-e^{-x}-\tfrac{1}{2}e^{-2x}\Bigr]_{0}^{\infty} = 0 - \Bigl(-1-\tfrac{1}{2}\Bigr)=\frac{3}{2}$. "
+            r"**Resultado:** $A=\dfrac{3}{2}=1.5$ unidades de área."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Calcule el área entre $y=2x+3$ y $y=x^2$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "2*x + 3",
+            "y_inferior": "x**2",
+            "x_min": -1.0,
+            "x_max": 3.0,
+            "titulo": "Área entre y = 2x + 3 y y = x²",
+        },
+        "opciones": [
+            r"A) $10.67$",
+            r"B) $8.00$",
+            r"C) $12.00$",
+            r"D) $16.00$"
+        ],
+        "respuesta_correcta": r"A) $10.67$",
+        "explicacion": (
+            r"**Intersección:** $x^2=2x+3 \Rightarrow x=-1,\;x=3$. "
+            r"En $[-1,3]$ la recta queda por arriba de la parábola. "
+            r"**Integral:** $$A=\int_{-1}^{3}\bigl((2x+3)-x^2\bigr)\,dx.$$ "
+            r"**Resultado:** $\displaystyle \Bigl[x^2+3x-\frac{x^3}{3}\Bigr]_{-1}^{3}=\frac{32}{3}\approx 10.67$."
+        ),
+    },
+    {
+        "tema": "1.2.2 Áreas entre curvas",
+        "pregunta": r"Área entre $y=x+2$ y $y=x^2-2$:",
+        "grafico": {
+            "tipo": "area_entre_curvas",
+            "y_superior": "x + 2",
+            "y_inferior": "x**2 - 2",
+            "x_min": -2.0,
+            "x_max": 1.0,
+            "titulo": "Área entre y = x + 2 y y = x² − 2",
+        },
+        "opciones": [
+            r"A) $7.50$",
+            r"B) $9.00$",
+            r"C) $6.00$",
+            r"D) $5.25$"
+        ],
+        "respuesta_correcta": r"A) $7.50$",
+        "explicacion": (
+            r"**Intersección:** $x+2=x^2-2 \Rightarrow x=-2,\;x=1$. "
+            r"**Integral:** $$A=\int_{-2}^{1}\bigl[(x+2)-(x^2-2)\bigr]\,dx=\int_{-2}^{1}(-x^2+x+4)\,dx.$$ "
+            r"**Resultado:** $\displaystyle \Bigl[-\frac{x^3}{3}+\frac{x^2}{2}+4x\Bigr]_{-2}^{1}=\frac{15}{2}=7.5$."
+        ),
+    },
+    # --- EXCEDENTES ---
+    {
+        "tema": "1.2.3 Excedentes del consumidor y productor",
+        "pregunta": r"Demanda $D(q) = 14 - q^2/4$, Oferta $O(q) = 2q + 2$. Calcule EC:",
+        "grafico": {
+            "tipo": "excedentes",
+            "demanda": "14 - x**2/4",
+            "oferta": "2*x + 2",
+            "q_min": 0.0,
+            "q_max": 4.0,
+            "titulo": "Excedente con D(q)=14-q²/4 y O(q)=2q+2 (0≤q≤q*)",
+        },
+        "opciones": [
+            r"A) $10.67$",
+            r"B) $32.00$",
+            r"C) $50.66$",
+            r"D) $15.50$"
+        ],
+        "respuesta_correcta": r"A) $10.67$",
+        "explicacion": r"Equilibrio $q=4, p=10$. $\int_0^4 (14-q^2/4) dq - 40 = 10.67$."
+    },
+    {
+        "tema": "1.2.3 Excedentes del consumidor y productor",
+        "pregunta": r"Demanda $p = 100 - 2q^2$, Oferta $p = 50 + 3q^2$. Calcule EP:",
+        "grafico": {
+            "tipo": "excedentes",
+            "demanda": "100 - 2*x**2",
+            "oferta": "50 + 3*x**2",
+            "q_min": 0.0,
+            "q_max": 3.16227766,
+            "titulo": "Excedente con D(q)=100-2q² y O(q)=50+3q² (q*=√10)",
+        },
+        "opciones": [
+            r"A) $\int_0^{\sqrt{10}} (80 - (50+3q^2)) dq$",
+            r"B) $\int_0^{10} ((100-2q^2) - 80) dq$",
+            r"C) $100\sqrt{10}$",
+            r"D) $\int_0^{\sqrt{10}} (50+3q^2) dq$"
+        ],
+        "respuesta_correcta": r"A) $\int_0^{\sqrt{10}} (80 - (50+3q^2)) dq$",
+        "explicacion": r"Equilibrio $q=\sqrt{10}, p=80$. EP es el área sobre la oferta y bajo el precio."
+    },
+    {
+        "tema": "1.2.3 Excedentes del consumidor y productor",
+        "pregunta": r"EC dados Oferta $p = x^2/9 + 4$ y Demanda $p = 11 - 2x$:",
+        "grafico": {
+            "tipo": "excedentes",
+            "demanda": "11 - 2*x",
+            "oferta": "x**2/9 + 4",
+            "q_min": 0.0,
+            "q_max": 3.0,
+            "titulo": "Excedente con D(x)=11-2x y O(x)=x²/9+4 (0≤x≤3)",
+        },
+        "opciones": [
+            r"A) $9$",
+            r"B) $18$",
+            r"C) $4.5$",
+            r"D) $27$"
+        ],
+        "respuesta_correcta": r"A) $9$",
+        "explicacion": r"Equilibrio $x=3, p=5$. EC = $\int_0^3 (11-2x - 5) dx = 9$."
+    },
+    {
+        "tema": "1.2.3 Excedentes del consumidor y productor",
+        "pregunta": r"EP dados Oferta $p = x^2/4 + 4$ y Demanda $p = 12 - x$:",
+        "grafico": {
+            "tipo": "excedentes",
+            "demanda": "12 - x",
+            "oferta": "x**2/4 + 4",
+            "q_min": 0.0,
+            "q_max": 4.0,
+            "titulo": "Excedente con D(x)=12-x y O(x)=x²/4+4 (0≤x≤4)",
+        },
+        "opciones": [
+            r"A) $10.67$",
+            r"B) $32.00$",
+            r"C) $8.00$",
+            r"D) $16.33$"
+        ],
+        "respuesta_correcta": r"A) $10.67$",
+        "explicacion": r"Equilibrio $x=4, p=8$. EP = $\int_0^4 (8 - (x^2/4+4)) dx = 10.67$."
+    },
+    {
+        "tema": "1.2.3 Excedentes del consumidor y productor",
+        "pregunta": r"Calcule EP con Oferta $p = 4 + 3x^2$ y Demanda $p = 20 - x^2$:",
+        "grafico": {
+            "tipo": "excedentes",
+            "demanda": "20 - x**2",
+            "oferta": "4 + 3*x**2",
+            "q_min": 0.0,
+            "q_max": 2.0,
+            "titulo": "Excedente con D(x)=20-x² y O(x)=4+3x² (0≤x≤2)",
+        },
+        "opciones": [
+            r"A) $16$",
+            r"B) $32$",
+            r"C) $12$",
+            r"D) $24$"
+        ],
+        "respuesta_correcta": r"A) $16$",
+        "explicacion": r"Equilibrio $x=2, p=16$. EP = $\int_0^2 (16 - (4+3x^2)) dx = 16$."
+    },
+    # --- IMPROPIAS ---
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Halle $b$ tal que $\int_{b}^{\infty} \frac{dx}{(1+2x)^2} = \frac{1}{4}$",
+        "opciones": [
+            r"A) $b = 1/2$",
+            r"B) $b = 0$",
+            r"C) $b = 1$",
+            r"D) $b = 2$"
+        ],
+        "respuesta_correcta": r"A) $b = 1/2$",
+        "explicacion": r"Integral da $\frac{1}{2(1+2b)}$. Igualando a 1/4 da $b=1/2$."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Convergencia de $\int_{0}^{\infty} \frac{x^2}{\sqrt{(x^3+4)^3}} dx$:",
+        "opciones": [
+            r"A) Converge a $1/3$",
+            r"B) Diverge",
+            r"C) Converge a $2/3$",
+            r"D) Converge a $0$"
+        ],
+        "respuesta_correcta": r"A) Converge a $1/3$",
+        "explicacion": r"Sustitución $u=x^3+4$. Límite finito."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Convergencia de $\int_{0}^{\infty} x^2 e^{-x} dx$:",
+        "opciones": [
+            r"A) Converge a $2$",
+            r"B) Converge a 1$",
+            r"C) Diverge$",
+            r"D) Converge a 0$"
+        ],
+        "respuesta_correcta": r"A) Converge a $2$",
+        "explicacion": r"Es $\Gamma(3) = 2!$."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Halle $k$ para que $f(x) = k x^2(1-x)$ sea PDF en $[0,1]$:",
+        "opciones": [
+            r"A) $k = 12$",
+            r"B) $k = 6$",
+            r"C) $k = 1$",
+            r"D) $k = 1/12$"
+        ],
+        "respuesta_correcta": r"A) $k = 12$",
+        "explicacion": r"Integral $\int_0^1 k(x^2-x^3)dx = k(1/3-1/4) = k/12 = 1$."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Halle $k$ para que $f(x) = k e^{-x/2}$ sea PDF en $x>0$:",
+        "opciones": [
+            r"A) $k = 0.5$",
+            r"B) $k = 2$",
+            r"C) $k = 1$",
+            r"D) $k = -0.5$"
+        ],
+        "respuesta_correcta": r"A) $k = 0.5$",
+        "explicacion": r"Integral $\int_0^\infty k e^{-x/2} dx = 2k = 1$."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Evalúe $\int_1^{\infty} x^{-3} dx$:",
+        "opciones": [
+            r"A) $0.5$",
+            r"B) $1$",
+            r"C) $0.33$",
+            r"D) Diverge"
+        ],
+        "respuesta_correcta": r"A) $0.5$",
+        "explicacion": r"$-1/(2x^2)$ evaluado da $0 - (-0.5) = 0.5$."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Determine la convergencia de $\int_1^{\infty} \frac{1}{x^p} dx$:",
+        "opciones": [
+            r"A) Converge si $p > 1$",
+            r"B) Converge si $p \ge 1$",
+            r"C) Converge si $p < 1$",
+            r"D) Diverge para todo $p$"
+        ],
+        "respuesta_correcta": r"A) Converge si $p > 1$",
+        "explicacion": r"Es una p-integral básica. Si $p > 1$, el resultado es $\frac{1}{p-1}$. Si $p \le 1$, el área es infinita."
+    },
+    {
+        "tema": "1.2.4 Integrales Impropias",
+        "pregunta": r"Evalúe la integral impropia $\int_0^{\infty} e^{-2x} dx$:",
+        "opciones": [
+            r"A) $1/2$",
+            r"B) $1$",
+            r"C) $2$",
+            r"D) Diverge"
+        ],
+        "respuesta_correcta": r"A) $1/2$",
+        "explicacion": r"$\lim_{b \to \infty} \left[ -\frac{1}{2}e^{-2x} \right]_0^b = 0 - (-\frac{1}{2}) = 1/2$."
+    },
+    # --- INTEGRALES DOBLES ---
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Calcule $\int_{0}^{1}\int_{1}^{2} (3x^2 - 6z) dx dz$ (orden $dx, dz$):",
+        "opciones": [
+            r"A) $-2$",
+            r"B) $7$",
+            r"C) $0$",
+            r"D) $-5$"
+        ],
+        "respuesta_correcta": r"A) $-2$",
+        "explicacion": r"Integral interna $x^3-6zx|_1^2 = 7-6z$. Integral externa $7z-3z^2|_0^1 = 4$."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Calcule $\int_{0}^{1}\int_{1}^{2} (3x^2 - 6z) dx dz$:",
+        "opciones": [
+            r"A) $4$",
+            r"B) $7$",
+            r"C) $0$",
+            r"D) $-2$"
+        ],
+        "respuesta_correcta": r"A) $4$",
+        "explicacion": r"Evaluación directa: Interna da $7-6z$. Externa da $4$."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Plantee para región entre parábola $x = y^2 - 4y$ y recta $y = x - 6$:",
+        "opciones": [
+            r"A) $\int_{-1}^{6} \int_{y^2-4y}^{y+6} f(x,y) dx dy$",
+            r"B) $\int_{-1}^{6} \int_{y+6}^{y^2-4y} f(x,y) dx dy$",
+            r"C) $\int \dots dy dx$",
+            r"D) $\int \dots$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-1}^{6} \int_{y^2-4y}^{y+6} f(x,y) dx dy$",
+        "explicacion": r"Integración tipo II (dx primero). Límites de y $[-1, 6]$."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Cambie orden $\int_0^4 \int_0^x f(x,y) dy dx$:",
+        "opciones": [
+            r"A) $\int_0^4 \int_y^4 f(x,y) dx dy$",
+            r"B) $\int_0^4 \int_0^y \dots$",
+            r"C) $\int_0^x \dots$",
+            r"D) $\int_0^4 \int_4^y \dots$"
+        ],
+        "respuesta_correcta": r"A) $\int_0^4 \int_y^4 f(x,y) dx dy$",
+        "explicacion": r"Región triangular $0 \le y \le x \le 4$. En orden inverso $y \le x \le 4$."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Calcule $\int_0^1 \int_0^2 (x+y) dy dx$:",
+        "opciones": [
+            r"A) $3$",
+            r"B) $1$",
+            r"C) $2$",
+            r"D) $4$"
+        ],
+        "respuesta_correcta": r"A) $3$",
+        "explicacion": r"Interna $2x+2$. Externa $1+2=3$."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Volumen bajo $z=1+x-y$ sobre región limitada por $y=x^2$ y $y=8-2x$:",
+        "opciones": [
+            r"A) $\int_{-4}^{2} \int_{x^2}^{8-2x} (1+x-y) dy dx$",
+            r"B) $\int_{-4}^{2} \int_{8-2x}^{x^2} \dots$",
+            r"C) $\int \dots dx dy$",
+            r"D) $\int \dots$"
+        ],
+        "respuesta_correcta": r"A) $\int_{-4}^{2} \int_{x^2}^{8-2x} (1+x-y) dy dx$",
+        "explicacion": r"Cortes en $x=-4, 2$. Recta por encima de parábola."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Calcule la integral doble $\iint_R 2xy \, dA$ sobre el rectángulo $R = [0,2] \times [0,1]$:",
+        "opciones": [
+            r"A) 2",
+            r"B) 4",
+            r"C) 1",
+            r"D) 8"
+        ],
+        "respuesta_correcta": r"A) 2",
+        "explicacion": r"$\int_0^2 \int_0^1 2xy \, dy \, dx = \int_0^2 x [y^2]_0^1 dx = \int_0^2 x dx = [\frac{x^2}{2}]_0^2 = 2$."
+    },
+    {
+        "tema": "1.2.6 Integrales dobles",
+        "pregunta": r"Al cambiar el orden de integración en $\int_0^1 \int_x^1 f(x,y) \, dy \, dx$, la nueva integral es:",
+        "opciones": [
+            r"A) $\int_0^1 \int_0^y f(x,y) \, dx \, dy$",
+            r"B) $\int_0^1 \int_0^x f(x,y) \, dx \, dy$",
+            r"C) $\int_x^1 \int_0^1 f(x,y) \, dx \, dy$",
+            r"D) $\int_0^y \int_0^1 f(x,y) \, dx \, dy$"
+        ],
+        "respuesta_correcta": r"A) $\int_0^1 \int_0^y f(x,y) \, dx \, dy$",
+        "explicacion": r"La región es un triángulo definido por $0 \le x \le 1$ y $x \le y \le 1$. Al invertir, $y$ va de 0 a 1 y $x$ va de 0 a $y$."
+    },
+    # --- VOLÚMENES DE REVOLUCIÓN ---
+    {
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
+        "pregunta": r"Volumen de $f(x)=1+x^2$ entre $x=-1, 5$ girando en $y=-1$:",
+        "opciones": [
+            r"A) $\pi \int_{-1}^{5} (2+x^2)^2 dx$",
+            r"B) $\pi \int (1+x^2)^2 dx$",
+            r"C) $2\pi \dots$",
+            r"D) $\pi \int ((1+x^2)^2-1) dx$"
+        ],
+        "respuesta_correcta": r"A) $\pi \int_{-1}^{5} (2+x^2)^2 dx$",
+        "explicacion": r"Radio $R = (1+x^2) - (-1) = 2+x^2$. No hay hueco (disco)."
+    },
+    {
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
+        "pregunta": r"Volumen región $y=x^2-4x$, $y=0$ girando en $y=4$:",
+        "opciones": [
+            r"A) $\pi \int_0^4 [ 4^2 - (4-(x^2-4x))^2 ] dx$",
+            r"B) $\pi \int [ (x^2-4x)^2 ] dx$",
+            r"C) $\pi \int [ 4^2 - (4-0)^2 ] dx$",
+            r"D) $2\pi \dots$"
+        ],
+        "respuesta_correcta": r"A) $\pi \int_0^4 [ 4^2 - (4-(x^2-4x))^2 ] dx$",
+        "explicacion": r"Arandelas. Radio exterior constante 4 (hasta el eje x). Radio interior hasta la curva."
+    },
+    {
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
+        "pregunta": r"Volumen región $x=y^2+2, x=1$ girando en $x=-2$:",
+        "opciones": [
+            r"A) $\pi \int_{-2}^{2} [ (y^2+4)^2 - 3^2 ] dy$",
+            r"B) $\pi \int [ (y^2+2)^2 ] dy$",
+            r"C) $\pi \int \dots$",
+            r"D) $\pi \dots$"
+        ],
+        "respuesta_correcta": r"A) $\pi \int_{-2}^{2} [ (y^2+4)^2 - 3^2 ] dy$",
+        "explicacion": r"Radio mayor $R=(y^2+2)-(-2)$. Radio menor $r=1-(-2)$."
+    },
+    {
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
+        "pregunta": r"Volumen región $y=2+x^2, y=6$ girando en $y=1$:",
+        "opciones": [
+            r"A) $\pi \int_{-2}^{2} [ (6-1)^2 - (2+x^2-1)^2 ] dx$",
+            r"B) $\pi \int \dots$",
+            r"C) $\pi \dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\pi \int_{-2}^{2} [ (6-1)^2 - (2+x^2-1)^2 ] dx$",
+        "explicacion": r"Radio mayor constante $5$. Radio menor variable $1+x^2$."
+    },
+    {
+        "tema": "1.2.5 Volúmenes Sólidos de Revolución",
+        "pregunta": r"Volumen región $y=4-x^2, y=3$ girando en $y=2$:",
+        "opciones": [
+            r"A) $\pi \int_{0}^{1} [ (4-x^2-2)^2 - (3-2)^2 ] dx$",
+            r"B) $\pi \int \dots$",
+            r"C) $\pi \dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\pi \int_{0}^{1} [ (4-x^2-2)^2 - (3-2)^2 ] dx$",
+        "explicacion": r"Radio mayor $(4-x^2)-2$. Radio menor $3-2=1$."
+    },
+    # --- ECUACIONES DIFERENCIALES: SEPARABLES ---
+    {
+        "tema": "2.1.1 ED 1er Orden: Separación de Variables",
+        "pregunta": r"Población $dp/dt = 10(100-p)^2$. Integral separada:",
+        "opciones": [
+            r"A) $\int (100-p)^{-2} dp = \int 10 dt$",
+            r"B) $\int (100-p)^2 dp = \dots$",
+            r"C) $\int \dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\int (100-p)^{-2} dp = \int 10 dt$",
+        "explicacion": r"Pasar término $p$ dividiendo."
+    },
+    {
+        "tema": "2.1.1 ED 1er Orden: Separación de Variables",
+        "pregunta": r"Separar $\sqrt{xy} y' = \frac{x+2}{2-y}$:",
+        "opciones": [
+            r"A) $\int (2-y)\sqrt{y} dy = \int \frac{x+2}{\sqrt{x}} dx$",
+            r"B) $\int \frac{\sqrt{y}}{2-y} dy = \dots$",
+            r"C) $\int \dots$",
+            r"D) $\int \dots$"
+        ],
+        "respuesta_correcta": r"A) $\int (2-y)\sqrt{y} dy = \int \frac{x+2}{\sqrt{x}} dx$",
+        "explicacion": r"Agrupar y con dy, x con dx."
+    },
+    {
+        "tema": "2.1.1 ED 1er Orden: Separación de Variables",
+        "pregunta": r"Solución de $(2-y)\sqrt{xy} dy + (x+2) dx = 0$:",
+        "opciones": [
+            r"A) $\frac{4}{3}y^{3/2} - \frac{2}{5}y^{5/2} = -(\frac{2}{3}x^{3/2} + 4x^{1/2}) + C$",
+            r"B) $2y^{1/2} \dots$",
+            r"C) $\ln|2-y| \dots$",
+            r"D) $y(2-y)^2 \dots$"
+        ],
+        "respuesta_correcta": r"A) $\frac{4}{3}y^{3/2} - \frac{2}{5}y^{5/2} = -(\frac{2}{3}x^{3/2} + 4x^{1/2}) + C$",
+        "explicacion": r"Integración de potencias fraccionarias tras separar."
+    },
+    {
+        "tema": "2.1.1 ED 1er Orden: Separación de Variables",
+        "pregunta": r"Resuelva $\frac{dy}{dx} = \frac{(x-1)(y+3)}{(x+4)(y-2)}$:",
+        "opciones": [
+            r"A) $y - 5\ln|y+3| = x - 5\ln|x+4| + C$",
+            r"B) $y + 5\ln \dots$",
+            r"C) $(y-2)^2 \dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y - 5\ln|y+3| = x - 5\ln|x+4| + C$",
+        "explicacion": r"División de polinomios $(y-2)/(y+3) = 1 - 5/(y+3)$."
+    },
+    # --- HOMOGÉNEAS ---
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Tipo de ecuación $(x^2 - 2y^2)dx + y dy = 0$:",
+        "opciones": [
+            r"A) Homogénea de grado 2",
+            r"B) Exacta",
+            r"C) Lineal",
+            r"D) Separable"
+        ],
+        "respuesta_correcta": r"A) Homogénea de grado 2",
+        "explicacion": r"Todos los términos son grado 2."
+    },
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Clasificación $(x+y)dx - y dy = 0$:",
+        "opciones": [
+            r"A) Homogénea de grado 1",
+            r"B) Exacta",
+            r"C) Separable",
+            r"D) Lineal"
+        ],
+        "respuesta_correcta": r"A) Homogénea de grado 1",
+        "explicacion": r"Grado 1 en coeficientes."
+    },
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Familia de $(x+y)dx + (x-y)dy = 0$:",
+        "opciones": [
+            r"A) Homogénea",
+            r"B) Separable",
+            r"C) Lineal",
+            r"D) Bernoulli"
+        ],
+        "respuesta_correcta": r"A) Homogénea",
+        "explicacion": r"Coeficientes del mismo grado."
+    },
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Sustitución para $(x-3y)dx + 2y dy = 0$:",
+        "opciones": [
+            r"A) $y = ux$",
+            r"B) $u = x-3y$",
+            r"C) $x = y^2$",
+            r"D) $\mu = e^{2y}$"
+        ],
+        "respuesta_correcta": r"A) $y = ux$",
+        "explicacion": r"Estándar para homogéneas."
+    },
+    {
+        "tema": "2.1.2 ED 1er Orden: Homogéneas",
+        "pregunta": r"Factor integrante para $y' + y = e^{3x}$ (Lineal básica):",
+        "opciones": [
+            r"A) $e^x$",
+            r"B) $e^{-x}$",
+            r"C) $x$",
+            r"D) $e^{3x}$"
+        ],
+        "respuesta_correcta": r"A) $e^x$",
+        "explicacion": r"P(x)=1, integral dx es x."
+    },
+    # --- EXACTAS ---
+    {
+        "tema": "2.1.3 ED 1er Orden: Exactas",
+        "pregunta": r"Clasificación $(x^2-y^2)dx + (y^2-xy)dy = 0$:",
+        "opciones": [
+            r"A) Homogénea de grado 2",
+            r"B) Exacta",
+            r"C) Lineal",
+            r"D) Separable"
+        ],
+        "respuesta_correcta": r"A) Homogénea de grado 2",
+        "explicacion": r"No cumple condición de exactitud $M_y = N_x$ directametne (-2y vs -y)."
+    },
+    {
+        "tema": "2.1.3 ED 1er Orden: Exactas",
+        "pregunta": r"Valor de $k$ para que sea exacta $(y^3 + kxy^4 - 2x)dx + (3xy^2 + 20x^2y^3)dy = 0$:",
+        "opciones": [
+            r"A) $k = 10$",
+            r"B) $k = 5$",
+            r"C) $k = 20$",
+            r"D) $k = 4$"
+        ],
+        "respuesta_correcta": r"A) $k = 10$",
+        "explicacion": r"$M_y = 3y^2 + 4ky^3x$. $N_x = 3y^2 + 40xy^3$. $4k=40 \Rightarrow k=10$."
+    },
+    {
+        "tema": "2.1.3 ED 1er Orden: Exactas",
+        "pregunta": r"Resuelva exacta: $(\cos y - y\sin x + 1)dx + (\cos x - x\sin y - 2)dy = 0$",
+        "opciones": [
+            r"A) $x\cos y + y\cos x + x - 2y = C$",
+            r"B) $\sin y \cos x \dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $x\cos y + y\cos x + x - 2y = C$",
+        "explicacion": r"Integración parcial y comparación."
+    },
+    {
+        "tema": "2.1.3 ED 1er Orden: Exactas",
+        "pregunta": r"Resuelva: $(\frac{1}{y} - 2x + \ln^2 y + \dots)dx + \dots = 0$:",
+        "opciones": [
+            r"A) $\frac{x}{y} - x^2 + x \ln^2 y + y \ln^2 x + y^3 = C$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\frac{x}{y} - x^2 + x \ln^2 y + y \ln^2 x + y^3 = C$",
+        "explicacion": r"Reconstrucción de función potencial."
+    },
+    {
+        "tema": "2.1.3 ED 1er Orden: Exactas",
+        "pregunta": r"Resuelva: $(2x \cos y + 3x^2 y) dx + (x^3 - x^2 \sin y - y) dy = 0$",
+        "opciones": [
+            r"A) $x^2 \cos y + x^3 y - \frac{y^2}{2} = C$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $x^2 \cos y + x^3 y - \frac{y^2}{2} = C$",
+        "explicacion": r"Término $-y$ en N se integra a $-y^2/2$."
+    },
+    # --- LINEALES ---
+    {
+        "tema": "2.1.4 ED 1er Orden: Lineales",
+        "pregunta": r"Factor integrante para $y' + \frac{3}{x}y = x^2 + 1$:",
+        "opciones": [
+            r"A) $\mu(x) = x^3$",
+            r"B) $e^{3x}$",
+            r"C) $3 \ln x$",
+            r"D) $x^{-3}$"
+        ],
+        "respuesta_correcta": r"A) $\mu(x) = x^3$",
+        "explicacion": r"$e^{3 \ln x} = x^3$."
+    },
+    {
+        "tema": "2.1.4 ED 1er Orden: Lineales",
+        "pregunta": r"Clasificación de $(x-3y)dx + 2y dy = 0$ vista como $x(y)$:",
+        "opciones": [
+            r"A) Lineal en $x$",
+            r"B) Bernoulli",
+            r"C) Separable",
+            r"D) Exacta"
+        ],
+        "respuesta_correcta": r"A) Lineal en $x$",
+        "explicacion": r"Se puede escribir como $dx/dy + P(y)x = Q(y)$."
+    },
+    {
+        "tema": "2.1.4 ED 1er Orden: Lineales",
+        "pregunta": r"Solución general $x y' + 2y = x^3 - x\ln x$:",
+        "opciones": [
+            r"A) $y = \frac{x^3}{5} - \frac{x}{3}\ln x + \frac{x}{9} + \frac{C}{x^2}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y = \frac{x^3}{5} - \frac{x}{3}\ln x + \frac{x}{9} + \frac{C}{x^2}$",
+        "explicacion": r"$\mu = x^2$."
+    },
+    {
+        "tema": "2.1.4 ED 1er Orden: Lineales",
+        "pregunta": r"Solución $y' - \frac{2}{x}y = x^2 \sin x$:",
+        "opciones": [
+            r"A) $y = -x^2 \cos x + C x^2$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y = -x^2 \cos x + C x^2$",
+        "explicacion": r"$\mu = x^{-2}$."
+    },
+    {
+        "tema": "2.1.4 ED 1er Orden: Lineales",
+        "pregunta": r"Resuelva $y' + y \tan x = \sec x$:",
+        "opciones": [
+            r"A) $y = \sin x + C \cos x$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y = \sin x + C \cos x$",
+        "explicacion": r"$\mu = \sec x$."
+    },
+    # --- BERNOULLI ---
+    {
+        "tema": "2.1.5 ED 1er Orden: Bernoulli",
+        "pregunta": r"Bernoulli $x dy + (x^2 y^3 + xy^3 - 2y) dx = 0$. Solución:",
+        "opciones": [
+            r"A) $y^{-2} = \frac{1}{3}x^2 + \frac{2}{5}x + Cx^{-4}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y^{-2} = \frac{1}{3}x^2 + \frac{2}{5}x + Cx^{-4}$",
+        "explicacion": r"$n=3$. Sustitución $u=y^{-2}$."
+    },
+    {
+        "tema": "2.1.5 ED 1er Orden: Bernoulli",
+        "pregunta": r"Bernoulli $xy dy + (2y^2 - x^3 + x\ln x) dx = 0$. Solución:",
+        "opciones": [
+            r"A) $y^2 = \frac{1}{3}x^2 - \frac{1}{2}\ln x + \frac{1}{8} + Cx^{-4}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y^2 = \frac{1}{3}x^2 - \frac{1}{2}\ln x + \frac{1}{8} + Cx^{-4}$",
+        "explicacion": r"$n=-1$ para $y(x)$. Sustitución $u=y^2$."
+    },
+    {
+        "tema": "2.1.5 ED 1er Orden: Bernoulli",
+        "pregunta": r"Bernoulli $y' + \frac{1}{x}y = x y^2$:",
+        "opciones": [
+            r"A) $\frac{1}{y} = Cx - x^2$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\frac{1}{y} = Cx - x^2$",
+        "explicacion": r"$n=2$. $u=y^{-1}$."
+    },
+    {
+        "tema": "2.1.5 ED 1er Orden: Bernoulli",
+        "pregunta": r"Bernoulli $y' + \frac{1}{x}y = y^3$:",
+        "opciones": [
+            r"A) $y^{-2} = 2x + C x^2$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y^{-2} = 2x + C x^2$",
+        "explicacion": r"$n=3$. $u=y^{-2}$."
+    },
+    {
+        "tema": "2.1.5 ED 1er Orden: Bernoulli",
+        "pregunta": r"Bernoulli $y' - \frac{4}{x}y = x \sqrt{y}$:",
+        "opciones": [
+            r"A) $\sqrt{y} = \frac{1}{2}x^2 \ln x + C x^2$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\sqrt{y} = \frac{1}{2}x^2 \ln x + C x^2$",
+        "explicacion": r"$n=1/2$. $u=\sqrt{y}$."
+    },
+    # --- ORDEN SUPERIOR ---
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Primer paso para $y^{(4)} - y^{(5)} + \dots = 0$:",
+        "opciones": [
+            r"A) Hallar las raíces del polinomio característico.",
+            r"B) Integrar",
+            r"C) Variación de parámetros",
+            r"D) Factor integrante"
+        ],
+        "respuesta_correcta": r"A) Hallar las raíces del polinomio característico.",
+        "explicacion": r"Método estándar para coeficientes constantes."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Solución general $y^{\prime\prime\prime} + 2y^{\prime\prime} - 3y' = 0$:",
+        "opciones": [
+            r"A) $y = C_1 + C_2 e^{-3x} + C_3 e^{x}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y = C_1 + C_2 e^{-3x} + C_3 e^{x}$",
+        "explicacion": r"Raíces $0, -3, 1$."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Solución general $y^{\prime\prime\prime} + 6y^{\prime\prime} + 12y' + 8y = 0$:",
+        "opciones": [
+            r"A) $y = C_1 e^{-2x} + C_2 x e^{-2x} + C_3 x^2 e^{-2x}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y = C_1 e^{-2x} + C_2 x e^{-2x} + C_3 x^2 e^{-2x}$",
+        "explicacion": r"Raíz $-2$ con multiplicidad 3."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Solución particular $y_p$ de $y'' + 4y' + 3y = 12e^x$:",
+        "opciones": [
+            r"A) $y_p = \frac{3}{2}e^x$",
+            r"B) $12e^x$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $y_p = \frac{3}{2}e^x$",
+        "explicacion": r"Coeficientes indeterminados."
+    },
+    {
+        "tema": "2.2.1 ED Orden Superior: Homogéneas",
+        "pregunta": r"Característica de $y^{(4)} - 16y = 0$:",
+        "opciones": [
+            r"A) $r^4 - 16 = 0$",
+            r"B) $4r-16=0$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $r^4 - 16 = 0$",
+        "explicacion": r"Sustitución directa."
+    },
+    # --- APLICACIONES ---
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Modelo $\frac{dp}{dt} = kp(1000-p)$:",
+        "opciones": [
+            r"A) Crecimiento Logístico",
+            r"B) Malthus",
+            r"C) Newton",
+            r"D) Desintegración"
+        ],
+        "respuesta_correcta": r"A) Crecimiento Logístico",
+        "explicacion": r"Ecuación verhulst."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Límite de $\frac{dp}{dt} = kp(200-p)$:",
+        "opciones": [
+            r"A) 200 unidades",
+            r"B) 0",
+            r"C) Infinito",
+            r"D) 200k"
+        ],
+        "respuesta_correcta": r"A) 200 unidades",
+        "explicacion": r"Capacidad de carga."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Ley Enfriamiento: $100 \to 80$ en 10 min ($T_a=25$). Temp a los 20 min:",
+        "opciones": [
+            r"A) $65.33^{\circ}C$",
+            r"B) $60$",
+            r"C) $70$",
+            r"D) $55$"
+        ],
+        "respuesta_correcta": r"A) $65.33^{\circ}C$",
+        "explicacion": r"Cálculo exponencial iterativo."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Límite $\frac{dp}{dt} = kt(1000 - p/2)$:",
+        "opciones": [
+            r"A) $2000$ unidades",
+            r"B) $1000$",
+            r"C) $500$",
+            r"D) $\infty$"
+        ],
+        "respuesta_correcta": r"A) 2000 unidades",
+        "explicacion": r"Equilibrio cuando derivada es 0."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Carbono-14, 1/6 remanente. Vida media 5600. Ecuación:",
+        "opciones": [
+            r"A) $\frac{1}{6} = e^{k t}$ con $k = \frac{\ln(0.5)}{5600}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $\frac{1}{6} = e^{k t}$ con $k = \frac{\ln(0.5)}{5600}$",
+        "explicacion": r"Decaimiento radioactivo."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Solución general enfriamiento $T(t)$:",
+        "opciones": [
+            r"A) $T(t) = T_a + (T_0 - T_a)e^{kt}$",
+            r"B) $\dots$",
+            r"C) $\dots$",
+            r"D) $\dots$"
+        ],
+        "respuesta_correcta": r"A) $T(t) = T_a + (T_0 - T_a)e^{kt}$",
+        "explicacion": r"Solución analítica estándar."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"Si el crecimiento de una inversión $K(t)$ es proporcional a su tamaño actual ($K' = rK$) con una tasa $r=0.05$ y capital inicial $1000$:",
+        "opciones": [
+            r"A) $K(t) = 1000 e^{0.05t}$",
+            r"B) $K(t) = 1000 + 0.05t$",
+            r"C) $K(t) = 1000(1.05)^t$",
+            r"D) $K(t) = 50 e^{1000t}$"
+        ],
+        "respuesta_correcta": r"A) $K(t) = 1000 e^{0.05t}$",
+        "explicacion": r"Es una ED de variables separables típica de crecimiento continuo. La solución es $K(t) = K_0 e^{rt}$."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"La elasticidad precio de la demanda es constante e igual a -2. Si $\frac{dQ}{dp} \frac{p}{Q} = -2$, halle la función de demanda $Q(p)$:",
+        "opciones": [
+            r"A) $Q = C p^{-2}$",
+            r"B) $Q = -2p + C$",
+            r"C) $Q = C e^{-2p}$",
+            r"D) $Q = p^2 + C$"
+        ],
+        "respuesta_correcta": r"A) $Q = C p^{-2}$",
+        "explicacion": r"Separando variables: $\frac{dQ}{Q} = -2 \frac{dp}{p} \Rightarrow \ln Q = -2 \ln p + c \Rightarrow Q = e^c p^{-2}$."
+    },
+    {
+        "tema": "2.3.1 Aplicaciones de Ecuaciones Diferenciales de primer orden",
+        "pregunta": r"En un modelo de ajuste de precios, el precio cambia proporcionalmente al exceso de demanda: $P'(t) = \alpha (Q_d - Q_s)$. Si $Q_d = 10-P$ y $Q_s = P-2$, con $\alpha=0.5$:",
+        "opciones": [
+            r"A) $P' = 6 - P$",
+            r"B) $P' = 12 - 2P$",
+            r"C) $P' = 0.5(8 - 2P)$",
+            r"D) $P' = 5 - 0.5P$"
+        ],
+        "respuesta_correcta": r"A) $P' = 6 - P$",
+        "explicacion": r"$P' = 0.5[(10-P) - (P-2)] = 0.5[12 - 2P] = 6 - P$. Esta es una ED lineal hacia el equilibrio."
+    },
+    # --------------------------------------------------------------------------
+    # AMPLIACIÓN: ED ORDEN SUPERIOR NO HOMOGÉNEAS (Meta: 5 ejercicios)
+    # Fuente: Taller 2 - 202525
+    # --------------------------------------------------------------------------
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Dada la ecuación $y'' - 2y' - 3y = 4e^{3x}$, ¿cuál es la forma correcta de la solución particular $y_p$ a proponer?",
+        "opciones": [
+            r"A) $y_p = Ax e^{3x}$",
+            r"B) $y_p = A e^{3x}$",
+            r"C) $y_p = A x^2 e^{3x}$",
+            r"D) $y_p = (Ax+B) e^{3x}$"
+        ],
+        "respuesta_correcta": r"A) $y_p = Ax e^{3x}$",
+        "explicacion": r"La solución homogénea tiene raíces $r=3, r=-1$, por lo que $y_h = c_1 e^{3x} + c_2 e^{-x}$. Como el término $e^{3x}$ ya está en la homogénea (resonancia), multiplicamos la propuesta por $x$."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Encuentre la solución particular de $y'' + y = x^2 + 1$ usando coeficientes indeterminados:",
+        "opciones": [
+            r"A) $y_p = x^2 - 1$",
+            r"B) $y_p = x^2 + 1$",
+            r"C) $y_p = Ax^2 + Bx + C$",
+            r"D) $y_p = x^2 - 2$"
+        ],
+        "respuesta_correcta": r"A) $y_p = x^2 - 1$",
+        "explicacion": r"Proponemos $y_p = Ax^2 + Bx + C$. Derivando: $y_p'' = 2A$. Sustituyendo: $2A + (Ax^2 + Bx + C) = x^2 + 1$. Igualando coeficientes: $A=1, B=0, 2A+C=1 \Rightarrow C=-1$."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Resuelva la ecuación $y^{\prime\prime\prime} - y'' = 12x$ (Solo la parte particular $y_p$):",
+        "opciones": [
+            r"A) $y_p = -2x^3 - 6x^2$",
+            r"B) $y_p = Ax + B$",
+            r"C) $y_p = -6x^2$",
+            r"D) $y_p = x^3$"
+        ],
+        "respuesta_correcta": r"A) $y_p = -2x^3 - 6x^2$",
+        "explicacion": r"Raíces homogénea: $r^2(r-1)=0 \Rightarrow 0, 0, 1$. Como 0 es raíz doble, la propuesta para $12x$ (polinomio grado 1) debe multiplicarse por $x^2$. $y_p = x^2(Ax+B) = Ax^3 + Bx^2$."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"Seleccione la solución general de $y'' + 4y = 8$:",
+        "opciones": [
+            r"A) $y = c_1 \cos 2x + c_2 \sin 2x + 2$",
+            r"B) $y = c_1 e^{2x} + c_2 e^{-2x} + 2$",
+            r"C) $y = c_1 \cos 2x + c_2 \sin 2x + 4$",
+            r"D) $y = \cos 2x + \sin 2x + 8$"
+        ],
+        "respuesta_correcta": r"A) $y = c_1 \cos 2x + c_2 \sin 2x + 2$",
+        "explicacion": r"Homogénea: $r^2+4=0 \Rightarrow r=\pm 2i$. Particular para constante 8: $y_p=A$. Sustitución $4A=8 \Rightarrow A=2$. Suma: $y_h + y_p$."
+    },
+    {
+        "tema": "2.2.2 ED Orden Superior: No Homogéneas",
+        "pregunta": r"¿Cuál es la forma de $y_p$ para $y'' + 2y' + 5y = 12e^x - x^2$?",
+        "opciones": [
+            r"A) $y_p = A e^x + (Bx^2 + Cx + D)$",
+            r"B) $y_p = A e^x - x^2$",
+            r"C) $y_p = A x e^x + B x^2$",
+            r"D) $y_p = (Ax+B) e^x + C x^2$"
+        ],
+        "respuesta_correcta": r"A) $y_p = A e^x + (Bx^2 + Cx + D)$",
+        "explicacion": r"Principio de superposición. Para $12e^x$ proponemos $Ae^x$. Para $-x^2$ proponemos polinomio completo grado 2 ($Bx^2+Cx+D$). No hay conflicto con la homogénea ($r = -1 \pm 2i$)."
+    },
+    # --- APLICACIONES DE ED (ORDEN SUPERIOR) ---
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Un modelo de dinámica de precios con expectativas genera la ecuación $P'' + 3P' + 2P = 10$. ¿Cuál es el precio de equilibrio a largo plazo ($P_e$)?",
+        "opciones": [
+            r"A) $P_e = 5$",
+            r"B) $P_e = 10$",
+            r"C) $P_e = 2$",
+            r"D) $P_e = 0$"
+        ],
+        "respuesta_correcta": r"A) $P_e = 5$",
+        "explicacion": r"En el equilibrio, las derivadas se anulan ($P''=0, P'=0$). Queda $2P = 10 \Rightarrow P = 5$. También es la solución particular $y_p$."
+    },
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"La ecuación $y'' + 4y = 0$ describe un oscilador armónico sin amortiguamiento. Su comportamiento es:",
+        "opciones": [
+            r"A) Oscilatorio perpetuo (Senos y Cosenos)",
+            r"B) Convergente (Exponencial decreciente)",
+            r"C) Explosivo (Exponencial creciente)",
+            r"D) Lineal"
+        ],
+        "respuesta_correcta": r"A) Oscilatorio perpetuo (Senos y Cosenos)",
+        "explicacion": r"Las raíces características son imaginarias puras ($r = \pm 2i$), lo que genera soluciones de la forma $C_1 \cos(2t) + C_2 \sin(2t)$."
+    },
+    {
+        "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
+        "pregunta": r"Si una magnitud $Y(t)$ sigue la ecuación $Y'' - Y' - 6Y = 0$, ¿qué sucede a largo plazo?",
+        "opciones": [
+            r"A) Crece explosivamente (inestable)",
+            r"B) Converge a 0 (estable)",
+            r"C) Se mantiene constante",
+            r"D) Oscila"
+        ],
+        "respuesta_correcta": r"A) Crece explosivamente (inestable)",
+        "explicacion": r"Raíces: $r^2 - r - 6 = 0 \Rightarrow (r-3)(r+2)=0$. Como hay una raíz positiva ($r=3$), el término $C_1 e^{3t}$ domina y tiende a infinito."
+    }
+]
+
+def obtener_preguntas_fijas(temas_solicitados, cantidad):
+    candidatas = [p for p in BANCO_FIXED if any(t in p["tema"] for t in temas_solicitados)]
+    if not candidatas:
+        return []
+    num_a_seleccionar = min(len(candidatas), cantidad)
+    return random.sample(candidatas, num_a_seleccionar)
