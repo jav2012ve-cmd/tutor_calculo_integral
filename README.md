@@ -26,7 +26,7 @@ La aplicación necesita `GOOGLE_API_KEY` para conectar con Gemini.
    ```toml
    GOOGLE_API_KEY = "tu-clave-aqui"
    ```
-3. **Streamlit Cloud:** en tu app → Settings → Secrets, añade la variable `GOOGLE_API_KEY` (y las de Supabase si aplica).
+3. **Streamlit Cloud:** en tu app → **Settings → Secrets**, pega en formato **TOML** (no JSON), por ejemplo `GOOGLE_API_KEY = "AIza..."`, guarda y **reinicia la app**. También se aceptan `GEMINI_API_KEY` o `GOOGLE_GEMINI_API_KEY` si ya las usas en otro proyecto.
 
 Sin esta clave, la app se detendrá y mostrará en pantalla las mismas instrucciones.
 
