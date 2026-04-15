@@ -24,6 +24,7 @@ import requests
 from modules import temario
 
 MODULOS = (
+    "Seguimos",
     "Entrenamiento",
     "Respuesta Guiada",
     "Quiz",
@@ -98,6 +99,16 @@ def _headers_rest(api_key: str) -> dict[str, str]:
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
+
+
+def supabase_url_y_clave() -> tuple[Optional[str], Optional[str]]:
+    """URL y clave service_role (o SUPABASE_KEY) para llamadas REST desde otros módulos."""
+    return _credenciales_supabase()
+
+
+def headers_supabase_rest(api_key: str) -> dict[str, str]:
+    """Encabezados estándar PostgREST (reutilizable fuera de este módulo)."""
+    return _headers_rest(api_key)
 
 
 def _base_vacia() -> dict[str, int]:

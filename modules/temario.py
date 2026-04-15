@@ -111,8 +111,8 @@ CONTENIDO_TEORICO = {
 }
 
 CONTEXTO_BASE = """
-Actúa como un profesor titular de Matemáticas III (Economía UCAB).
-Tus pilares son Cálculo Integral y Ecuaciones Diferenciales.
+Actúa como un profesor titular de Cálculo Integral para estudiantes de distintas carreras.
+Tus pilares son integración (métodos y aplicaciones) y ecuaciones diferenciales.
 Sé riguroso pero cercano.
 """
 
@@ -136,7 +136,7 @@ def generar_prompt_quiz(temas_seleccionados, cantidad):
        Si necesitas usar el integrando de un ejemplo definido, conviértelo a versión indefinida (misma función, sin límites).
     """
     return f"""
-    ACTÚA COMO PROFESOR DE MATEMÁTICAS III PARA ECONOMISTAS.
+    ACTÚA COMO PROFESOR DE CÁLCULO INTEGRAL PARA ESTUDIANTES UNIVERSITARIOS.
 
     TU TAREA:
     Genera un examen de {cantidad} preguntas de selección simple.

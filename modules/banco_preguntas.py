@@ -1,7 +1,7 @@
 import random
 
 # ==============================================================================
-# BANCO DE PREGUNTAS - MATEMÁTICAS III (ECONOMÍA UCAB)
+# BANCO DE PREGUNTAS - TUTOR DE CÁLCULO INTEGRAL
 # Versión: 88 Ejercicios (Sintaxis Corregida y Blindada)
 # ==============================================================================
 
@@ -1345,7 +1345,7 @@ BANCO_FIXED = [
     },
     {
         "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
-        "pregunta": r"La ecuación $y'' + 4y = 0$ modela un ciclo económico sin fricción. Su comportamiento es:",
+        "pregunta": r"La ecuación $y'' + 4y = 0$ describe un oscilador armónico sin amortiguamiento. Su comportamiento es:",
         "opciones": [
             r"A) Oscilatorio perpetuo (Senos y Cosenos)",
             r"B) Convergente (Exponencial decreciente)",
@@ -1357,7 +1357,7 @@ BANCO_FIXED = [
     },
     {
         "tema": "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
-        "pregunta": r"Si el ingreso nacional $Y(t)$ sigue la ecuación $Y'' - Y' - 6Y = 0$, ¿qué sucede a largo plazo?",
+        "pregunta": r"Si una magnitud $Y(t)$ sigue la ecuación $Y'' - Y' - 6Y = 0$, ¿qué sucede a largo plazo?",
         "opciones": [
             r"A) Crece explosivamente (inestable)",
             r"B) Converge a 0 (estable)",

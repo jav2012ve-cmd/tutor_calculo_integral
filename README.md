@@ -1,6 +1,6 @@
-# Matemáticas III - Economías UCAB Versión 5.0
+# ∑igma tu Tutor de Cálculo Integral
 
-Tutor virtual para la cátedra de **Matemáticas III** (Cálculo Integral y Ecuaciones Diferenciales), Escuela de Economía, UCAB. Incluye entrenamiento guiado (**apoyo gráfico interactivo con Plotly** en el paso intermedio para temas del banco que lo incorporen), consultas con foto o texto, quiz de autoevaluación (con **informe descargable en PDF** al finalizar) y tutor de preguntas abiertas, usando **Streamlit** y **Google Gemini**.
+Tutor virtual de **Cálculo Integral** (integración, aplicaciones y ecuaciones diferenciales) pensado para **estudiantes registrados** y un alcance amplio de carreras. Incluye entrenamiento guiado (**apoyo gráfico interactivo con Plotly** en el paso intermedio para temas del banco que lo incorporen), consultas con foto o texto, quiz de autoevaluación (con **informe descargable en PDF** al finalizar) y tutor de preguntas abiertas, usando **Streamlit** y **Google Gemini**.
 
 ## Requisitos
 
@@ -31,7 +31,7 @@ Sin esta clave, la app se detendrá y mostrará en pantalla las mismas instrucci
 En la nube el disco del contenedor es **efímero**: los contadores en `data/uso_stats.json` se pierden al reiniciar o cuando la app “duerme”. Para conservar los totales de uso por modo, configura **Supabase**:
 
 1. Crea un proyecto en [Supabase](https://supabase.com/).
-2. En **SQL Editor**, ejecuta en este orden (o solo los que falten): `supabase_schema.sql`, `supabase_usage_events.sql`, `supabase_topic_usage.sql`, luego **`supabase_topic_usage_seed.sql`** (crea una fila por cada tema con `count = 0` para ver cobertura). Si hace falta, ejecuta `supabase_grants.sql`.
+2. En **SQL Editor**, ejecuta en este orden (o solo los que falten): `supabase_schema.sql`, `supabase_usage_events.sql`, `supabase_topic_usage.sql`, **`supabase_estudiantes.sql`** (cuentas de registro / login), luego **`supabase_topic_usage_seed.sql`** (crea una fila por cada tema con `count = 0` para ver cobertura). Si hace falta, ejecuta `supabase_grants.sql`.
 3. **Comprueba la base** (opcional): en SQL Editor ejecuta `SELECT public.increment_module_usage('Entrenamiento');` y luego `SELECT * FROM public.app_module_usage;` — debe aparecer una fila. Si aquí funciona pero la app no escribe, faltan **Secrets** en Streamlit o la app desplegada está desactualizada.
 4. En **Project Settings → API** copia **Project URL** y la clave **service_role** (solo para backend; no la expongas en el navegador).
 5. Añade en `.streamlit/secrets.toml` (local) o en **Streamlit Cloud → Secrets**:
@@ -61,10 +61,12 @@ streamlit run app.py
 
 ## Modos de la aplicación
 
-- **Entrenamiento (Temario):** serie de 5 ejercicios paso a paso por temas.
-- **Respuesta guiada:** subes foto o texto de un ejercicio y el tutor te guía.
-- **Autoevaluación (Quiz):** simulacro de parcial (Primer, Segundo o temas personalizados).
-- **Tutor preguntas abiertas:** chat sobre teoría y ejercicios de la cátedra.
+- **Seguimos:** panel de continuidad y cobertura del temario (identificación en la sesión).
+- **A practicar:** serie de 5 ejercicios paso a paso por temas.
+- **Vamos paso a paso:** subes foto o texto de un ejercicio y el tutor te guía.
+- **Simulacro:** examen de prueba (Primer, Segundo o temas personalizados).
+- **Dime y te digo:** chat sobre teoría y ejercicios del curso.
+- **Te lo reviso:** corrección de manuscritos con retroalimentación.
 
 ## Tests (opcional)
 

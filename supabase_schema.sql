@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS public.app_module_usage (
   count bigint NOT NULL DEFAULT 0 CHECK (count >= 0)
 );
 
-COMMENT ON TABLE public.app_module_usage IS 'Contadores anónimos de uso por modo (Streamlit tutor Mate III).';
+COMMENT ON TABLE public.app_module_usage IS 'Contadores anónimos de uso por modo (Streamlit Tutor Cálculo Integral).';
 
 -- Incremento atómico (evita condiciones de carrera entre instancias).
 CREATE OR REPLACE FUNCTION public.increment_module_usage(p_module text)

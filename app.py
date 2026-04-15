@@ -32,6 +32,8 @@ from modules import (
     uso_stats,
     registro_interacciones,
     graficos_entrenamiento,
+    seguimos,
+    auth_estudiantes,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -288,7 +290,7 @@ def clasificar_tema_desde_texto(texto_usuario: str) -> Optional[str]:
     if not t:
         return None
     lista_txt = _bloque_lista_temas_oficial()
-    prompt = f"""Eres asistente de catalogación para Matemáticas III (Economía UCAB).
+    prompt = f"""Eres asistente de catalogación para el curso de Cálculo Integral.
 Indica a qué tema del temario oficial corresponde mejor la consulta del estudiante.
 
 LISTA OFICIAL (elige UN solo texto EXACTO como aparece abajo, carácter por carácter, o null si ninguno encaja):
@@ -368,7 +370,7 @@ def analizar_problema_usuario(
     Distingue entre Integrales/EDO (rígido) y Aplicaciones (flexible).
     """
     prompt_base = """
-    Actúa como un Tutor Experto de Matemáticas III.
+    Actúa como un tutor experto de Cálculo Integral.
     Analiza el problema del estudiante (texto o imagen).
 
     OBJETIVO: Generar una guía paso a paso JSON.
@@ -416,7 +418,7 @@ def evaluar_manuscrito(imagen_manuscrito: Any) -> Optional[dict]:
     """
     lista_txt = _bloque_lista_temas_oficial()
     prompt = f"""
-    Eres un corrector experto de Matemáticas III (Cálculo Integral y Ecuaciones Diferenciales) para Economía.
+    Eres un corrector experto de Cálculo Integral y ecuaciones diferenciales para estudiantes universitarios.
 
     En la imagen verás un manuscrito del estudiante: suele incluir el enunciado del ejercicio y su resolución escrita.
 
@@ -479,7 +481,7 @@ def generar_respuesta_tutor_abierto(
     historial_previo: str,
 ) -> str:
     """
-    Tutor de Preguntas Abiertas.
+    Modo «Dime y te digo» (tutor de preguntas abiertas).
     Usa el contexto de banco_muestras y banco_preguntas para personalizar la respuesta.
     """
     # 1. Construimos el contexto (tomamos una muestra para no saturar)
@@ -488,10 +490,10 @@ def generar_respuesta_tutor_abierto(
 
     # 2. Prompt del Sistema (La personalidad del profesor)
     prompt_tutor = f"""
-    Eres el tutor virtual de Matemáticas III para Economía en la UCAB.
+    Eres el tutor virtual de Cálculo Integral para estudiantes registrados en la plataforma.
     Tu objetivo es ayudar al estudiante a entender la teoría, pero SIEMPRE aterrizándola a la práctica de la clase.
 
-    CONTEXTO DE LA CÁTEDRA (Tu base de conocimiento):
+    CONTEXTO DEL CURSO (Tu base de conocimiento):
     --- Estilos de Examen ---
     {estilos_examen}
     --- Ejercicios del Banco Oficial (Muestra) ---
@@ -501,7 +503,7 @@ def generar_respuesta_tutor_abierto(
     1. Responde de forma clara y pedagógica.
     
     2. GESTIÓN DEL CONOCIMIENTO (CRÍTICO):
-       - Usa los ejercicios del contexto para mantener el estilo y la dificultad de la cátedra.
+       - Usa los ejercicios del contexto para mantener el estilo y la dificultad del curso.
        - SI EL CONTEXTO NO TIENE EJEMPLOS DE UN TEMA (ej. Integrales Dobles o Impropias): 
          NO digas "el banco es pequeño" ni "no tengo ejemplos". 
          Genera tú mismo un ejemplo matemático riguroso (nivel Leithold/Larson) y preséntalo con naturalidad, diciendo: "Un caso típico que estudiamos en este tema es..." o "Para ilustrar esto, analicemos...".
@@ -620,7 +622,7 @@ def generar_pdf_informe_quiz(
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Helvetica", size=14)
-    pdf.cell(0, 10, "Informe de evaluacion - Matematicas III - Economias UCAB V5.0", ln=True)
+    pdf.cell(0, 10, "Informe de evaluacion - Sigma tu Tutor de Calculo Integral", ln=True)
     pdf.set_font("Helvetica", size=11)
     pdf.cell(0, 8, f"Calificacion final: {nota_final} / 20 pts", ln=True)
     pdf.cell(0, 8, "Aprobado." if nota_final >= 10 else "No aprobado.", ln=True)
@@ -657,17 +659,28 @@ if "historial_tutor_abierto" not in st.session_state: st.session_state.historial
 if "manuscrito_correccion" not in st.session_state: st.session_state.manuscrito_correccion = None
 
 # --- 3. INTERFAZ PRINCIPAL ---
-ruta, tema_actual = interfaz.mostrar_sidebar()
-
-# Mostrar presentación solo si no hay modo seleccionado; con modo activo, centrar vista en el modo
-if not ruta:
+st.title(interfaz.APP_DISPLAY_NAME)
+_modo = st.session_state.get("modo_actual")
+if not _modo:
+    auth_estudiantes.render_panel_auth()
+    interfaz.mostrar_portada_selector_modos()
     interfaz.mostrar_bienvenida()
+    ruta = None
+else:
+    auth_estudiantes.render_barra_sesion_compacta()
+    interfaz.mostrar_cabecera_pagina_modo()
+    ruta = _modo
+
+# =======================================================
+# LÓGICA 0: SEGUIMOS (continuidad, alumnos registrados en sesión)
+# =======================================================
+if ruta == seguimos.MODO_ID:
+    seguimos.render_vista_seguimos()
 
 # =======================================================
 # LÓGICA A: MODO ENTRENAMIENTO (Dojo Matemático)
 # =======================================================
 elif ruta == "a) Entrenamiento (Temario)":
-    st.markdown("### 🥋 Dojo de Matemáticas (Entrenamiento Guiado)")
     st.info("Resolución paso a paso: **1. Elegir Estrategia** -> **2. Hito Intermedio** -> **3. Resultado Final**.")
 
     if "entrenamiento_activo" not in st.session_state:
@@ -834,7 +847,7 @@ elif ruta == "a) Entrenamiento (Temario)":
                     st.rerun()
 
         else:
-            st.success("🎉 ¡Entrenamiento completado!")
+            st.success("🎉 ¡Sesión de A practicar completada!")
             if st.button("🔄 Volver al Inicio", key="btn_reset_entrenamiento"):
                 st.session_state.entrenamiento_activo = False
                 st.session_state.entrenamiento_idx = 0
@@ -844,7 +857,6 @@ elif ruta == "a) Entrenamiento (Temario)":
 # LÓGICA B: RESPUESTA GUIADA (Consultas) - TUTOR PERSONALIZADO
 # =======================================================
 elif ruta == "b) Respuesta Guiada (Consultas)":
-    st.markdown("### 🎓 Tutor Personalizado")
     st.info("Sube tu ejercicio (foto o texto) y te guiaré paso a paso.")
 
     # 1. INPUT (Foto o Texto)
@@ -902,7 +914,7 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
             st.rerun()
 
         st.divider()
-        st.markdown(f"**Tema Detectado:** `{datos.get('tema_detectado', 'Matemáticas')}`")
+        st.markdown(f"**Tema Detectado:** `{datos.get('tema_detectado', 'Cálculo Integral')}`")
         if datos.get('enunciado_latex'):
             st.markdown("**Problema Identificado:**")
             st.markdown(latex_display_puro(datos['enunciado_latex']))
@@ -971,8 +983,6 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
 # LÓGICA C: AUTOEVALUACIÓN (Quiz)
 # =======================================================
 elif ruta == "c) Autoevaluación (Quiz)":
-    st.markdown("### 📝 Centro de Evaluación")
-
     # --- PANTALLA 1: CONFIGURACIÓN ---
     if not st.session_state.quiz_activo:
         st.info("Configura tu prueba (El sistema combinará ejercicios oficiales y generados por IA):")
@@ -995,7 +1005,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
 
         with st.expander("⚙️ Personalizado"):
             temas_custom = st.multiselect("Temas:", temario.LISTA_TEMAS)
-            if st.button("▶️ Iniciar Quiz Custom"):
+            if st.button("▶️ Iniciar simulacro personalizado"):
                 if not temas_custom:
                     st.error("Selecciona tema.")
                 else:
@@ -1209,7 +1219,7 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 st.download_button(
                     "📥 Descargar informe (PDF)",
                     data=pdf_bytes,
-                    file_name=f"informe_Mate3_UCAB_V5_{str(nota_final).replace('.', '_')}.pdf",
+                    file_name=f"informe_SigmaTutor_{str(nota_final).replace('.', '_')}.pdf",
                     mime="application/pdf",
                     use_container_width=True
                 )
@@ -1223,20 +1233,19 @@ elif ruta == "c) Autoevaluación (Quiz)":
 # LÓGICA D: TUTOR PREGUNTAS ABIERTAS (NUEVO)
 # =======================================================
 elif ruta == "d) Tutor: Preguntas Abiertas":
-    st.markdown("### 💬 Preguntas Abiertas al Tutor")
     st.markdown("""
     Haz cualquier pregunta teórica. El tutor te responderá **vinculando la teoría con
-    los ejercicios y estilos de examen** de nuestra cátedra.
+    los ejercicios y estilos de examen** del curso.
     """)
 
     if len(st.session_state.historial_tutor_abierto) > AVISO_HISTORIAL_LARGO:
-        st.info("💬 **Conversación larga.** Para respuestas más precisas, considera usar **Reiniciar** en el menú y empezar una nueva.")
+        st.info("💬 **Conversación larga.** Para respuestas más precisas, usa **← Volver al inicio** y entra de nuevo al modo, o recarga la página.")
 
     for mensaje in st.session_state.historial_tutor_abierto:
         with st.chat_message(mensaje["role"]):
             st.markdown(mensaje["content"])
 
-    if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de las ejercicios del profesor"):
+    if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de los ejercicios del curso"):
         with st.spinner("Clasificando tema para estadísticas…"):
             _tema_stats = clasificar_tema_desde_texto(prompt)
         uso_stats.registrar_uso(
@@ -1251,7 +1260,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Consultando guías de la cátedra..."):
+            with st.spinner("Consultando guías del curso..."):
                 ultimos = st.session_state.historial_tutor_abierto[-MAX_MENSAJES_HISTORIAL_TUTOR:]
                 historial_texto = "\n".join([f"{m['role']}: {m['content']}" for m in ultimos])
                 respuesta_tutor = generar_respuesta_tutor_abierto(prompt, historial_texto)
@@ -1263,7 +1272,6 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
 # LÓGICA E: CORRECCIÓN DE MANUSCRITOS
 # =======================================================
 elif ruta == "e) Corrección de Manuscritos":
-    st.markdown("### 📄 Corrección de Manuscritos")
     st.info("Sube una foto de tu resolución escrita. La app identificará el enunciado, valorará tu solución y te dará un juicio (correcto / parcialmente correcto / incorrecto) con sugerencias de ajuste.")
 
     imagen_manuscrito = st.file_uploader(
@@ -1298,7 +1306,7 @@ elif ruta == "e) Corrección de Manuscritos":
         st.divider()
         _tc_show = temario.normalizar_tema_curso(datos.get("tema_catedra"))
         if _tc_show:
-            st.caption(f"📌 **Tema identificado (cátedra):** `{_tc_show}`")
+            st.caption(f"📌 **Tema identificado (temario):** `{_tc_show}`")
 
         st.subheader("📋 Enunciado identificado")
         enunciado = datos.get("enunciado", "")
@@ -1354,3 +1362,6 @@ elif ruta == "e) Corrección de Manuscritos":
         if st.button("🔄 Evaluar otro manuscrito", key="btn_nuevo_manuscrito"):
             st.session_state.manuscrito_correccion = None
             st.rerun()
+
+# --- Pie del panel central: total de interacciones ---
+interfaz.mostrar_dudas_resueltas()

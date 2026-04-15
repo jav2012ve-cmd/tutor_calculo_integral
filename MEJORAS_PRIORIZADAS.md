@@ -1,4 +1,4 @@
-# Lista de mejoras priorizadas — Tutor Matemáticas III
+# Lista de mejoras priorizadas — Tutor de Cálculo Integral
 
 ## Prioridad 1 — Crítico (corregir ya)
 

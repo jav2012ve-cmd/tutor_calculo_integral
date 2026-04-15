@@ -1,19 +1,148 @@
+from __future__ import annotations
+
 import os
+from typing import Optional
 
 import streamlit as st
+from PIL import Image
 from modules.temario import LISTA_TEMAS
 from modules import uso_stats
+from modules import seguimos
 
 # Nombre de la aplicación (pestaña del navegador, títulos principales)
-APP_DISPLAY_NAME = "Matemáticas III - Economías UCAB Versión 5.0"
+# ∑ (U+2211) sustituye la S inicial de «Sigma» en pantalla y en la pestaña del navegador.
+APP_DISPLAY_NAME = "\N{N-ARY SUMMATION}igma tu Tutor de Cálculo Integral"
 
-# Infografía de bienvenida (relativa a la raíz del proyecto, junto a app.py)
-_ASSETS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "assets"))
-INFOGRAFIA_BIENVENIDA = os.path.join(_ASSETS_DIR, "infografia_asistente_v2.png")
+# Logo de bienvenida (raíz del proyecto o carpeta assets; prioriza .jpg)
+_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_LOGO_JPG = os.path.join(_ROOT, "LogoSigma.jpg")
+_LOGO_JPG_ASSETS = os.path.join(_ROOT, "assets", "LogoSigma.jpg")
+_LOGO_PNG = os.path.join(_ROOT, "LogoSigma.png")
+_LOGO_PNG_ASSETS = os.path.join(_ROOT, "assets", "LogoSigma.png")
+
+
+def _ruta_logo_sigma() -> Optional[str]:
+    for p in (_LOGO_JPG, _LOGO_JPG_ASSETS, _LOGO_PNG, _LOGO_PNG_ASSETS):
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _ruta_primera_existente(*rel_paths: str) -> Optional[str]:
+    for rel in rel_paths:
+        for base in (_ROOT, os.path.join(_ROOT, "assets")):
+            p = os.path.join(base, rel)
+            if os.path.isfile(p):
+                return p
+    return None
+
+
+def _imagen_por_modo(modo_id: str) -> Optional[str]:
+    mapping: dict[str, Optional[str]] = {
+        seguimos.MODO_ID: _ruta_primera_existente(
+            "botonSeguimos.jpg",
+            "BotonSeguimos.jpg",
+            "seguimos.jpg",
+            "Seguimos.jpg",
+        ),
+        "a) Entrenamiento (Temario)": _ruta_primera_existente(
+            "botonApracticar.jpg",
+            "BotonApracticar.jpg",
+            "a_practicar.jpg",
+            "A_practicar.jpg",
+        ),
+        "b) Respuesta Guiada (Consultas)": _ruta_primera_existente(
+            "BotonVamosPaso.jpg",
+            "botonVamosPaso.jpg",
+            "vamos_paso_a_paso.jpg",
+            "VamosPaso.jpg",
+        ),
+        "c) Autoevaluación (Quiz)": _ruta_primera_existente(
+            "BotonSimulacro.jpg",
+            "botonSimulacro.jpg",
+            "simulacro.jpg",
+            "Simulacro.jpg",
+            "Botones.png",
+        ),
+        "d) Tutor: Preguntas Abiertas": _ruta_primera_existente(
+            "BotonDime.jpg",
+            "botonDime.jpg",
+            "dime_y_te_digo.jpg",
+            "Dime.jpg",
+        ),
+        "e) Corrección de Manuscritos": _ruta_primera_existente(
+            "BotonTeloReviso.jpg",
+            "botonTeloReviso.jpg",
+            "te_lo_reviso.jpg",
+            "TeLoReviso.jpg",
+        ),
+    }
+    return mapping.get(modo_id)
+
+
+def _recorte_vertical_superior(
+    path_img: str, fraccion_altura: float = 0.40
+) -> Optional[Image.Image]:
+    """
+    Recorta una franja superior del alto total (fraccion_altura = fracción que se conserva).
+    Por defecto 0.40 → se muestra el 40% superior (se elimina el 60% inferior), ancho intacto, y=0.
+    """
+    try:
+        with Image.open(path_img) as im:
+            w, h = im.size
+            if h <= 2:
+                return im.copy()
+            bottom = max(1, min(h, int(round(h * float(fraccion_altura)))))
+            return im.crop((0, 0, w, bottom)).copy()
+    except Exception:
+        return None
+
+# Matriz 2×3: (id interno, etiqueta en el botón, texto del tooltip al pasar el ratón)
+MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
+    (
+        (
+            seguimos.MODO_ID,
+            "📌 Seguimos",
+            "Identifícate en la sesión y revisa prioridades del temario, cobertura del curso y un plan "
+            "para combinar A practicar, Vamos paso a paso, Simulacro, Dime y te digo y Te lo reviso.",
+        ),
+        (
+            "a) Entrenamiento (Temario)",
+            "A practicar",
+            "Serie guiada paso a paso (estrategia, hito intermedio, resultado). En varios temas hay "
+            "gráfico interactivo Plotly en el hito para validar límites y regiones.",
+        ),
+        (
+            "b) Respuesta Guiada (Consultas)",
+            "Vamos paso a paso",
+            "Sube foto o texto de un ejercicio; el tutor analiza el problema y te guía con opciones "
+            "de estrategia y pasos sin dar la solución de golpe.",
+        ),
+    ),
+    (
+        (
+            "c) Autoevaluación (Quiz)",
+            "Simulacro",
+            "Simulacro tipo parcial (primer, segundo o temas personalizados) con calificación y "
+            "descarga de informe en PDF al finalizar.",
+        ),
+        (
+            "d) Tutor: Preguntas Abiertas",
+            "Dime y te digo",
+            "Chat para teoría y ejercicios del curso, alineado al estilo del banco y del temario.",
+        ),
+        (
+            "e) Corrección de Manuscritos",
+            "Te lo reviso",
+            "Sube una foto de tu resolución escrita: se identifica el enunciado, se valora tu trabajo "
+            "(correcto / parcial / incorrecto) y se sugieren mejoras.",
+        ),
+    ),
+)
 
 def inyectar_estilo_matematico():
     """
-    CSS para mejorar renderizado KaTeX y evitar que el texto matemático se rompa.
+    CSS: fuentes (Orbitron en título principal h1; Roboto Mono en el resto), KaTeX y barra lateral oculta.
     Se ejecuta una sola vez por sesión.
     """
     if st.session_state.get("estilo_matematico_inyectado"):
@@ -23,6 +152,26 @@ def inyectar_estilo_matematico():
     st.markdown(
         """
         <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700&family=Roboto+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+
+        /* Cuerpo y UI: Roboto Mono (no forzar dentro de KaTeX) */
+        .stApp {
+            font-family: 'Roboto Mono', monospace !important;
+        }
+        .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
+        .stApp p, .stApp label, .stApp span, .stApp li, .stApp td, .stApp th,
+        .stApp button, .stApp input, .stApp textarea, .stApp select,
+        .stCaption, [data-testid="stMarkdownContainer"] {
+            font-family: 'Roboto Mono', monospace !important;
+        }
+
+        /* Nombre principal (st.title): Orbitron — encaja mejor con símbolos tipo \\sum en títulos */
+        .stApp h1 {
+            font-family: 'Orbitron', sans-serif !important;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+        }
+
         /* Ajustes generales para textos con LaTeX en Markdown */
         .stMarkdown p {
             line-height: 1.6;
@@ -43,6 +192,19 @@ def inyectar_estilo_matematico():
             max-width: 100%;
             overflow-x: auto;
         }
+
+        /* Sin panel lateral: ancho completo para el contenido */
+        section[data-testid="stSidebar"],
+        div[data-testid="stSidebar"] {
+            display: none !important;
+        }
+        div[data-testid="stSidebarCollapsedControl"],
+        div[data-testid="collapsedControl"] {
+            display: none !important;
+        }
+        div[data-testid="stSidebarNav"] {
+            display: none !important;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -52,149 +214,151 @@ def configurar_pagina():
     st.set_page_config(
         page_title=APP_DISPLAY_NAME,
         page_icon="📈",
-        layout="wide"
+        layout="wide",
+        initial_sidebar_state="collapsed",
     )
 
-def mostrar_sidebar():
-    with st.sidebar:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/f/f0/Logo_UCAB_H.png", width=200)
-        st.markdown("### 🏛️ Escuela de Economía")
-        
-        seleccion_visual = st.radio(
-            "1. Selecciona tu Modo de Estudio:",
-            ["a) Entrenamiento (Temario)", 
-             "b) Respuesta Guiada (Consultas)", 
-             "c) Autoevaluación (Quiz)",
-             "d) Tutor: Preguntas Abiertas",
-             "e) Corrección de Manuscritos"],
-            index=None,
-            key="radio_seleccion"
-        )
-        
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("▶️ Iniciar"):
-                if seleccion_visual:
-                    # Al cambiar de modo, limpiar estado de los otros modos para evitar datos residuales
-                    if seleccion_visual != st.session_state.get("modo_actual"):
-                        st.session_state.quiz_activo = False
-                        st.session_state.preguntas_quiz = []
-                        st.session_state.indice_pregunta = 0
-                        st.session_state.respuestas_usuario = []
-                        if "trigger_quiz" in st.session_state:
-                            st.session_state.trigger_quiz = False
-                        st.session_state.entrenamiento_activo = False
-                        st.session_state.consulta_step = 0
-                        st.session_state.consulta_data = None
-                        st.session_state.consulta_validada = False
-                        st.session_state.historial_tutor_abierto = []
-                        st.session_state.manuscrito_correccion = None
-                    st.session_state.modo_actual = seleccion_visual
-                st.rerun()
-        with col2:
-            if st.button("🔄 Reiniciar"):
-                st.session_state.modo_actual = None
-                st.session_state.messages = []
-                st.rerun()
-        
+def meta_modo(modo_id: str) -> tuple[str, str]:
+    """Etiqueta corta del botón y texto de ayuda para un modo."""
+    for fila in MATRIZ_MODOS_2X3:
+        for mid, etiq, ayuda in fila:
+            if mid == modo_id:
+                return etiq, ayuda
+    return modo_id, ""
+
+
+def _limpiar_estado_volver_inicio() -> None:
+    st.session_state.modo_actual = None
+    st.session_state.messages = []
+    st.session_state.pop("estudiante_nombre_seguimos", None)
+    st.session_state.pop("estudiante_codigo_seguimos", None)
+    st.session_state.pop("_seguimos_uso_registrado_sesion", None)
+    st.session_state.pop("seguimos_paso", None)
+
+
+def _aplicar_iniciar_modo(seleccion_visual: Optional[str]) -> None:
+    """Guarda el modo y limpia estado residual al cambiar de modo."""
+    if not seleccion_visual:
+        return
+    anterior = st.session_state.get("modo_actual")
+    if seleccion_visual != anterior:
+        st.session_state.quiz_activo = False
+        st.session_state.preguntas_quiz = []
+        st.session_state.indice_pregunta = 0
+        st.session_state.respuestas_usuario = []
+        if "trigger_quiz" in st.session_state:
+            st.session_state.trigger_quiz = False
+        st.session_state.entrenamiento_activo = False
+        st.session_state.consulta_step = 0
+        st.session_state.consulta_data = None
+        st.session_state.consulta_validada = False
+        st.session_state.historial_tutor_abierto = []
+        st.session_state.manuscrito_correccion = None
+    st.session_state.modo_actual = seleccion_visual
+    if seleccion_visual == seguimos.MODO_ID and anterior != seguimos.MODO_ID:
+        st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_ENTRADA
+    if seleccion_visual != seguimos.MODO_ID:
+        st.session_state.pop("seguimos_paso", None)
+
+
+def mostrar_portada_selector_modos() -> None:
+    """
+    Solo en la portada (sin modo activo): cuadrícula 2×3 con vista previa recortada del botón.
+    Al elegir un modo, la app muestra otra «página» con imagen completa y la interfaz del modo.
+    """
+    st.markdown("#### 🎛️ Modo de estudio")
+    st.caption(
+        "Pulsa un modo para abrir su página: verás el botón completo y las herramientas de ese modo."
+    )
+
+    for i, fila in enumerate(MATRIZ_MODOS_2X3):
+        cols = st.columns(3)
+        for j, (modo_id, etiqueta, ayuda) in enumerate(fila):
+            with cols[j]:
+                if st.button(
+                    etiqueta,
+                    key=f"modo_tile_{i}_{j}",
+                    use_container_width=True,
+                    type="secondary",
+                    help=ayuda,
+                ):
+                    _aplicar_iniciar_modo(modo_id)
+                    st.rerun()
+                img_modo = _imagen_por_modo(modo_id)
+                if img_modo:
+                    img_crop = _recorte_vertical_superior(img_modo)
+                    if img_crop is not None:
+                        st.image(img_crop, use_container_width=True)
+                    else:
+                        st.image(img_modo, use_container_width=True)
+                else:
+                    st.caption("Imagen no encontrada")
+
+
+def _mostrar_imagen_modo_compacta(path_img: str) -> None:
+    """Muestra la imagen del modo centrada ocupando ~20 % del ancho (proporción 4 : 2 : 4 → 2/10)."""
+    _, c_img, _ = st.columns([4, 2, 4])
+    with c_img:
+        st.image(path_img, use_container_width=True)
+
+
+def mostrar_cabecera_pagina_modo() -> Optional[str]:
+    """
+    Cabecera de la «página» del modo activo: volver, imagen del botón (~20 % de ancho, centrada),
+    título y (si aplica) temario.
+    Devuelve el tema seleccionado solo en modo entrenamiento; en otros modos, None.
+    """
+    modo = st.session_state.get("modo_actual")
+    if not modo:
+        return None
+
+    if st.button("← Volver al inicio", key="btn_volver_inicio"):
+        _limpiar_estado_volver_inicio()
+        st.rerun()
+
+    img_modo = _imagen_por_modo(modo)
+    if img_modo:
+        _mostrar_imagen_modo_compacta(img_modo)
+    else:
+        st.caption("Imagen del modo no encontrada")
+
+    etiq, ayuda = meta_modo(modo)
+    st.markdown(f"### {etiq}")
+    st.caption(ayuda)
+
+    tema_seleccionado: Optional[str] = None
+    if modo == "a) Entrenamiento (Temario)":
         st.divider()
-        
-        tema_seleccionado = None
-        if st.session_state.get("modo_actual") == "a) Entrenamiento (Temario)":
-            st.write("### 📘 Temario Detallado")
-            if "tema_seleccionado" not in st.session_state:
-                st.session_state.tema_seleccionado = LISTA_TEMAS[0]
-            
-            tema_seleccionado = st.selectbox("Selecciona el punto:", LISTA_TEMAS)
-            st.session_state.tema_seleccionado = tema_seleccionado
+        st.markdown("##### 📘 Temario detallado")
+        if "tema_seleccionado" not in st.session_state:
+            st.session_state.tema_seleccionado = LISTA_TEMAS[0]
+        tema_seleccionado = st.selectbox("Selecciona el punto:", LISTA_TEMAS, key="tema_select_pagina_modo")
+        st.session_state.tema_seleccionado = tema_seleccionado
 
-        st.divider()
-        with st.expander("📖 Ayuda / Modos"):
-            st.markdown("""
-            **a) Entrenamiento:** Serie de ejercicios paso a paso (estrategia → hito → resultado); en temas con datos en el banco, **apoyo gráfico** en el hito intermedio.  
-            **b) Respuesta Guiada:** Subes foto o texto de un ejercicio y el tutor te guía.  
-            **c) Autoevaluación:** Simulacro de parcial (Primer, Segundo o temas personalizados).  
-            **d) Tutor abierto:** Chat sobre teoría y ejercicios de la cátedra.  
-            **e) Corrección de Manuscritos:** Sube tu resolución escrita; la app identifica el enunciado, valora tu solución y sugiere ajustes.
-            """)
+    st.divider()
+    return tema_seleccionado
 
-        with st.expander("📊 Uso de la app"):
-            warn = st.session_state.get("_uso_stats_supabase_warn")
-            if warn:
-                st.warning(warn)
-            stats = uso_stats.obtener_estadisticas()
-            if any(stats.get(m, 0) > 0 for m in uso_stats.MODULOS):
-                for mod in uso_stats.MODULOS:
-                    n = stats.get(mod, 0)
-                    st.caption(f"**{mod}:** {n} consultas")
-                st.caption("_Anónimo, sin identificar usuarios._")
-                st.caption(
-                    "_Totales globales si Supabase está configurado; si no, solo esta máquina (archivo local)._"
-                )
-            else:
-                st.caption("_Aún no hay registros de uso._")
 
-        with st.expander("📈 Cobertura por tema (temario)"):
-            st.caption(
-                "_Una fila por tema en Supabase (`app_topic_usage`); equivale a llevar columnas dinámicas sin alterar el esquema al cambiar el temario._"
-            )
-            por_tema = uso_stats.obtener_estadisticas_temas()
-            filas = sorted(
-                [{"tema": t, "n": por_tema.get(t, 0)} for t in LISTA_TEMAS],
-                key=lambda x: (-x["n"], x["tema"]),
-            )
-            con_uso = sum(1 for r in filas if r["n"] > 0)
-            st.caption(f"Temas con al menos un registro: **{con_uso}** / {len(LISTA_TEMAS)}")
-            for r in filas:
-                pref = "●" if r["n"] > 0 else "○"
-                st.caption(f"{pref} **{r['n']}** — {r['tema']}")
+def mostrar_dudas_resueltas() -> None:
+    """Al pie del panel central: un solo contador con la suma de interacciones por modo."""
+    st.divider()
+    warn = st.session_state.get("_uso_stats_supabase_warn")
+    if warn:
+        st.caption(warn)
+    stats = uso_stats.obtener_estadisticas()
+    total = sum(int(stats.get(m, 0) or 0) for m in uso_stats.MODULOS)
+    st.metric("Dudas resueltas", total)
 
-        return st.session_state.get("modo_actual"), tema_seleccionado
 
 def mostrar_bienvenida():
-    """Muestra la presentación inicial solo cuando aún no se ha seleccionado un modo."""
-    st.title(APP_DISPLAY_NAME)
-
-    st.success(
-        "**Versión 5.0 — Apoyo gráfico en Entrenamiento:** al practicar **temas del temario que incluyen figura en el banco** "
-        "(p. ej. áreas entre curvas y otros temas habilitados), en el **paso intermedio** —después de acertar la estrategia— "
-        "verás un **gráfico interactivo (Plotly)** para **cotejar** límites y región con el planteamiento que obtuviste."
-    )
-
-    if os.path.isfile(INFOGRAFIA_BIENVENIDA):
-        st.image(
-            INFOGRAFIA_BIENVENIDA,
-            use_container_width=True,
-            caption=(
-                "Ruta técnica (Gemini, Streamlit, Python, GitHub, Supabase, informe PDF) "
-                "y ruta didáctica (modos de estudio, entrada por imagen, LaTeX)."
-            ),
-        )
+    """Pantalla inicial sin modo: logo y recordatorio breve."""
+    logo = _ruta_logo_sigma()
+    if logo:
+        st.image(logo, use_container_width=True)
     else:
-        st.caption("_No se encontró la infografía en `assets/infografia_asistente_v2.png`._")
+        st.warning(
+            "No se encontró el logo. Coloca **`LogoSigma.jpg`** (o `LogoSigma.png`) en la raíz del proyecto "
+            "o en la carpeta **`assets/`**."
+        )
 
-    st.markdown("""
-    <div style="background-color: #f0f2f6; padding: 25px; border-radius: 10px; border-left: 5px solid #00aeef; margin-bottom: 20px;">
-        <h4 style="margin-top: 0; color: #0066cc;">🏛️ Bienvenidos al Tutor Inteligente de la Cátedra</h4>
-        <p style="color: #0066cc;">Este ecosistema está diseñado para fortalecer el dominio de <strong>Cálculo Integral</strong> y <strong>Ecuaciones Diferenciales</strong> en tu formación como economista.</p>
-        <p style="color: #0066cc;"><strong>Modos de estudio:</strong></p>
-        <ul style="margin-bottom: 10px; color: #0066cc;">
-            <li><strong>a) Entrenamiento:</strong> Serie de ejercicios paso a paso (estrategia → hito → resultado). En temas seleccionados con apoyo en el banco, el hito incluye <strong>figura interactiva</strong> para validar tu planteamiento.</li>
-            <li><strong>b) Respuesta Guiada:</strong> Sube foto o texto de un ejercicio y el tutor te guía.</li>
-            <li><strong>c) Autoevaluación:</strong> Simulacro de parcial (Primer, Segundo o temas personalizados).</li>
-            <li><strong>d) Tutor Preguntas Abiertas:</strong> Chat sobre teoría y ejercicios de la cátedra.</li>
-            <li><strong>e) Corrección de Manuscritos:</strong> Sube tu resolución escrita; la app identifica el enunciado, valora tu solución (correcto / parcial / incorrecto) y sugiere ajustes.</li>
-        </ul>
-        <p style="color: #0066cc;">Dos pilares del curso: <strong>Cálculo Integral</strong> (métodos de integración, excedentes, áreas, volúmenes) y <strong>Ecuaciones Diferenciales</strong> (primer orden, orden superior, modelos económicos).</p>
-    </div>
-    
-    <p style="color: #0066cc;"><strong>🛠️ Recursos</strong></p>
-    <ul style="color: #0066cc;">
-        <li>Temario y banco alineados por tema; informe en PDF al terminar la autoevaluación.</li>
-        <li><strong>Gráficos en entrenamiento (temas preparados):</strong> visualización en el paso intermedio con Plotly.</li>
-        <li>Fórmulas (LaTeX) en preguntas, opciones y explicaciones. Ayuda en 📖 Ayuda / Modos (lateral).</li>
-    </ul>
-    <hr style="margin-top: 20px; margin-bottom: 20px;">
-    """, unsafe_allow_html=True)
-    
-    st.info("👆 **Elige un modo en el menú de la izquierda y pulsa *Iniciar* para comenzar.**")
+    st.info("👆 **Elige un modo en la cuadrícula de arriba para comenzar.**")

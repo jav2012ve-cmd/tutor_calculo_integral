@@ -1,7 +1,7 @@
 # modules/banco_muestras.py
 
 # ==============================================================================
-# BANCO DE ESTILOS REALES - MATEMÁTICAS III (ECONOMÍA UCAB)
+# BANCO DE ESTILOS REALES - CÁLCULO INTEGRAL
 # Fuente: Primeros y Segundos Parciales (2024-2026)
 # ==============================================================================
 
