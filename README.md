@@ -17,12 +17,16 @@ pip install -r requirements.txt
 
 La aplicación necesita `GOOGLE_API_KEY` para conectar con Gemini.
 
+**Importante:** no subas claves al repositorio. El archivo `.streamlit/secrets.toml` está en `.gitignore`. GitHub alertará si intentas versionar secretos; usa solo el panel **Secrets** en Streamlit Cloud o un `secrets.toml` local que no hagas `git add`.
+
 1. Obtén una clave en [Google AI Studio](https://aistudio.google.com/apikey).
-2. **Ejecución local:** crea la carpeta `.streamlit` y dentro el archivo `secrets.toml` con:
+2. **Ejecución local:** copia la plantilla y edítala:
+   - Copia `.streamlit/secrets.toml.example` → `.streamlit/secrets.toml`
+   - Pon tu clave en `GOOGLE_API_KEY` (y Supabase si lo usas).
    ```toml
    GOOGLE_API_KEY = "tu-clave-aqui"
    ```
-3. **Streamlit Cloud:** en tu app → Settings → Secrets, añade la variable `GOOGLE_API_KEY`.
+3. **Streamlit Cloud:** en tu app → Settings → Secrets, añade la variable `GOOGLE_API_KEY` (y las de Supabase si aplica).
 
 Sin esta clave, la app se detendrá y mostrará en pantalla las mismas instrucciones.
 

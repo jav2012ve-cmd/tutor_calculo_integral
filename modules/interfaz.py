@@ -205,6 +205,31 @@ def inyectar_estilo_matematico():
         div[data-testid="stSidebarNav"] {
             display: none !important;
         }
+
+        /* Tarjetas: st.container(border=True) — portal de registro y bloques similares */
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            border-radius: 14px !important;
+            border: 1px solid rgba(100, 116, 139, 0.38) !important;
+            box-shadow: 0 6px 22px rgba(15, 23, 42, 0.09);
+            background: linear-gradient(
+                165deg,
+                rgba(248, 250, 252, 0.94) 0%,
+                rgba(255, 255, 255, 0.99) 100%
+            );
+            padding: 0.4rem 0.75rem 1rem;
+            margin-bottom: 1.15rem;
+        }
+
+        [data-testid="stAppViewContainer"][data-theme="dark"] div[data-testid="stVerticalBlockBorderWrapper"],
+        .stApp[data-theme="dark"] div[data-testid="stVerticalBlockBorderWrapper"] {
+            background: linear-gradient(
+                165deg,
+                rgba(30, 41, 59, 0.72) 0%,
+                rgba(15, 23, 42, 0.58) 100%
+            );
+            border-color: rgba(148, 163, 184, 0.32) !important;
+            box-shadow: 0 8px 26px rgba(0, 0, 0, 0.38);
+        }
         </style>
         """,
         unsafe_allow_html=True,

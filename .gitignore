@@ -1,5 +1,9 @@
 # Secrets (no subir claves al repositorio)
 .streamlit/secrets.toml
+secrets.toml
+*.secrets.toml
+.env.local
+.env.*.local
 
 # Estadísticas de uso (anonimas, no versionar)
 data/uso_stats.json

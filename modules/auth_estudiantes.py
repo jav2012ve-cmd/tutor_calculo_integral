@@ -275,20 +275,50 @@ def render_formulario_registro(
 ) -> None:
     with st.form(f"form_registro_{key_prefix}"):
         st.caption("Datos del participante (estudiante universitario).")
-        nom = st.text_input("Nombre completo", key=f"{key_prefix}_reg_nombre", max_chars=200)
-        ced = st.text_input("Cédula o documento de identidad", key=f"{key_prefix}_reg_cedula", max_chars=40)
-        e2 = st.text_input("Correo electrónico", key=f"{key_prefix}_reg_email")
-        inst = st.text_input("Institución donde estudias", key=f"{key_prefix}_reg_institucion", max_chars=200)
-        hoy = date.today()
-        fn = st.date_input(
-            "Fecha de nacimiento",
-            value=hoy - timedelta(days=365 * 18),
-            min_value=hoy - timedelta(days=365 * 100),
-            max_value=hoy - timedelta(days=365 * 14),
-            key=f"{key_prefix}_reg_fn",
-        )
-        p2 = st.text_input("Contraseña (mín. 8 caracteres)", type="password", key=f"{key_prefix}_reg_pass")
-        p2b = st.text_input("Repite la contraseña", type="password", key=f"{key_prefix}_reg_pass2")
+        c1, c2 = st.columns(2)
+        with c1:
+            nom = st.text_input(
+                "Nombre completo",
+                key=f"{key_prefix}_reg_nombre",
+                max_chars=200,
+                placeholder="Ej. Ana María Pérez",
+            )
+            ced = st.text_input(
+                "Cédula o documento de identidad",
+                key=f"{key_prefix}_reg_cedula",
+                max_chars=40,
+                placeholder="Ej. V-12345678",
+            )
+            e2 = st.text_input(
+                "Correo electrónico",
+                key=f"{key_prefix}_reg_email",
+                placeholder="ejemplo@universidad.edu",
+            )
+        with c2:
+            inst = st.text_input(
+                "Institución donde estudias",
+                key=f"{key_prefix}_reg_institucion",
+                max_chars=200,
+                placeholder="Ej. UCAB / UCV / USB",
+            )
+            hoy = date.today()
+            fn = st.date_input(
+                "Fecha de nacimiento",
+                value=hoy - timedelta(days=365 * 18),
+                min_value=hoy - timedelta(days=365 * 100),
+                max_value=hoy - timedelta(days=365 * 14),
+                key=f"{key_prefix}_reg_fn",
+            )
+            p2 = st.text_input(
+                "Contraseña (mín. 8 caracteres)",
+                type="password",
+                key=f"{key_prefix}_reg_pass",
+            )
+            p2b = st.text_input(
+                "Repite la contraseña",
+                type="password",
+                key=f"{key_prefix}_reg_pass2",
+            )
         if st.form_submit_button("Registrarme", type="primary"):
             if p2 != p2b:
                 st.error("Las contraseñas no coinciden.")
@@ -304,6 +334,26 @@ def render_formulario_registro(
                     st.info("Cuenta creada. Usa **Iniciar sesión** con el mismo correo y contraseña.")
                 else:
                     st.error(msg)
+
+
+def _portal_tarjeta():
+    """Contenedor con borde tipo tarjeta (Streamlit >=1.29); si no existe el arg, usa container simple."""
+    try:
+        return st.container(border=True)
+    except TypeError:
+        return st.container()
+
+
+def _tarjeta_beneficios_registro() -> None:
+    st.markdown("##### ¿Por qué registrarte?")
+    st.markdown(
+        """
+        - Guarda tu progreso de estudio en la nube.
+        - Consulta tu continuidad en **Seguimos** con tu perfil.
+        - Mantén tus datos académicos organizados por institución.
+        """
+    )
+    st.caption("Solo almacenamos datos del participante y el hash de contraseña.")
 
 
 def render_portal_participante(
@@ -322,19 +372,29 @@ def render_portal_participante(
         )
         return
 
-    st.markdown("#### Registro de participante")
-    st.caption(
-        "Completa los datos: nombre completo, cédula, correo, institución, fecha de nacimiento y contraseña."
-    )
-    if tab_inicial == "login":
-        st.info("Si ya tienes cuenta, baja a **Iniciar sesión**.")
+    with _portal_tarjeta():
+        st.markdown("### Registro de nuevos estudiantes")
+        st.caption(
+            "Completa tus datos para crear tu cuenta y enlazar el progreso de estudio con tu perfil."
+        )
+        if tab_inicial == "login":
+            st.info("Si ya tienes cuenta, usa la tarjeta **Ya tengo cuenta** más abajo.")
 
-    st.markdown("##### Crear cuenta")
-    render_formulario_registro(key_prefix="portal_reg", on_session_ok=on_session_ok)
+        info_col, form_col = st.columns([1, 2])
+        with info_col:
+            _tarjeta_beneficios_registro()
+            st.markdown("##### Pasos")
+            st.caption("1) Completa el formulario.")
+            st.caption("2) Pulsa **Registrarme**.")
+            st.caption("3) Entrarás automáticamente al panel.")
+        with form_col:
+            st.markdown("#### Crear cuenta")
+            render_formulario_registro(key_prefix="portal_reg", on_session_ok=on_session_ok)
 
-    st.divider()
-    st.markdown("##### Iniciar sesión")
-    render_formulario_login(key_prefix="portal_log", on_session_ok=on_session_ok)
+    with _portal_tarjeta():
+        st.markdown("#### Ya tengo cuenta")
+        st.caption("Ingresa con tu correo y contraseña para continuar.")
+        render_formulario_login(key_prefix="portal_log", on_session_ok=on_session_ok)
 
 
 def _navegar_a_portal_seguimos(portal_tab: str) -> None:

@@ -108,7 +108,8 @@ def _render_portal_seguimos() -> None:
     if tab_ini not in ("registro", "login"):
         tab_ini = "registro"
     st.success(
-        "Rellena el formulario **Crear cuenta** (arriba). Si ya tienes cuenta, usa **Iniciar sesión** (debajo)."
+        "Bienvenido al portal de estudiantes. Primero crea tu cuenta; "
+        "si ya la tienes, inicia sesión en la sección inferior."
     )
     auth_estudiantes.render_portal_participante(
         tab_inicial=tab_ini,
