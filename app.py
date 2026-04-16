@@ -9,13 +9,6 @@ from typing import Any, List, Optional, Union
 import streamlit as st
 from PIL import Image
 
-import streamlit as st
-import os
-
-st.write("¿Dónde estoy parado?:", os.getcwd())
-st.write("¿Veo la carpeta .streamlit?:", os.path.exists(".streamlit"))
-st.write("¿Qué hay en st.secrets?:", st.secrets.to_dict().keys())
-
 # Asegura que la carpeta `modules/` esté en `sys.path` aunque Streamlit Cloud
 # ejecute desde una ubicación distinta (o "App location" no sea la raíz del repo).
 HERE = os.path.abspath(os.path.dirname(__file__))
