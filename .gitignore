@@ -1,0 +1,22 @@
+# Secrets (no subir claves al repositorio)
+.streamlit/secrets.toml
+secrets.toml
+*.secrets.toml
+.env.local
+.env.*.local
+
+# Estadísticas de uso (anonimas, no versionar)
+data/uso_stats.json
+data/usage_events.jsonl
+data/topic_usage.json
+
+# Registro local de consultas al tutor (puede contener datos sensibles)
+interacciones_tutor.csv
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
