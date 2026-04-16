@@ -116,6 +116,91 @@ def _credenciales_supabase() -> tuple[Optional[str], Optional[str]]:
     return None, None
 
 
+def diagnostico_supabase() -> dict[str, Any]:
+    """
+    Diagnóstico seguro (sin exponer secretos): indica si se detectó URL/KEY y desde dónde.
+    Útil para depurar Streamlit Cloud Secrets (TOML vs nombres de variables).
+    """
+    diag: dict[str, Any] = {
+        "ok": False,
+        "url_presente": False,
+        "key_presente": False,
+        "fuente": None,  # "secrets_plano" | "secrets_supabase" | "env" | None
+        "nombre_key": None,  # "SUPABASE_SERVICE_ROLE_KEY" | "SUPABASE_KEY" | "service_role_key" | None
+        "url_host": None,
+    }
+
+    # 1) Streamlit secrets
+    try:
+        import streamlit as st
+
+        sec = st.secrets
+        sec_get = getattr(sec, "get", None)
+        u1 = _str_credencial(sec_get("SUPABASE_URL")) if callable(sec_get) else None
+        k1 = None
+        if callable(sec_get):
+            for cand in ("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY", "service_role_key"):
+                k1 = _str_credencial(sec_get(cand))
+                if k1:
+                    diag["nombre_key"] = cand
+                    break
+        if u1 or k1:
+            diag["fuente"] = "secrets_plano"
+            diag["url_presente"] = bool(u1)
+            diag["key_presente"] = bool(k1)
+
+        sub = sec_get("supabase") if callable(sec_get) else None
+        sub_get = getattr(sub, "get", None)
+        u2 = _str_credencial(sub_get("SUPABASE_URL")) if callable(sub_get) else None
+        if not u2 and callable(sub_get):
+            u2 = _str_credencial(sub_get("url"))
+        k2 = None
+        if callable(sub_get):
+            for cand in ("SUPABASE_SERVICE_ROLE_KEY", "SUPABASE_KEY", "service_role_key"):
+                k2 = _str_credencial(sub_get(cand))
+                if k2:
+                    diag["nombre_key"] = cand
+                    break
+        if u2 or k2:
+            diag["fuente"] = "secrets_supabase"
+            diag["url_presente"] = bool(u2)
+            diag["key_presente"] = bool(k2)
+
+        u = u2 or u1
+        k = k2 or k1
+        if u:
+            # Extrae host sin librerías extra; no incluye tokens.
+            try:
+                host = str(u).split("://", 1)[-1].split("/", 1)[0]
+                diag["url_host"] = host[:120]
+            except Exception:
+                pass
+        if u and k:
+            diag["ok"] = True
+            return diag
+    except Exception:
+        pass
+
+    # 2) Environment
+    uenv = _str_credencial(os.environ.get("SUPABASE_URL"))
+    kenv = _str_credencial(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")) or _str_credencial(
+        os.environ.get("SUPABASE_KEY")
+    )
+    if uenv or kenv:
+        diag["fuente"] = "env"
+        diag["url_presente"] = bool(uenv)
+        diag["key_presente"] = bool(kenv)
+        if uenv:
+            try:
+                host = str(uenv).split("://", 1)[-1].split("/", 1)[0]
+                diag["url_host"] = host[:120]
+            except Exception:
+                pass
+        if uenv and kenv:
+            diag["ok"] = True
+    return diag
+
+
 def _headers_rest(api_key: str) -> dict[str, str]:
     return {
         "apikey": api_key,

@@ -59,6 +59,22 @@ def _ir_panel_seguimos() -> None:
 def _render_entrada_seguimos() -> None:
     if not _supabase_configurado():
         st.caption("No hay Supabase configurado: puedes usar solo un nombre para esta sesión en el panel.")
+        with st.expander("Diagnóstico de Supabase (no muestra claves)", expanded=False):
+            d = uso_stats.diagnostico_supabase()
+            st.write(
+                {
+                    "ok": bool(d.get("ok")),
+                    "fuente": d.get("fuente"),
+                    "url_presente": bool(d.get("url_presente")),
+                    "key_presente": bool(d.get("key_presente")),
+                    "nombre_key_detectado": d.get("nombre_key"),
+                    "url_host": d.get("url_host"),
+                }
+            )
+            st.caption(
+                "En Streamlit Cloud → Settings → Secrets debes definir `SUPABASE_URL` y "
+                "`SUPABASE_SERVICE_ROLE_KEY` (service_role), guardar y reiniciar la app."
+            )
         if st.button("Continuar al panel (solo esta sesión)", type="primary", use_container_width=True):
             _ir_panel_seguimos()
             st.rerun()
