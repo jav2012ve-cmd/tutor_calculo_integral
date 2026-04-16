@@ -89,7 +89,10 @@ def _credenciales_desde_mapping(m: Any) -> tuple[Optional[str], Optional[str]]:
 def _credenciales_supabase() -> tuple[Optional[str], Optional[str]]:
     """
     Prioridad: st.secrets (Cloud / .streamlit/secrets.toml), luego variables de entorno.
-    Acepta claves planas o sección TOML [supabase] con url / service_role_key.
+    Acepta:
+    - Claves planas: SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY
+    - Sección TOML [supabase] con url / service_role_key
+    - Streamlit Connections: [connections.supabase] con url/key o SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY
     """
     try:
         import streamlit as st
@@ -102,6 +105,22 @@ def _credenciales_supabase() -> tuple[Optional[str], Optional[str]]:
             u2, k2 = _credenciales_desde_mapping(sub)
             u = u or u2
             k = k or k2
+        if not u or not k:
+            sec_get = getattr(sec, "get", None)
+            conns = sec_get("connections") if callable(sec_get) else None
+            conns_get = getattr(conns, "get", None)
+            sb = conns_get("supabase") if callable(conns_get) else None
+            sb_get = getattr(sb, "get", None)
+            if callable(sb_get):
+                u3 = _str_credencial(sb_get("SUPABASE_URL")) or _str_credencial(sb_get("url"))
+                k3 = (
+                    _str_credencial(sb_get("SUPABASE_SERVICE_ROLE_KEY"))
+                    or _str_credencial(sb_get("service_role_key"))
+                    or _str_credencial(sb_get("SUPABASE_KEY"))
+                    or _str_credencial(sb_get("key"))
+                )
+                u = u or u3
+                k = k or k3
         if u and k:
             return u, k
     except Exception:
@@ -125,7 +144,7 @@ def diagnostico_supabase() -> dict[str, Any]:
         "ok": False,
         "url_presente": False,
         "key_presente": False,
-        "fuente": None,  # "secrets_plano" | "secrets_supabase" | "env" | None
+        "fuente": None,  # "secrets_plano" | "secrets_supabase" | "secrets_connections" | "env" | None
         "nombre_key": None,  # "SUPABASE_SERVICE_ROLE_KEY" | "SUPABASE_KEY" | "service_role_key" | None
         "url_host": None,
     }
@@ -168,6 +187,31 @@ def diagnostico_supabase() -> dict[str, Any]:
 
         u = u2 or u1
         k = k2 or k1
+        if not u or not k:
+            conns = sec_get("connections") if callable(sec_get) else None
+            conns_get = getattr(conns, "get", None)
+            sb = conns_get("supabase") if callable(conns_get) else None
+            sb_get = getattr(sb, "get", None)
+            u3 = None
+            k3 = None
+            if callable(sb_get):
+                u3 = _str_credencial(sb_get("SUPABASE_URL")) or _str_credencial(sb_get("url"))
+                for cand in (
+                    "SUPABASE_SERVICE_ROLE_KEY",
+                    "service_role_key",
+                    "SUPABASE_KEY",
+                    "key",
+                ):
+                    k3 = _str_credencial(sb_get(cand))
+                    if k3:
+                        diag["nombre_key"] = cand
+                        break
+            if u3 or k3:
+                diag["fuente"] = "secrets_connections"
+                diag["url_presente"] = bool(u3)
+                diag["key_presente"] = bool(k3)
+            u = u or u3
+            k = k or k3
         if u:
             # Extrae host sin librerías extra; no incluye tokens.
             try:
