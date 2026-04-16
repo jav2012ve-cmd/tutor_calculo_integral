@@ -63,32 +63,56 @@ def _ruta_topic_archivo() -> str:
     return os.path.join(carpeta, "topic_usage.json")
 
 
-def _credenciales_supabase() -> tuple[Optional[str], Optional[str]]:
-    url = os.environ.get("SUPABASE_URL")
-    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get(
-        "SUPABASE_KEY"
+def _str_credencial(val: Any) -> Optional[str]:
+    if val is None:
+        return None
+    s = str(val).strip()
+    return s if s else None
+
+
+def _credenciales_desde_mapping(m: Any) -> tuple[Optional[str], Optional[str]]:
+    """Lee URL y clave desde un dict-like (p. ej. st.secrets o sección [supabase])."""
+    if m is None:
+        return None, None
+    get = getattr(m, "get", None)
+    if not callable(get):
+        return None, None
+    u = _str_credencial(get("SUPABASE_URL")) or _str_credencial(get("url"))
+    k = (
+        _str_credencial(get("SUPABASE_SERVICE_ROLE_KEY"))
+        or _str_credencial(get("SUPABASE_KEY"))
+        or _str_credencial(get("service_role_key"))
     )
-    if url and key:
-        return url.strip(), key.strip()
+    return u, k
+
+
+def _credenciales_supabase() -> tuple[Optional[str], Optional[str]]:
+    """
+    Prioridad: st.secrets (Cloud / .streamlit/secrets.toml), luego variables de entorno.
+    Acepta claves planas o sección TOML [supabase] con url / service_role_key.
+    """
     try:
         import streamlit as st
 
         sec = st.secrets
-        u = str(sec["SUPABASE_URL"]).strip()
-        k = None
-        try:
-            k = str(sec["SUPABASE_SERVICE_ROLE_KEY"]).strip()
-        except (KeyError, TypeError):
-            pass
-        if not k:
-            try:
-                k = str(sec["SUPABASE_KEY"]).strip()
-            except (KeyError, TypeError):
-                pass
+        u, k = _credenciales_desde_mapping(sec)
+        if not u or not k:
+            sec_get = getattr(sec, "get", None)
+            sub = sec_get("supabase") if callable(sec_get) else None
+            u2, k2 = _credenciales_desde_mapping(sub)
+            u = u or u2
+            k = k or k2
         if u and k:
             return u, k
     except Exception:
         pass
+
+    url = _str_credencial(os.environ.get("SUPABASE_URL"))
+    key = _str_credencial(os.environ.get("SUPABASE_SERVICE_ROLE_KEY")) or _str_credencial(
+        os.environ.get("SUPABASE_KEY")
+    )
+    if url and key:
+        return url, key
     return None, None
 
 

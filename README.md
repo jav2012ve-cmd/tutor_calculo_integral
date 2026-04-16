@@ -47,6 +47,8 @@ En la nube el disco del contenedor es **efímero**: los contadores en `data/uso_
 
    También puedes usar la variable de entorno `SUPABASE_SERVICE_ROLE_KEY` o, por compatibilidad, `SUPABASE_KEY` con el mismo valor de service role.
 
+Sin `SUPABASE_URL` y clave service role, **el registro e inicio de sesión de participantes** (portada y modo Seguimos) permanecen desactivados aunque Gemini esté bien configurado.
+
 Si no configuras Supabase, la app sigue funcionando y guardará contadores solo en archivo local (`data/uso_stats.json`). Los detalles de interacción, si no llegan a Supabase, se pueden volcar en `data/usage_events.jsonl` (local). Los conteos por tema van a `data/topic_usage.json` si falla la nube.
 
 **Tabla `app_topic_usage`:** una **fila por tema** del temario (`topic_key`, `count`). Así se ve qué temas acumulan estudio y cuáles siguen en 0, sin crear decenas de columnas fijas en SQL (si cambia `LISTA_TEMAS`, actualiza `supabase_topic_usage_seed.sql` y vuelve a ejecutar solo los `INSERT` nuevos). La app incrementa vía RPC `increment_topic_usage_batch` cuando hay `detalle` con temas (entrenamiento, quiz, respuesta guiada, tutor, manuscritos).

@@ -367,8 +367,8 @@ def render_portal_participante(
     """
     if not _supabase_ok():
         st.caption(
-            "💡 **Registro en base de datos:** configura `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` "
-            "en secrets y ejecuta `supabase_estudiantes.sql` en el SQL Editor."
+            "💡 **Registro en base de datos:** en **Secrets** (TOML), `SUPABASE_URL` y "
+            "`SUPABASE_SERVICE_ROLE_KEY`; guarda, reinicia la app y ejecuta `supabase_estudiantes.sql`."
         )
         return
 
@@ -410,8 +410,9 @@ def render_barra_sesion_compacta() -> None:
     """En una vista de modo: sesión o acceso visible a registro / login en Seguimos."""
     if not _supabase_ok():
         st.info(
-            "💡 **Cuenta de participante:** configura `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` "
-            "en secrets para activar el registro."
+            "💡 **Cuenta de participante:** en **Secrets** (TOML), define `SUPABASE_URL` y "
+            "`SUPABASE_SERVICE_ROLE_KEY` (API de Supabase), guarda y **reinicia la app**. "
+            "Ejecuta `supabase_estudiantes.sql` en el SQL Editor si aún no creaste la tabla."
         )
         return
     if sesion_activa():
@@ -441,8 +442,8 @@ def render_panel_auth() -> None:
     """Bloque superior en la portada: registro / login o resumen de sesión."""
     if not _supabase_ok():
         st.caption(
-            "💡 **Registro en base de datos:** configura `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` "
-            "en secrets y ejecuta `supabase_estudiantes.sql` en el SQL Editor."
+            "💡 **Registro en base de datos:** en **Secrets** (TOML), `SUPABASE_URL` y "
+            "`SUPABASE_SERVICE_ROLE_KEY`; guarda, reinicia la app y ejecuta `supabase_estudiantes.sql`."
         )
         return
 
