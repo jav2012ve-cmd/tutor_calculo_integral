@@ -321,8 +321,8 @@ def mostrar_portada_selector_modos() -> None:
 
 
 def _mostrar_imagen_modo_compacta(path_img: str) -> None:
-    """Muestra la imagen del modo centrada ocupando ~20 % del ancho (proporción 4 : 2 : 4 → 2/10)."""
-    _, c_img, _ = st.columns([4, 2, 4])
+    """Muestra la imagen del modo en la primera celda de una fila 1×2."""
+    c_img, _ = st.columns([1, 3])
     with c_img:
         st.image(path_img, use_container_width=True)
 
@@ -342,14 +342,18 @@ def mostrar_cabecera_pagina_modo() -> Optional[str]:
         st.rerun()
 
     img_modo = _imagen_por_modo(modo)
-    if img_modo:
-        _mostrar_imagen_modo_compacta(img_modo)
-    else:
-        st.caption("Imagen del modo no encontrada")
-
     etiq, ayuda = meta_modo(modo)
-    st.markdown(f"### {etiq}")
-    st.caption(ayuda)
+
+    c_img, c_txt = st.columns([1, 3], vertical_alignment="center")
+    with c_img:
+        if img_modo:
+            st.image(img_modo, use_container_width=True)
+        else:
+            st.caption("Imagen del modo no encontrada")
+    with c_txt:
+        st.markdown(f"### {etiq}")
+        if ayuda:
+            st.caption(ayuda)
 
     tema_seleccionado: Optional[str] = None
     if modo == "a) Entrenamiento (Temario)":
