@@ -725,7 +725,7 @@ if "manuscrito_correccion" not in st.session_state: st.session_state.manuscrito_
 st.title(interfaz.APP_DISPLAY_NAME)
 _modo = st.session_state.get("modo_actual")
 if not _modo:
-    auth_estudiantes.render_panel_auth()
+    st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Seguimos**.")
     interfaz.mostrar_portada_selector_modos()
     interfaz.mostrar_bienvenida()
     ruta = None
