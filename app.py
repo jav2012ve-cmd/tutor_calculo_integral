@@ -4,6 +4,7 @@ import os
 import re
 import sys
 import time
+import base64
 from typing import Any, List, Optional, Union
 
 import streamlit as st
@@ -47,6 +48,68 @@ AVISO_HISTORIAL_LARGO = 20  # si hay más mensajes, mostrar aviso
 # --- 1. CONFIGURACIÓN INICIAL ---
 interfaz.configurar_pagina()
 interfaz.inyectar_estilo_matematico()
+
+def _decodificar_claims_jwt_sin_verificar(token: str) -> Optional[dict]:
+    """
+    Decodifica el payload de un JWT (sin verificar firma) para diagnóstico.
+    Devuelve dict o None si no puede parsear.
+    """
+    try:
+        parts = (token or "").strip().split(".")
+        if len(parts) < 2:
+            return None
+        payload_b64 = parts[1]
+        # base64url sin padding
+        payload_b64 += "=" * (-len(payload_b64) % 4)
+        raw = base64.urlsafe_b64decode(payload_b64.encode("ascii"))
+        data = json.loads(raw.decode("utf-8", errors="ignore"))
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def _inyectar_supabase_desde_connections() -> None:
+    """
+    Compatibilidad con Streamlit Secrets usando [connections.supabase].
+    Exporta a variables de entorno para que los módulos existentes lo detecten.
+    """
+    try:
+        sec = st.secrets
+        sec_get = getattr(sec, "get", None)
+        if not callable(sec_get):
+            return
+        conns = sec_get("connections") or {}
+        conns_get = getattr(conns, "get", None)
+        if not callable(conns_get):
+            return
+        sb = conns_get("supabase") or {}
+        sb_get = getattr(sb, "get", None)
+        if not callable(sb_get):
+            return
+
+        url = (sb_get("SUPABASE_URL") or sb_get("url") or "").strip()
+        key = (
+            (sb_get("SUPABASE_SERVICE_ROLE_KEY") or sb_get("service_role_key") or sb_get("key") or "").strip()
+        )
+        if url and not os.environ.get("SUPABASE_URL"):
+            os.environ["SUPABASE_URL"] = url
+        if key and not os.environ.get("SUPABASE_SERVICE_ROLE_KEY") and not os.environ.get("SUPABASE_KEY"):
+            os.environ["SUPABASE_SERVICE_ROLE_KEY"] = key
+
+        # Aviso si parece ser anon (muy común cuando copian el key equivocado)
+        if key:
+            claims = _decodificar_claims_jwt_sin_verificar(key)
+            if claims and claims.get("role") == "anon":
+                st.warning(
+                    "⚠️ Detecté que la clave de Supabase parece ser `anon` (role=anon). "
+                    "Para **registro/login** necesitas la clave **service_role** "
+                    "(Supabase → Project Settings → API → service_role)."
+                )
+    except Exception:
+        return
+
+
+_inyectar_supabase_desde_connections()
 
 if not ia_core.configurar_gemini():
     st.stop()
