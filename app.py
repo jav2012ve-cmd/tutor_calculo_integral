@@ -722,14 +722,21 @@ if "historial_tutor_abierto" not in st.session_state: st.session_state.historial
 if "manuscrito_correccion" not in st.session_state: st.session_state.manuscrito_correccion = None
 
 # --- 3. INTERFAZ PRINCIPAL ---
-st.title(interfaz.APP_DISPLAY_NAME)
 _modo = st.session_state.get("modo_actual")
 if not _modo:
+    st.title(interfaz.APP_DISPLAY_NAME)
     st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Seguimos**.")
     interfaz.mostrar_portada_selector_modos()
     interfaz.mostrar_bienvenida()
     ruta = None
 else:
+    c_img, c_tit = st.columns([1, 4], vertical_alignment="center")
+    with c_img:
+        img = interfaz.ruta_imagen_modo(_modo)
+        if img:
+            st.image(img, use_container_width=True)
+    with c_tit:
+        st.title(interfaz.APP_DISPLAY_NAME)
     auth_estudiantes.render_barra_sesion_compacta()
     interfaz.mostrar_cabecera_pagina_modo()
     ruta = _modo

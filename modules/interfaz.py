@@ -80,6 +80,11 @@ def _imagen_por_modo(modo_id: str) -> Optional[str]:
     return mapping.get(modo_id)
 
 
+def ruta_imagen_modo(modo_id: str) -> Optional[str]:
+    """Ruta del botón/imagen asociada a un modo (si existe)."""
+    return _imagen_por_modo(modo_id)
+
+
 def _recorte_vertical_superior(
     path_img: str, fraccion_altura: float = 0.40
 ) -> Optional[Image.Image]:
@@ -329,8 +334,8 @@ def _mostrar_imagen_modo_compacta(path_img: str) -> None:
 
 def mostrar_cabecera_pagina_modo() -> Optional[str]:
     """
-    Cabecera de la «página» del modo activo: volver, imagen del botón (~20 % de ancho, centrada),
-    título y (si aplica) temario.
+    Cabecera de la «página» del modo activo: volver, título y (si aplica) temario.
+    La imagen del modo se muestra junto al título principal de la app.
     Devuelve el tema seleccionado solo en modo entrenamiento; en otros modos, None.
     """
     modo = st.session_state.get("modo_actual")
@@ -341,19 +346,10 @@ def mostrar_cabecera_pagina_modo() -> Optional[str]:
         _limpiar_estado_volver_inicio()
         st.rerun()
 
-    img_modo = _imagen_por_modo(modo)
     etiq, ayuda = meta_modo(modo)
-
-    c_img, c_txt = st.columns([1, 3], vertical_alignment="center")
-    with c_img:
-        if img_modo:
-            st.image(img_modo, use_container_width=True)
-        else:
-            st.caption("Imagen del modo no encontrada")
-    with c_txt:
-        st.markdown(f"### {etiq}")
-        if ayuda:
-            st.caption(ayuda)
+    st.markdown(f"### {etiq}")
+    if ayuda:
+        st.caption(ayuda)
 
     tema_seleccionado: Optional[str] = None
     if modo == "a) Entrenamiento (Temario)":
