@@ -309,6 +309,18 @@ def ruta_imagen_modo(modo_id: str) -> Optional[str]:
     return _imagen_por_modo(modo_id)
 
 
+def preview_imagen_modo_recorte_superior(
+    modo_id: str,
+    *,
+    fraccion_altura: float = 0.15,
+) -> Optional[Image.Image]:
+    """Franja superior del arte del modo (misma fuente que la portada), p. ej. 15% del alto."""
+    path = _imagen_por_modo(modo_id)
+    if not path:
+        return None
+    return _recorte_vertical_superior(path, fraccion_altura=fraccion_altura)
+
+
 def _recorte_vertical_superior(
     path_img: str, fraccion_altura: float = 0.40
 ) -> Optional[Image.Image]:

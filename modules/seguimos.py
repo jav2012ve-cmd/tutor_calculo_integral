@@ -56,14 +56,32 @@ def _navegar_a_modo_desde_seguimos(modo_id: str) -> None:
 def _render_botones_acceso_rapido_modos() -> None:
     if not auth_estudiantes.sesion_activa():
         return
+    from modules import interfaz as _ix
+
     st.markdown("##### Acceso rápido a los modos de estudio")
     for fila_ini in range(0, len(_ACCESO_RAPIDO_MODOS), 3):
         chunk = _ACCESO_RAPIDO_MODOS[fila_ini : fila_ini + 3]
         cols = st.columns(len(chunk))
         for j, (mid, etiqueta) in enumerate(chunk):
             with cols[j]:
-                if st.button(etiqueta, key=f"seguimos_quick_{fila_ini}_{j}", use_container_width=True):
+                _, ayuda = _ix.meta_modo(mid)
+                if st.button(
+                    etiqueta,
+                    key=f"seguimos_quick_{fila_ini}_{j}",
+                    use_container_width=True,
+                    type="secondary",
+                    help=ayuda or None,
+                ):
                     _navegar_a_modo_desde_seguimos(mid)
+                img_crop = _ix.preview_imagen_modo_recorte_superior(mid, fraccion_altura=0.15)
+                if img_crop is not None:
+                    st.image(img_crop, use_container_width=True)
+                else:
+                    ruta = _ix.ruta_imagen_modo(mid)
+                    if ruta:
+                        st.image(ruta, use_container_width=True)
+                    else:
+                        st.caption("Sin imagen")
 
 
 def _render_tab_record_comparativa() -> None:
