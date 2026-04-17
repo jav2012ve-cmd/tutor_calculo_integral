@@ -433,6 +433,17 @@ def _tarjeta_beneficios_registro() -> None:
     st.caption("Únete a la élite que estudia con inteligencia de datos.")
 
 
+def _tarjeta_pasos_registro() -> None:
+    st.markdown("##### Pasos")
+    st.markdown(
+        """
+        1. Completa el formulario.
+        2. Pulsa **Registrarme**.
+        3. Entrarás automáticamente al panel.
+        """
+    )
+
+
 _PLANES_MATRIZ_FALLBACK: dict[str, dict[str, Any]] = {
     "UNEXPO": {
         "enfoque": "Formación tecnológica aplicada a ingeniería y ciencias exactas.",
@@ -712,11 +723,14 @@ def render_portal_participante(
         st.caption(
             "Completa tus datos para crear tu cuenta y enlazar el progreso de estudio con tu perfil."
         )
-        _tarjeta_beneficios_registro()
-        st.markdown("##### Pasos")
-        st.caption("1) Completa el formulario.")
-        st.caption("2) Pulsa **Registrarme**.")
-        st.caption("3) Entrarás automáticamente al panel.")
+        try:
+            col_ventaja, col_pasos = st.columns(2, gap="large")
+        except TypeError:
+            col_ventaja, col_pasos = st.columns(2)
+        with col_ventaja:
+            _tarjeta_beneficios_registro()
+        with col_pasos:
+            _tarjeta_pasos_registro()
 
         st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
         render_matriz_universidades(key_prefix_registro="portal_reg")
