@@ -438,15 +438,6 @@ def _render_portal_seguimos() -> None:
         )
         return
 
-    if tab_ini == "login":
-        st.info(
-            "Introduce **correo** y **contraseña**. Si aún no tienes cuenta, pulsa **Regístrate** arriba."
-        )
-    else:
-        st.success(
-            "Completa el formulario para **crear tu cuenta**. Al finalizar, "
-            "te llevaremos automáticamente a **Iniciar sesión**."
-        )
     auth_estudiantes.render_portal_participante(
         tab_inicial=tab_ini,
         on_session_ok=_ir_panel_seguimos,

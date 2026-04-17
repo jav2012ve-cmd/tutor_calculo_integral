@@ -331,9 +331,8 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
     (
         (
             seguimos.MODO_ID,
-            "Seguimos adelante",
-            "Con tu cuenta revisas prioridades del temario, cobertura del curso y enlaces a practicar, "
-            "consultas guiadas, simulacro, tutor abierto y corrección de manuscritos.",
+            "Seguimos",
+            "",
         ),
         (
             "a) Entrenamiento (Temario)",
@@ -591,9 +590,14 @@ def mostrar_cabecera_pagina_modo() -> Optional[str]:
             st.rerun()
 
     etiq, ayuda = meta_modo(modo)
-    st.markdown(f"### {etiq}")
-    if ayuda:
-        st.caption(ayuda)
+    # En el portal de cuenta el contenido ya trae sus propios títulos; evita duplicar encabezado.
+    if not (
+        modo == seguimos.MODO_ID
+        and st.session_state.get("seguimos_paso") == seguimos.SEGUIMOS_PASO_PORTAL
+    ):
+        st.markdown(f"### {etiq}")
+        if ayuda:
+            st.caption(ayuda)
 
     tema_seleccionado: Optional[str] = None
     if modo == "a) Entrenamiento (Temario)":
