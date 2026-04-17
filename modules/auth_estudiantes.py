@@ -333,7 +333,7 @@ def render_formulario_registro(
                 "Institución donde estudias",
                 key=f"{key_prefix}_reg_institucion",
                 max_chars=200,
-                placeholder="Ej. UCAB / UCV / USB",
+                placeholder="Ej. UCV / USB / UNIMET",
             )
             clave_univ = contexto_universitario.clave_malla_desde_institucion(inst)
             if clave_univ in interfaz.MAPA_ESTILOS_INSTITUCIONALES:
@@ -425,7 +425,7 @@ def _tarjeta_beneficios_registro() -> None:
     st.markdown("##### 🚀 Activa tu Ventaja Estratégica")
     st.markdown(
         """
-        - 🎯 **Precisión Institucional:** IA entrenada con los parciales y la bibliografía de tu facultad (UCV, USB, UCAB...).
+        - 🎯 **Precisión Institucional:** IA entrenada con los parciales y la bibliografía de tu universidad (UCV, USB, UNIMET, ULA, LUZ, UC, UNEXPO, UCLA y Monteávila).
         - 🔥 **Mapa de Calor Personalizado:** Identifica exactamente en qué temas vas a fallar antes del examen real.
         - 🔄 **Sincronización Total:** Tu progreso, dudas y simulacros disponibles en cualquier dispositivo.
         """
