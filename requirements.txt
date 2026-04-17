@@ -7,5 +7,6 @@ bcrypt>=4.1.0
 
 # Apoyo gráfico (entrenamiento, clave `grafico` en banco)
 numpy>=1.24
+pandas>=2.0
 plotly>=5.18
 sympy>=1.12

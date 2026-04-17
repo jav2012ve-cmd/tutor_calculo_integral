@@ -41,6 +41,8 @@ STATS_TEMA_NO_ESPECIFICADO = "(No especificado)"
 _TABLE_NAME = "app_module_usage"
 _TABLE_TOPIC = "app_topic_usage"
 _TABLE_USAGE_EVENT = "app_usage_event"
+_TABLE_IA_LOGS = "ia_logs"
+_TABLE_ESTUDIANTE = "app_estudiante"
 _RPC_INCREMENT = "increment_module_usage"
 _RPC_INSERT_EVENT = "insert_usage_event"
 _RPC_TOPICS_BATCH = "increment_topic_usage_batch"
@@ -807,3 +809,69 @@ def obtener_comparativa_practica_estudiante(
         "muestra_eventos_truncada": truncado,
         "limite_muestra_eventos": lim,
     }
+
+
+def _get_json_rows(endpoint: str, timeout: int = _TIMEOUT_SEC) -> list[dict[str, Any]]:
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return []
+    try:
+        r = requests.get(endpoint, headers=_headers_rest(key), timeout=timeout)
+        if r.status_code != 200:
+            return []
+        data = r.json()
+        return data if isinstance(data, list) else []
+    except (requests.RequestException, ValueError, TypeError):
+        return []
+
+
+def obtener_todos_los_logs_ia(limit: int = 8000) -> list[dict[str, Any]]:
+    """
+    Filas recientes de ``public.ia_logs`` (pregunta/respuesta/modelo y ``estudiante_id``).
+    Requiere Supabase con service_role y permisos SELECT (ver ``supabase_ia_logs.sql``).
+    """
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return []
+    lim = max(50, min(int(limit), 50_000))
+    base = url.rstrip("/")
+    endpoint = (
+        f"{base}/rest/v1/{_TABLE_IA_LOGS}"
+        f"?select=id,created_at,estudiante_id,pregunta,respuesta,modelo"
+        f"&order=created_at.desc&limit={lim}"
+    )
+    return _get_json_rows(endpoint, key)
+
+
+def obtener_todos_los_eventos_uso(limit: int = 15000) -> list[dict[str, Any]]:
+    """
+    Filas recientes de ``public.app_usage_event`` (modo, payload, estudiante_id, fecha).
+    """
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return []
+    lim = max(100, min(int(limit), 50_000))
+    base = url.rstrip("/")
+    endpoint = (
+        f"{base}/rest/v1/{_TABLE_USAGE_EVENT}"
+        f"?select=id,created_at,modo,payload,estudiante_id"
+        f"&order=created_at.desc&limit={lim}"
+    )
+    return _get_json_rows(endpoint, key)
+
+
+def obtener_estudiantes_resumen_admin(limit: int = 8000) -> list[dict[str, Any]]:
+    """
+    Participantes registrados (id, institución, nombre, correo) para cruzar con logs.
+    """
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return []
+    lim = max(50, min(int(limit), 50_000))
+    base = url.rstrip("/")
+    endpoint = (
+        f"{base}/rest/v1/{_TABLE_ESTUDIANTE}"
+        f"?select=id,institucion,nombre,email,created_at"
+        f"&order=created_at.desc&limit={lim}"
+    )
+    return _get_json_rows(endpoint, key)
