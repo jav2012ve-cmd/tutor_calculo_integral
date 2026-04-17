@@ -16,8 +16,10 @@ from __future__ import annotations
 
 import json
 import os
+import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Optional
+from uuid import UUID
 
 import requests
 
@@ -36,6 +38,7 @@ STATS_TEMA_NO_ESPECIFICADO = "(No especificado)"
 
 _TABLE_NAME = "app_module_usage"
 _TABLE_TOPIC = "app_topic_usage"
+_TABLE_USAGE_EVENT = "app_usage_event"
 _RPC_INCREMENT = "increment_module_usage"
 _RPC_INSERT_EVENT = "insert_usage_event"
 _RPC_TOPICS_BATCH = "increment_topic_usage_batch"
@@ -440,6 +443,21 @@ def _increment_topics_local(topics: list[str]) -> None:
         pass
 
 
+def _obtener_estudiante_id_sesion_para_evento() -> Optional[str]:
+    """UUID del participante autenticado para asociar eventos (opcional)."""
+    try:
+        import streamlit as st
+
+        sid = st.session_state.get("auth_estudiante_id")
+        if not sid:
+            return None
+        s = str(sid).strip()
+        UUID(s)
+        return s
+    except Exception:
+        return None
+
+
 def _insert_event_supabase(modulo: str, payload: dict[str, Any]) -> tuple[bool, Optional[str]]:
     url, key = _credenciales_supabase()
     if not url or not key:
@@ -447,11 +465,15 @@ def _insert_event_supabase(modulo: str, payload: dict[str, Any]) -> tuple[bool, 
     base = url.rstrip("/")
     endpoint = f"{base}/rest/v1/rpc/{_RPC_INSERT_EVENT}"
     clean = _sanitize_payload(payload)
+    body: dict[str, Any] = {"p_modo": modulo, "p_payload": clean}
+    est_id = _obtener_estudiante_id_sesion_para_evento()
+    if est_id:
+        body["p_estudiante_id"] = est_id
     try:
         r = requests.post(
             endpoint,
             headers={**_headers_rest(key), "Prefer": "return=minimal"},
-            json={"p_modo": modulo, "p_payload": clean},
+            json=body,
             timeout=_TIMEOUT_SEC,
         )
         if r.status_code in (200, 204):
@@ -478,6 +500,22 @@ def _session_clear_supabase_warn() -> None:
         st.session_state.pop("_uso_stats_supabase_warn", None)
     except Exception:
         pass
+
+
+def registrar_evento_aprendizaje(modulo: str, detalle: dict[str, Any]) -> None:
+    """
+    Inserta solo un evento en ``app_usage_event`` (sin incrementar contador de módulo
+    ni conteos por tema). Útil para señales finas (p. ej. respuesta incorrecta en Quiz).
+    """
+    if modulo not in MODULOS:
+        return
+    url, key = _credenciales_supabase()
+    if url and key:
+        ok_ev, _err_ev = _insert_event_supabase(modulo, detalle)
+        if not ok_ev:
+            _append_evento_local(modulo, detalle)
+    else:
+        _append_evento_local(modulo, detalle)
 
 
 def registrar_uso(modulo: str, detalle: Optional[dict[str, Any]] = None) -> None:
@@ -558,3 +596,86 @@ def obtener_estadisticas_temas() -> dict[str, int]:
         except (json.JSONDecodeError, OSError, TypeError):
             pass
     return base
+
+
+def obtener_eventos_aprendizaje_estudiante(
+    estudiante_id: str, limit: int = 600
+) -> list[dict[str, Any]]:
+    """
+    Eventos de uso asociados al participante (Quiz, Tutor abierto, etc.).
+    Requiere columna ``estudiante_id`` en ``app_usage_event`` (ver ``supabase_usage_events_estudiante.sql``).
+    """
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return []
+    try:
+        UUID(str(estudiante_id).strip())
+    except ValueError:
+        return []
+    qid = urllib.parse.quote(str(estudiante_id).strip(), safe="")
+    lim = max(50, min(int(limit), 2000))
+    endpoint = (
+        f"{url.rstrip('/')}/rest/v1/{_TABLE_USAGE_EVENT}"
+        f"?estudiante_id=eq.{qid}&select=modo,payload,created_at"
+        f"&order=created_at.desc&limit={lim}"
+    )
+    try:
+        r = requests.get(endpoint, headers=_headers_rest(key), timeout=_TIMEOUT_SEC)
+        if r.status_code != 200:
+            return []
+        rows = r.json()
+        return rows if isinstance(rows, list) else []
+    except (requests.RequestException, ValueError, TypeError):
+        return []
+
+
+def calcular_metricas_debilidad_por_tema(
+    eventos: list[dict[str, Any]],
+) -> dict[str, dict[str, Any]]:
+    """
+    A partir de eventos con ``estudiante_id``, acumula señales de debilidad:
+    - Errores en Quiz (``tipo_evento`` = quiz_respuesta_incorrecta): peso alto.
+    - Consultas en Tutor abierto con ``tema_catedra``: peso medio (dudas en ese tema).
+
+    Devuelve ``tema_oficial -> {score, errores_quiz, consultas_tutor}`` solo para temas con actividad > 0.
+    """
+    acum: dict[str, dict[str, float]] = {}
+
+    def _add(tema: Optional[str], quiz_delta: float, tutor_delta: float) -> None:
+        if not tema or tema not in temario.LISTA_TEMAS:
+            return
+        slot = acum.setdefault(
+            tema, {"score": 0.0, "errores_quiz": 0.0, "consultas_tutor": 0.0}
+        )
+        slot["score"] += quiz_delta + tutor_delta
+        if quiz_delta:
+            slot["errores_quiz"] += 1.0
+        if tutor_delta:
+            slot["consultas_tutor"] += 1.0
+
+    for row in eventos:
+        modo = (row.get("modo") or "").strip()
+        pl = row.get("payload")
+        if isinstance(pl, str):
+            try:
+                pl = json.loads(pl)
+            except json.JSONDecodeError:
+                pl = {}
+        if not isinstance(pl, dict):
+            pl = {}
+        if modo == "Quiz" and pl.get("tipo_evento") == "quiz_respuesta_incorrecta":
+            t = temario.normalizar_tema_curso(pl.get("tema"))
+            _add(t, 4.0, 0.0)
+        elif modo == "Tutor Preguntas Abiertas":
+            t = temario.normalizar_tema_curso(pl.get("tema_catedra"))
+            if t:
+                _add(t, 0.0, 1.0)
+    return {
+        k: {
+            "score": round(v["score"], 2),
+            "errores_quiz": int(v["errores_quiz"]),
+            "consultas_tutor": int(v["consultas_tutor"]),
+        }
+        for k, v in acum.items()
+        if v["score"] > 0
+    }

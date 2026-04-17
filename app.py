@@ -1211,6 +1211,22 @@ elif ruta == "c) Autoevaluación (Quiz)":
                             "puntos": pts,
                             "es_correcta": es_correcta
                         })
+                        if not es_correcta:
+                            t_quiz = temario.normalizar_tema_curso(
+                                pregunta_data.get("tema")
+                            )
+                            if t_quiz:
+                                uso_stats.registrar_evento_aprendizaje(
+                                    "Quiz",
+                                    {
+                                        "tipo_evento": "quiz_respuesta_incorrecta",
+                                        "tema": t_quiz,
+                                        "modalidad": st.session_state.get(
+                                            "quiz_modalidad", ""
+                                        ),
+                                        "indice_pregunta": actual + 1,
+                                    },
+                                )
                         st.rerun()
                     else:
                         st.warning("⚠️ Selecciona una opción.")
@@ -1321,6 +1337,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         uso_stats.registrar_uso(
             "Tutor Preguntas Abiertas",
             detalle={
+                "tipo_evento": "tutor_consulta",
                 "tema_catedra": _tema_stats,
                 "pregunta_resumen": (prompt or "")[:500],
             },

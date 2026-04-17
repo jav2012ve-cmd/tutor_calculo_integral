@@ -18,6 +18,114 @@ SEGUIMOS_PASO_PORTAL = "portal"
 SEGUIMOS_PASO_PANEL = "panel"
 
 
+def _render_debilidades_y_mapa() -> None:
+    """Mapa de calor + lista de temas críticos (Quiz incorrecto + Tutor abierto con sesión)."""
+    if not auth_estudiantes.sesion_activa():
+        return
+    if not _supabase_configurado():
+        st.caption(
+            "Las debilidades personalizadas requieren Supabase y sesión iniciada; "
+            "sin eso solo ves los conteos agregados de práctica."
+        )
+        return
+    sid = st.session_state.get("auth_estudiante_id")
+    if not sid:
+        return
+
+    eventos = uso_stats.obtener_eventos_aprendizaje_estudiante(str(sid))
+    metricas = uso_stats.calcular_metricas_debilidad_por_tema(eventos)
+
+    st.markdown("##### Tu perfil: temas a reforzar")
+    st.caption(
+        "Integramos **errores en Simulacro** (peso alto) y **consultas en Dime y te digo** "
+        "con tema detectado (peso medio). Solo cuenta actividad con tu sesión iniciada."
+    )
+
+    if not metricas:
+        st.info(
+            "Cuando falles preguntas del **Simulacro** o preguntes en **Dime y te digo**, "
+            "aquí aparecerán los temas donde conviene reforzar."
+        )
+        return
+
+    orden_critico = sorted(metricas.keys(), key=lambda t: -metricas[t]["score"])
+
+    st.markdown("##### Temas críticos (prioridad)")
+    for i, t in enumerate(orden_critico[:12], 1):
+        row = metricas[t]
+        st.markdown(
+            f"{i}. **{t}** — intensidad **{row['score']:.1f}** "
+            f"· errores simulacro: **{row['errores_quiz']}** "
+            f"· dudas en tutor: **{row['consultas_tutor']}**"
+        )
+
+    try:
+        import plotly.graph_objects as go
+
+        top = orden_critico[:24]
+        etiquetas = [tx[:46] + ("…" if len(tx) > 46 else "") for tx in top]
+        valores = [metricas[t]["score"] for t in top]
+        zmax = max(valores) if valores else 1.0
+        fig = go.Figure(
+            data=go.Heatmap(
+                z=[valores],
+                x=etiquetas,
+                y=["Tu perfil"],
+                colorscale="YlOrRd",
+                zmin=0,
+                zmax=max(zmax, 0.01),
+                colorbar=dict(title="Peso"),
+            )
+        )
+        fig.update_layout(
+            height=280,
+            margin=dict(l=8, r=8, t=36, b=160),
+            xaxis_tickangle=-48,
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Mapa de calor: misma intensidad que la lista (fila única = tu perfil).")
+    except Exception as exc:
+        st.caption(f"(Gráfico no disponible: {exc})")
+
+    try:
+        import pandas as pd
+
+        filas = []
+        for t in temario.LISTA_TEMAS:
+            info = metricas.get(t) or {
+                "score": 0.0,
+                "errores_quiz": 0,
+                "consultas_tutor": 0,
+            }
+            filas.append(
+                {
+                    "Tema": t,
+                    "Intensidad": float(info["score"]),
+                    "Errores simulacro": int(info["errores_quiz"]),
+                    "Dudas en tutor": int(info["consultas_tutor"]),
+                }
+            )
+        df = pd.DataFrame(filas).sort_values("Intensidad", ascending=False)
+        max_int = float(df["Intensidad"].max() or 1.0)
+        st.markdown("##### Intensidad por todo el temario")
+        st.dataframe(
+            df,
+            use_container_width=True,
+            hide_index=True,
+            height=min(520, 26 * len(df) + 40),
+            column_config={
+                "Intensidad": st.column_config.ProgressColumn(
+                    "Mapa de calor (barra)",
+                    min_value=0,
+                    max_value=max(max_int, 0.01),
+                    format="%.1f",
+                ),
+            },
+        )
+    except Exception as exc:
+        st.caption(f"(Tabla no disponible: {exc})")
+
+
 def _nombre_estudiante() -> str:
     if auth_estudiantes.sesion_activa():
         return (st.session_state.get("auth_estudiante_nombre") or "").strip()
@@ -214,6 +322,8 @@ def _render_panel_seguimos() -> None:
 
     st.progress(min(max(pct, 0.0), 1.0))
     st.caption("Barra: cobertura aproximada del temario según datos agregados de práctica.")
+
+    _render_debilidades_y_mapa()
 
     ordenados = sorted(
         [{"tema": t, "n": int(por_tema.get(t, 0) or 0)} for t in lista],
