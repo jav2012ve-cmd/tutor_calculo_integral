@@ -834,7 +834,9 @@ else:
             st.image(img, use_container_width=True)
     with c_tit:
         st.title(interfaz.APP_DISPLAY_NAME)
-    auth_estudiantes.render_barra_sesion_compacta()
+    # En Seguimos ya se renderiza el portal completo de acceso; evita duplicar botones.
+    if _modo != seguimos.MODO_ID:
+        auth_estudiantes.render_barra_sesion_compacta()
     interfaz.mostrar_cabecera_pagina_modo()
     ruta = _modo
 
