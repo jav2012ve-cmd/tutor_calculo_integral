@@ -15,7 +15,7 @@ import bcrypt
 import requests
 import streamlit as st
 
-from modules import interfaz, planes_estudio_oficiales, uso_stats
+from modules import contexto_universitario, interfaz, planes_estudio_oficiales, uso_stats
 
 _TABLE = "app_estudiante"
 _TIMEOUT = 15
@@ -331,6 +331,28 @@ def render_formulario_registro(
                 max_chars=200,
                 placeholder="Ej. UCAB / UCV / USB",
             )
+            clave_univ = contexto_universitario.clave_malla_desde_institucion(inst)
+            if clave_univ in interfaz.MAPA_ESTILOS_INSTITUCIONALES:
+                color_univ = interfaz.MAPA_ESTILOS_INSTITUCIONALES[clave_univ]["color_primario"]
+                nombre_univ = {
+                    "UCV": "UCV",
+                    "USB": "USB",
+                    "UNIMET": "UNIMET",
+                    "ULA": "ULA",
+                    "LUZ": "LUZ",
+                    "UC": "UC",
+                }.get(clave_univ, clave_univ)
+                st.markdown(
+                    (
+                        f"<div style='margin:0.2rem 0 0.5rem 0; padding:0.5rem 0.65rem; "
+                        f"border-left:4px solid {color_univ}; background:rgba(148,163,184,0.1); "
+                        "border-radius:6px;'>"
+                        f"<span style='color:{color_univ}; font-weight:600;'>"
+                        f"✨ ¡Excelente! Hemos cargado la malla oficial de la {nombre_univ} para ti"
+                        "</span></div>"
+                    ),
+                    unsafe_allow_html=True,
+                )
             carrera = st.text_input(
                 "Carrera que estudias",
                 key=f"{key_prefix}_reg_carrera",
@@ -438,6 +460,40 @@ def render_matriz_universidades() -> None:
                 )
 
 
+def render_bienvenida_emocional() -> None:
+    """Bloque de bienvenida emocional con cards por universidad."""
+    st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
+
+    claves = ("UCV", "USB", "UNIMET", "ULA", "LUZ", "UC")
+
+    def _frase_valor_desde_enfoque(enfoque: str) -> str:
+        s = (enfoque or "").strip().rstrip(".")
+        if not s:
+            return "Avanza con claridad y enfoque."
+        # Toma una frase breve derivada del enfoque oficial.
+        corto = s.split(" y ", 1)[0].strip()
+        return corto if len(corto) <= 60 else (corto[:57].rstrip() + "...")
+
+    for i in range(0, len(claves), 3):
+        cols = st.columns(3)
+        fila = claves[i : i + 3]
+        for j, clave in enumerate(fila):
+            estilo = interfaz.MAPA_ESTILOS_INSTITUCIONALES.get(clave, {})
+            plan = planes_estudio_oficiales.PLANES_DETALLADOS.get(clave, {})
+            color = str(estilo.get("color_primario") or "#64748b").strip()
+            frase = _frase_valor_desde_enfoque(str(plan.get("enfoque") or ""))
+            with cols[j]:
+                st.markdown(
+                    f"""
+<div style="border-top: 5px solid {color}; border-radius: 10px; padding: 0.75rem 0.8rem; margin-bottom: 0.6rem; background: rgba(148, 163, 184, 0.08); min-height: 120px;">
+  <div style="font-weight: 700; margin-bottom: 0.35rem;">∑igma para {clave}</div>
+  <div style="font-size: 0.93rem; line-height: 1.35;">{frase}</div>
+</div>
+""",
+                    unsafe_allow_html=True,
+                )
+
+
 def render_portal_participante(
     *,
     tab_inicial: str = "registro",
@@ -456,6 +512,7 @@ def render_portal_participante(
         )
         return
 
+    render_bienvenida_emocional()
     render_matriz_universidades()
 
     if tab_inicial == "login":
