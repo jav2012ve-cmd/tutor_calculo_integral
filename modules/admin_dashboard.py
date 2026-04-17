@@ -284,5 +284,4 @@ def render_admin_panel() -> None:
     st.divider()
     if st.button("Volver a la aplicación", type="primary", key="admin_volver_sigma_app"):
         st.session_state[SESSION_KEY_MODO_ADMIN] = False
-        st.session_state["admin_access_check"] = False
         st.rerun()

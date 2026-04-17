@@ -814,7 +814,7 @@ if not _modo:
     with st.expander("Opciones avanzadas", expanded=False):
         st.caption(
             "Panel de métricas (Supabase). Al entrar se oculta el resto de la app hasta **Volver** en el panel. "
-            "También puedes usar **`?admin=1`** en la URL (atajo sin esta clave)."
+            "También puedes usar **`?admin=1`** en la URL (atajo técnico para operadores)."
         )
         if st.checkbox("Acceso Admin", key="portada_acceso_admin_cb"):
             _pw = st.text_input("Clave de acceso", type="password", key="portada_acceso_admin_pwd")
@@ -837,11 +837,6 @@ else:
     auth_estudiantes.render_barra_sesion_compacta()
     interfaz.mostrar_cabecera_pagina_modo()
     ruta = _modo
-
-# Panel admin desde la barra lateral (después de fijar ``ruta``, antes del contenido del modo).
-if st.sidebar.checkbox("Acceso Administrador", key="admin_access_check"):
-    if _render_admin_panel_safe():
-        st.stop()
 
 # =======================================================
 # LÓGICA 0: SEGUIMOS (continuidad, alumnos registrados en sesión)
