@@ -142,3 +142,28 @@ def texto_bloque_plan_oficial_para_prompt(institucion: Optional[str]) -> str:
         f"- Bibliografía de referencia (alinear nivel y estilo de ejemplos): {bib}\n"
         f"- Guía de estudio: {plan['guia_estudio']}"
     )
+
+
+def instrucciones_tono_ia_por_clave(clave: Optional[str]) -> str:
+    """
+    Refuerzo explícito para el prompt del tutor según plantel (motor de tono USB / UCV, etc.).
+    Cadena vacía si no hay clave o no hay regla especial.
+    """
+    k = (clave or "").strip().upper()
+    if k == "USB":
+        return (
+            "TONO INSTITUCIONAL USB (prioridad alta): Sé **pragmático y rápido**: ve directo a la técnica "
+            "y al resultado cuando el ejercicio lo permita; privilegia aplicaciones tipo trimestre acelerado "
+            "(exponenciales/logarítmicas, sustitución trigonométrica, optimización). "
+            "Evita preámbulos y demostraciones largas salvo que el estudiante las pida explícitamente."
+        )
+    if k == "UCV":
+        bib = ", ".join(PLANES_DETALLADOS["UCV"]["bibliografia"])
+        return (
+            "TONO INSTITUCIONAL UCV (prioridad alta): Aumenta el **rigor teórico** cuando aporte "
+            "(definiciones, hipótesis, convergencia de integrales o series, teorema fundamental). "
+            f"Menciona con naturalidad textos de la bibliografía del plan cuando encaje con el tema; "
+            f"para esta malla los referentes son: {bib}. Por ejemplo, al contrastar criterios o desarrollos "
+            "estándar de integración, puedes citar **Leithold** como guía clásica del curso."
+        )
+    return ""

@@ -36,6 +36,7 @@ from modules import (
     seguimos,
     auth_estudiantes,
     planes_estudio,
+    planes_estudio_oficiales,
     contexto_universitario,
 )
 
@@ -563,14 +564,23 @@ def generar_respuesta_tutor_abierto(
             "esta universidad en Venezuela (ej. UCV, USB, UNIMET)."
         )
     bloque_malla_prompt = contexto_universitario.texto_instruccion_contexto_malla(inst)
+    bloque_plan_v1 = planes_estudio_oficiales.texto_bloque_plan_oficial_para_prompt(inst)
+    clave_univ_plan = contexto_universitario.clave_malla_desde_institucion(inst)
+    instruccion_tono_malla = planes_estudio_oficiales.instrucciones_tono_ia_por_clave(
+        clave_univ_plan
+    )
     bloque_institucional = planes_estudio.texto_contexto_ia_para_estudiante()
     bloques_contexto_estudiante: list[str] = []
     if bloque_perfil_alumno:
         bloques_contexto_estudiante.append(bloque_perfil_alumno)
     if bloque_malla_prompt:
         bloques_contexto_estudiante.append(bloque_malla_prompt)
+    if bloque_plan_v1:
+        bloques_contexto_estudiante.append(bloque_plan_v1)
     if bloque_institucional:
         bloques_contexto_estudiante.append(bloque_institucional)
+    if instruccion_tono_malla:
+        bloques_contexto_estudiante.append(instruccion_tono_malla)
     inyeccion_perfil_y_plan = (
         "\n\n    ".join(bloques_contexto_estudiante) if bloques_contexto_estudiante else ""
     )
