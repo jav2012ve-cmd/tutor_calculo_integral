@@ -331,9 +331,9 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
     (
         (
             seguimos.MODO_ID,
-            "Seguimos adelante // Regístrate si eres nuevo",
-            "Regístrate (si eres nuevo) o inicia sesión y revisa prioridades del temario, cobertura del curso "
-            "y un plan para combinar A practicar, Vamos paso a paso, Simulacro, Dime y te digo y Te lo reviso.",
+            "Seguimos adelante",
+            "Con tu cuenta revisas prioridades del temario, cobertura del curso y enlaces a practicar, "
+            "consultas guiadas, simulacro, tutor abierto y corrección de manuscritos.",
         ),
         (
             "a) Entrenamiento (Temario)",
