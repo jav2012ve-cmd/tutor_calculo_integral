@@ -38,6 +38,7 @@ from modules import (
     planes_estudio,
     planes_estudio_oficiales,
     contexto_universitario,
+    admin_dashboard,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -757,11 +758,34 @@ if "historial_tutor_abierto" not in st.session_state: st.session_state.historial
 # Estado E: Corrección de Manuscritos
 if "manuscrito_correccion" not in st.session_state: st.session_state.manuscrito_correccion = None
 
+# Modo administrador (manual): panel de métricas; desactivar con el botón del panel o desmarcando.
+if admin_dashboard.SESSION_KEY_MODO_ADMIN not in st.session_state:
+    st.session_state[admin_dashboard.SESSION_KEY_MODO_ADMIN] = False
+try:
+    _qp_ad = st.query_params.get("admin")
+    if _qp_ad == "1" or (isinstance(_qp_ad, list) and "1" in _qp_ad):
+        st.session_state[admin_dashboard.SESSION_KEY_MODO_ADMIN] = True
+except Exception:
+    pass
+
+if st.session_state.get(admin_dashboard.SESSION_KEY_MODO_ADMIN):
+    admin_dashboard.render_admin_panel()
+    st.stop()
+
 # --- 3. INTERFAZ PRINCIPAL ---
 _modo = st.session_state.get("modo_actual")
 if not _modo:
     st.title(interfaz.APP_DISPLAY_NAME)
     st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Seguimos**.")
+    with st.expander("Operadores — modo administrador", expanded=False):
+        st.caption(
+            "Activa el panel de métricas (Supabase). Equivale a marcar la casilla; también puedes usar "
+            "la URL con **`?admin=1`** en la raíz de la app."
+        )
+        st.checkbox(
+            "Modo administrador (panel de analítica)",
+            key=admin_dashboard.SESSION_KEY_MODO_ADMIN,
+        )
     interfaz.mostrar_portada_selector_modos()
     interfaz.mostrar_bienvenida()
     ruta = None
