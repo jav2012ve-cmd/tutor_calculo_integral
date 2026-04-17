@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import os
-from typing import Optional
+from typing import Optional, TypedDict
 
 import streamlit as st
 from PIL import Image
@@ -9,9 +9,223 @@ from modules.temario import LISTA_TEMAS
 from modules import uso_stats
 from modules import seguimos
 from modules import planes_estudio_oficiales
+from modules import contexto_universitario
 
 # Modo «hoja» de referencia académica por universidad (matriz de portada).
 MODO_PLANES_ESTUDIO_OFICIALES = "f) Planes de Estudio Oficiales"
+
+
+class EstiloInstitucionalVenezuela(TypedDict):
+    """Mapa de estilos institucionales (Venezuela) — colores hex y concepto de logotema."""
+
+    color_primario: str
+    color_secundario: str
+    logotema: str
+
+
+# Referencia: «Mapa de Estilos Institucionales (Venezuela)» — colores y concepto por plantel.
+MAPA_ESTILOS_INSTITUCIONALES: dict[str, EstiloInstitucionalVenezuela] = {
+    "UCV": {
+        "color_primario": "#8C1D1D",
+        "color_secundario": "#F2CB05",
+        "logotema": (
+            "La Ciudad Universitaria: bordes redondeados y patrones de nubes abstractas "
+            "(inspiradas en Calder)."
+        ),
+    },
+    "USB": {
+        "color_primario": "#002D72",
+        "color_secundario": "#FF8200",
+        "logotema": (
+            "El Laberinto: estilo minimalista con líneas entrelazadas y degradados en azul marino."
+        ),
+    },
+    "UNIMET": {
+        "color_primario": "#004B23",
+        "color_secundario": "#D1D5DB",
+        "logotema": (
+            "El Samán: fondos con texturas de hojas estilizadas y tipografía robusta."
+        ),
+    },
+    "ULA": {
+        "color_primario": "#1E3A8A",
+        "color_secundario": "#FFFFFF",
+        "logotema": "Los Andes: geometría de picos montañosos y un diseño limpio y clásico.",
+    },
+    "LUZ": {
+        "color_primario": "#0038A8",
+        "color_secundario": "#FFD700",
+        "logotema": (
+            "El Sol del Zulia: rayos convergentes en las esquinas de los contenedores y alto contraste."
+        ),
+    },
+    "UC": {
+        "color_primario": "#7F1D1D",
+        "color_secundario": "#000000",
+        "logotema": (
+            "La Antorcha: gradientes de fuego oscuro y líneas ascendentes que evocan iluminación."
+        ),
+    },
+}
+
+
+def _hex_a_rgb(hex_color: str) -> tuple[int, int, int]:
+    h = (hex_color or "").strip().lstrip("#")
+    if len(h) != 6:
+        return (100, 116, 139)
+    return (int(h[0:2], 16), int(h[2:4], 16), int(h[4:6], 16))
+
+
+def _rgba_hex(hex_color: str, alpha: float) -> str:
+    r, g, b = _hex_a_rgb(hex_color)
+    return f"rgba({r},{g},{b},{alpha})"
+
+
+def _css_variables_y_base(clave: str, meta: EstiloInstitucionalVenezuela) -> str:
+    p, s = meta["color_primario"], meta["color_secundario"]
+    rp, rs = _rgba_hex(p, 0.14), _rgba_hex(s, 0.12)
+    # Comentario CSS no incluye comillas problemáticas del logotema
+    logo_short = meta["logotema"].replace("*/", "* /")
+    return f"""
+        /* Institución: {clave} — {logo_short} */
+        :root {{
+            --univ-primary: {p};
+            --univ-secondary: {s};
+            --univ-primary-soft: {rp};
+            --univ-secondary-soft: {rs};
+        }}
+        .stApp h1, .stApp h2, .stApp h3 {{
+            border-left: 4px solid var(--univ-primary) !important;
+            padding-left: 0.55rem !important;
+        }}
+        .stApp [data-testid="stHeader"] {{
+            background: linear-gradient(90deg, var(--univ-primary-soft), transparent 55%) !important;
+            border-bottom: 2px solid var(--univ-secondary) !important;
+        }}
+    """
+
+
+def _css_por_clave_institucional(clave: str) -> str:
+    meta = MAPA_ESTILOS_INSTITUCIONALES.get(clave)
+    if not meta:
+        return ""
+    p, s = meta["color_primario"], meta["color_secundario"]
+    base = _css_variables_y_base(clave, meta)
+
+    if clave == "UCV":
+        extra = f"""
+        .stApp {{
+            background-image:
+                radial-gradient(ellipse 120% 85% at 12% -18%, {_rgba_hex(s, 0.18)}, transparent 52%),
+                radial-gradient(ellipse 100% 70% at 88% 8%, {_rgba_hex(p, 0.11)}, transparent 50%) !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border-radius: 20px !important;
+            border-color: {_rgba_hex(p, 0.45)} !important;
+            box-shadow: 0 6px 24px {_rgba_hex(p, 0.12)} !important;
+        }}
+        """
+    elif clave == "USB":
+        extra = f"""
+        .stApp {{
+            background-image:
+                linear-gradient(105deg, {_rgba_hex(p, 0.09)} 0%, transparent 42%),
+                repeating-linear-gradient(-12deg, transparent, transparent 14px, {_rgba_hex(s, 0.04)} 14px, {_rgba_hex(s, 0.04)} 15px) !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border-left: 3px solid var(--univ-primary) !important;
+            border-top: 1px solid {_rgba_hex(s, 0.35)} !important;
+        }}
+        """
+    elif clave == "UNIMET":
+        extra = f"""
+        .stApp {{
+            background-image:
+                radial-gradient(ellipse 80% 50% at 20% 0%, {_rgba_hex(p, 0.12)}, transparent 55%),
+                radial-gradient(ellipse 60% 40% at 95% 20%, {_rgba_hex("#6b7280", 0.08)}, transparent 45%) !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border-color: {_rgba_hex(p, 0.35)} !important;
+            border-width: 1px 1px 1px 4px !important;
+            border-style: solid !important;
+            border-left-color: var(--univ-primary) !important;
+        }}
+        """
+    elif clave == "ULA":
+        extra = f"""
+        .stApp {{
+            background-image:
+                linear-gradient(165deg, {_rgba_hex(p, 0.07)} 0%, transparent 38%),
+                linear-gradient(to right, transparent 0%, {_rgba_hex("#e2e8f0", 0.25)} 50%, transparent 100%) !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border-radius: 8px !important;
+            border: 1px solid {_rgba_hex(p, 0.4)} !important;
+            border-top: 3px solid var(--univ-primary) !important;
+        }}
+        """
+    elif clave == "LUZ":
+        extra = f"""
+        .stApp {{
+            background-image:
+                conic-gradient(from 210deg at 0% 0%, {_rgba_hex(s, 0.2)}, transparent 28%),
+                conic-gradient(from 30deg at 100% 0%, {_rgba_hex(s, 0.18)}, transparent 26%),
+                linear-gradient(180deg, {_rgba_hex(p, 0.06)}, transparent 40%) !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border: 1px solid {_rgba_hex(p, 0.45)} !important;
+            box-shadow: 0 0 0 1px {_rgba_hex(s, 0.25)} inset, 0 8px 28px {_rgba_hex(p, 0.14)} !important;
+        }}
+        """
+    elif clave == "UC":
+        extra = f"""
+        .stApp {{
+            background-image:
+                linear-gradient(12deg, {_rgba_hex(p, 0.14)} 0%, transparent 45%),
+                linear-gradient(to top, {_rgba_hex("#000000", 0.06)}, transparent 35%) !important;
+        }}
+        div[data-testid="stVerticalBlockBorderWrapper"] {{
+            border-left: 4px solid var(--univ-primary) !important;
+            border-bottom: 2px solid {_rgba_hex("#000000", 0.35)} !important;
+        }}
+        """
+    else:
+        extra = ""
+
+    return base + extra
+
+
+def _css_estilo_institucional_neutro() -> str:
+    return """
+        :root {
+            --univ-primary: #64748b;
+            --univ-secondary: #94a3b8;
+            --univ-primary-soft: rgba(100, 116, 139, 0.12);
+            --univ-secondary-soft: rgba(148, 163, 184, 0.1);
+        }
+    """
+
+
+def inyectar_estilo_universitario() -> None:
+    """
+    Lee ``st.session_state.auth_estudiante_institucion``, resuelve la clave de plantel
+    (UCV, USB, …) y aplica variables CSS y fondos alineados al «Mapa de Estilos Institucionales».
+
+    Se reinyecta cuando cambia la institución reconocida (p. ej. tras iniciar sesión en Seguimos).
+    """
+    inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+    clave = contexto_universitario.clave_malla_desde_institucion(inst) if inst else None
+    sig = clave or "__default__"
+    if st.session_state.get("_estilo_univ_sig_inyectado") == sig:
+        return
+    st.session_state["_estilo_univ_sig_inyectado"] = sig
+
+    if clave and clave in MAPA_ESTILOS_INSTITUCIONALES:
+        css = _css_por_clave_institucional(clave)
+    else:
+        css = _css_estilo_institucional_neutro()
+
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 # Nombre de la aplicación (pestaña del navegador, títulos principales)
 # ∑ (U+2211) sustituye la S inicial de «Sigma» en pantalla y en la pestaña del navegador.

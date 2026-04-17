@@ -51,6 +51,7 @@ AVISO_HISTORIAL_LARGO = 20  # si hay más mensajes, mostrar aviso
 # --- 1. CONFIGURACIÓN INICIAL ---
 interfaz.configurar_pagina()
 interfaz.inyectar_estilo_matematico()
+interfaz.inyectar_estilo_universitario()
 
 def _decodificar_claims_jwt_sin_verificar(token: str) -> Optional[dict]:
     """
