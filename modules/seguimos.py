@@ -183,6 +183,12 @@ def _render_panel_seguimos() -> None:
         inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
         if inst:
             st.caption(f"Institución: **{inst}**")
+        car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
+        if car:
+            st.caption(f"Carrera: **{car}**")
+        sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+        if sem:
+            st.caption(f"Semestre: **{sem}**")
         fn = (st.session_state.get("auth_estudiante_fecha_nacimiento") or "").strip()
         if fn:
             st.caption(f"Fecha de nacimiento: `{fn}`")

@@ -1,6 +1,6 @@
 """
 Registro e inicio de sesión de participantes contra Supabase (tabla app_estudiante).
-Campos: nombre, cédula, correo, institución, fecha de nacimiento y contraseña (hash bcrypt).
+Campos: nombre, cédula, correo, institución, carrera, semestre, fecha de nacimiento y contraseña (hash bcrypt).
 Requiere SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY en secrets o entorno.
 """
 
@@ -39,7 +39,9 @@ def _headers() -> dict[str, str]:
 
 
 def normalizar_email(email: str) -> str:
-    return (email or "").strip().lower()
+    s = (email or "").strip().lower()
+    # Evita fallos de login por caracteres invisibles pegados al copiar/pegar.
+    return re.sub(r"[\u200b\u200c\u200d\ufeff]", "", s)
 
 
 def normalizar_cedula(cedula: str) -> str:
@@ -69,14 +71,12 @@ def buscar_por_email(email: str) -> Optional[dict[str, Any]]:
     if not em or not _supabase_ok():
         return None
     q = urllib.parse.quote(em, safe="")
-    url = (
-        f"{_base_url()}/rest/v1/{_TABLE}?email=eq.{q}"
-        "&select=id,email,password_hash,nombre,cedula,institucion,fecha_nacimiento,"
-        "display_name,codigo_opcional"
-    )
+    url = f"{_base_url()}/rest/v1/{_TABLE}?email=eq.{q}&select=*"
     try:
         r = requests.get(url, headers=_headers(), timeout=_TIMEOUT)
         if r.status_code != 200:
+            # No exponer detalle al usuario; ayuda a depurar en logs de Streamlit Cloud.
+            print(f"[auth] GET estudiante {r.status_code}: {(r.text or '')[:300]}")
             return None
         rows = r.json()
         if not rows:
@@ -122,6 +122,8 @@ def registrar_estudiante(
     cedula: str,
     institucion: str,
     fecha_nacimiento: date,
+    carrera: str,
+    semestre: str,
 ) -> tuple[bool, str]:
     """
     Crea fila en app_estudiante. Devuelve (éxito, mensaje).
@@ -132,8 +134,8 @@ def registrar_estudiante(
     em = normalizar_email(email)
     if not validar_email(em):
         return False, "Correo no válido."
-    if len(password) < 8:
-        return False, "La contraseña debe tener al menos 8 caracteres."
+    if len((password or "").strip()) < 4:
+        return False, "La contraseña debe tener al menos 4 caracteres."
 
     nom = (nombre or "").strip()
     if len(nom) < 2:
@@ -146,6 +148,18 @@ def registrar_estudiante(
         return False, "Indica la institución donde estudias."
     if len(inst) > 200:
         return False, "El nombre de la institución es demasiado largo."
+
+    car = (carrera or "").strip()
+    if len(car) < 2:
+        return False, "Indica la carrera o programa que estudias."
+    if len(car) > 120:
+        return False, "El nombre de la carrera es demasiado largo."
+
+    sem = (semestre or "").strip()
+    if len(sem) < 1:
+        return False, "Indica el semestre que cursas (ej. 4, 2025-1)."
+    if len(sem) > 40:
+        return False, "El semestre indicado es demasiado largo."
 
     ced_norm = normalizar_cedula(cedula)
     if len(ced_norm) < 5 or len(ced_norm) > 32:
@@ -164,11 +178,13 @@ def registrar_estudiante(
 
     payload = {
         "email": em,
-        "password_hash": _hash_password(password),
+        "password_hash": _hash_password((password or "").strip()),
         "nombre": nom,
         "cedula": ced_norm,
         "institucion": inst,
         "fecha_nacimiento": fecha_nacimiento.isoformat(),
+        "carrera": car,
+        "semestre": sem,
     }
     insert_url = f"{_base_url()}/rest/v1/{_TABLE}"
     try:
@@ -184,6 +200,8 @@ def registrar_estudiante(
             if "cedula" in (r.text or "").lower() or "email" in (r.text or "").lower():
                 return False, "Ese correo o cédula ya está registrado."
             return False, "Ya existe una cuenta con esos datos."
+        err = (r.text or "")[:400]
+        print(f"[auth] POST estudiante {r.status_code}: {err}")
         return False, f"No se pudo registrar ({r.status_code}). {r.text[:200]}"
     except requests.RequestException as e:
         return False, f"Error de red: {e}"
@@ -198,12 +216,13 @@ def autenticar(email: str, password: str) -> tuple[bool, str]:
         return False, "Supabase no está configurado."
 
     em = normalizar_email(email)
+    pwd = (password or "").strip()
     row = buscar_por_email(em)
     if not row:
         return False, "Correo o contraseña incorrectos."
 
     ph = row.get("password_hash") or ""
-    if not _verificar_password(password, ph):
+    if not _verificar_password(pwd, ph):
         return False, "Correo o contraseña incorrectos."
 
     st.session_state.auth_estudiante_id = str(row["id"])
@@ -213,6 +232,8 @@ def autenticar(email: str, password: str) -> tuple[bool, str]:
     ).strip()
     st.session_state.auth_estudiante_cedula = (row.get("cedula") or "").strip() or None
     st.session_state.auth_estudiante_institucion = (row.get("institucion") or "").strip() or None
+    st.session_state.auth_estudiante_carrera = (row.get("carrera") or "").strip() or None
+    st.session_state.auth_estudiante_semestre = (row.get("semestre") or "").strip() or None
     fn = row.get("fecha_nacimiento")
     if isinstance(fn, str):
         st.session_state.auth_estudiante_fecha_nacimiento = fn[:10]
@@ -238,6 +259,8 @@ def cerrar_sesion() -> None:
         "auth_estudiante_codigo",
         "auth_estudiante_cedula",
         "auth_estudiante_institucion",
+        "auth_estudiante_carrera",
+        "auth_estudiante_semestre",
         "auth_estudiante_fecha_nacimiento",
         "_seguimos_uso_registrado_sesion",
     ):
@@ -301,6 +324,18 @@ def render_formulario_registro(
                 max_chars=200,
                 placeholder="Ej. UCAB / UCV / USB",
             )
+            carrera = st.text_input(
+                "Carrera que estudias",
+                key=f"{key_prefix}_reg_carrera",
+                max_chars=120,
+                placeholder="Ej. Ingeniería Civil",
+            )
+            semestre = st.text_input(
+                "Semestre que cursas",
+                key=f"{key_prefix}_reg_semestre",
+                max_chars=40,
+                placeholder="Ej. 4 · 2025-1",
+            )
             hoy = date.today()
             fn = st.date_input(
                 "Fecha de nacimiento",
@@ -310,7 +345,7 @@ def render_formulario_registro(
                 key=f"{key_prefix}_reg_fn",
             )
             p2 = st.text_input(
-                "Contraseña (mín. 8 caracteres)",
+                "Contraseña (mín. 4 caracteres)",
                 type="password",
                 key=f"{key_prefix}_reg_pass",
             )
@@ -323,15 +358,18 @@ def render_formulario_registro(
             if p2 != p2b:
                 st.error("Las contraseñas no coinciden.")
             else:
-                ok, msg = registrar_estudiante(e2, p2, nom, ced, inst, fn)
+                ok, msg = registrar_estudiante(e2, p2, nom, ced, inst, fn, carrera, semestre)
                 if ok:
-                    ok_in, _ = autenticar(e2, p2)
+                    ok_in, msg_in = autenticar(e2, p2)
                     if ok_in:
                         if on_session_ok:
                             on_session_ok()
                         st.rerun()
                     st.success(msg)
-                    st.info("Cuenta creada. Usa **Iniciar sesión** con el mismo correo y contraseña.")
+                    st.error(
+                        "La cuenta se creó, pero no se pudo iniciar sesión automáticamente. "
+                        f"Detalle: {msg_in} Prueba **Iniciar sesión** con el mismo correo y contraseña."
+                    )
                 else:
                     st.error(msg)
 
@@ -420,7 +458,12 @@ def render_barra_sesion_compacta() -> None:
         with c1:
             nom = st.session_state.get("auth_estudiante_nombre", "Estudiante")
             em = st.session_state.get("auth_estudiante_email", "")
-            st.success(f"Sesión: **{nom}** · `{em}`")
+            car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
+            sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+            extra = ""
+            if car or sem:
+                extra = f" · {car}" + (f" · sem. {sem}" if sem else "")
+            st.success(f"Sesión: **{nom}** · `{em}`{extra}")
         with c2:
             if st.button("Cerrar sesión", key="auth_compact_logout"):
                 cerrar_sesion()
@@ -453,7 +496,13 @@ def render_panel_auth() -> None:
             nom = st.session_state.get("auth_estudiante_nombre", "Estudiante")
             em = st.session_state.get("auth_estudiante_email", "")
             inst = st.session_state.get("auth_estudiante_institucion")
+            car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
+            sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
             suf = f" · {inst}" if inst else ""
+            if car:
+                suf += f" · {car}"
+            if sem:
+                suf += f" · sem. {sem}"
             st.success(f"Sesión: **{nom}**{suf} (`{em}`)")
         with c2:
             if st.button("Cerrar sesión", use_container_width=True, key="auth_home_logout"):
