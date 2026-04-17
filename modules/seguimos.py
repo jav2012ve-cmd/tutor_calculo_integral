@@ -481,20 +481,26 @@ def _render_panel_seguimos() -> None:
     st.success(f"Hola, **{nombre}**. Aquí tienes tu resumen de continuidad.")
 
     if auth_estudiantes.sesion_activa():
-        if st.session_state.get("auth_estudiante_email"):
-            st.caption(f"Correo: `{st.session_state.auth_estudiante_email}`")
+        em = (st.session_state.get("auth_estudiante_email") or "").strip()
         inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
-        if inst:
-            st.caption(f"Institución: **{inst}**")
+        fn = (st.session_state.get("auth_estudiante_fecha_nacimiento") or "").strip()
+        c_em, c_inst, c_fn = st.columns(3)
+        with c_em:
+            st.caption("Correo")
+            st.markdown(f"`{em}`" if em else "—")
+        with c_inst:
+            st.caption("Institución")
+            st.markdown(f"**{inst}**" if inst else "—")
+        with c_fn:
+            st.caption("Fecha de nacimiento")
+            st.markdown(f"`{fn}`" if fn else "—")
+
         car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
         if car:
             st.caption(f"Carrera: **{car}**")
         sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
         if sem:
             st.caption(f"Semestre: **{sem}**")
-        fn = (st.session_state.get("auth_estudiante_fecha_nacimiento") or "").strip()
-        if fn:
-            st.caption(f"Fecha de nacimiento: `{fn}`")
         if codigo:
             st.caption(f"Referencia (opcional, cuenta antigua): `{codigo}`")
     elif codigo:
