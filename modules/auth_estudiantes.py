@@ -263,6 +263,7 @@ def cerrar_sesion() -> None:
         "auth_estudiante_semestre",
         "auth_estudiante_fecha_nacimiento",
         "_seguimos_uso_registrado_sesion",
+        "_estilo_univ_sig_inyectado",
     ):
         st.session_state.pop(k, None)
     st.session_state.pop("estudiante_nombre_seguimos", None)
@@ -400,8 +401,10 @@ def render_portal_participante(
     on_session_ok: Optional[Callable[[], None]] = None,
 ) -> None:
     """
-    Portal dedicado: formulario de registro visible arriba; inicio de sesión debajo (sin pestañas).
-    `tab_inicial` se usa solo para mostrar un aviso si llegaste desde «Ya tengo cuenta».
+    Portal dedicado.
+
+    - ``tab_inicial="login"`` (desde «Ya tengo cuenta»): solo correo y contraseña, sin textos de registro.
+    - ``tab_inicial="registro"`` (desde «Regístrate»): formulario completo de alta y, debajo, acceso por login.
     """
     if not _supabase_ok():
         st.caption(
@@ -410,13 +413,18 @@ def render_portal_participante(
         )
         return
 
+    if tab_inicial == "login":
+        with _portal_tarjeta():
+            st.markdown("### Iniciar sesión")
+            st.caption("Ingresa el **correo** y la **contraseña** con los que te registraste.")
+            render_formulario_login(key_prefix="portal_log", on_session_ok=on_session_ok)
+        return
+
     with _portal_tarjeta():
         st.markdown("### Registro de nuevos estudiantes")
         st.caption(
             "Completa tus datos para crear tu cuenta y enlazar el progreso de estudio con tu perfil."
         )
-        if tab_inicial == "login":
-            st.info("Si ya tienes cuenta, usa la tarjeta **Ya tengo cuenta** más abajo.")
 
         info_col, form_col = st.columns([1, 2])
         with info_col:
@@ -432,7 +440,7 @@ def render_portal_participante(
     with _portal_tarjeta():
         st.markdown("#### Ya tengo cuenta")
         st.caption("Ingresa con tu correo y contraseña para continuar.")
-        render_formulario_login(key_prefix="portal_log", on_session_ok=on_session_ok)
+        render_formulario_login(key_prefix="portal_log_alt", on_session_ok=on_session_ok)
 
 
 def _navegar_a_portal_seguimos(portal_tab: str) -> None:

@@ -17,6 +17,179 @@ SEGUIMOS_PASO_ENTRADA = "entrada"
 SEGUIMOS_PASO_PORTAL = "portal"
 SEGUIMOS_PASO_PANEL = "panel"
 
+# Mismo id que en ``interfaz.MODO_PLANES_ESTUDIO_OFICIALES`` (evitar import circular).
+MODO_PLANES_OFICIALES_ID = "f) Planes de Estudio Oficiales"
+
+_ACCESO_RAPIDO_MODOS: tuple[tuple[str, str], ...] = (
+    ("a) Entrenamiento (Temario)", "A practicar"),
+    ("b) Respuesta Guiada (Consultas)", "Vamos paso a paso"),
+    ("c) Autoevaluación (Quiz)", "Simulacro"),
+    ("d) Tutor: Preguntas Abiertas", "Dime y te digo"),
+    ("e) Corrección de Manuscritos", "Te lo reviso"),
+    (MODO_PLANES_OFICIALES_ID, "Planes de estudio oficiales"),
+)
+
+
+def _limpiar_estado_al_salir_de_seguimos() -> None:
+    """Alineado a ``interfaz._aplicar_iniciar_modo`` al abrir otro modo desde el panel."""
+    st.session_state.quiz_activo = False
+    st.session_state.preguntas_quiz = []
+    st.session_state.indice_pregunta = 0
+    st.session_state.respuestas_usuario = []
+    if "trigger_quiz" in st.session_state:
+        st.session_state.trigger_quiz = False
+    st.session_state.entrenamiento_activo = False
+    st.session_state.consulta_step = 0
+    st.session_state.consulta_data = None
+    st.session_state.consulta_validada = False
+    st.session_state.historial_tutor_abierto = []
+    st.session_state.manuscrito_correccion = None
+
+
+def _navegar_a_modo_desde_seguimos(modo_id: str) -> None:
+    st.session_state.modo_actual = modo_id
+    st.session_state.pop("seguimos_paso", None)
+    _limpiar_estado_al_salir_de_seguimos()
+    st.rerun()
+
+
+def _render_botones_acceso_rapido_modos() -> None:
+    if not auth_estudiantes.sesion_activa():
+        return
+    st.markdown("##### Acceso rápido a los modos de estudio")
+    st.caption(
+        "Abre la misma herramienta que en la portada. Vuelve a **Seguimos** con **← Volver al inicio** "
+        "desde la cabecera del modo."
+    )
+    for fila_ini in range(0, len(_ACCESO_RAPIDO_MODOS), 3):
+        chunk = _ACCESO_RAPIDO_MODOS[fila_ini : fila_ini + 3]
+        cols = st.columns(len(chunk))
+        for j, (mid, etiqueta) in enumerate(chunk):
+            with cols[j]:
+                if st.button(etiqueta, key=f"seguimos_quick_{fila_ini}_{j}", use_container_width=True):
+                    _navegar_a_modo_desde_seguimos(mid)
+
+
+def _render_tab_record_comparativa() -> None:
+    st.markdown("##### Mi récord frente a otros inscritos")
+    st.caption(
+        "Comparativa a partir de **eventos de uso** en la base (cada acción registrada con tu sesión). "
+        "El grupo «tu universidad» usa el texto de **institución** de tu perfil, normalizado."
+    )
+    if not auth_estudiantes.sesion_activa() or not _supabase_configurado():
+        st.info("Inicia sesión con Supabase activo para ver la comparativa con otros participantes.")
+        return
+    sid = st.session_state.get("auth_estudiante_id")
+    if not sid:
+        return
+    inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+    cmp = uso_stats.obtener_comparativa_practica_estudiante(str(sid), inst or None)
+    if cmp is None:
+        st.warning(
+            "No se pudo cargar la comparativa (tablas `app_estudiante` / `app_usage_event` o permisos REST)."
+        )
+        return
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Tus eventos registrados", cmp["mi_eventos"])
+    with c2:
+        st.metric("Promedio en tu institución", cmp["promedio_eventos_misma_institucion"])
+    with c3:
+        st.metric("Promedio global (todos)", cmp["promedio_eventos_global"])
+
+    st.markdown("**Base del cálculo**")
+    st.caption(
+        f"Inscritos con la misma institución (texto coincidente): **{cmp['n_inscritos_misma_institucion']}** · "
+        f"Inscritos en total en la app: **{cmp['n_inscritos_total']}**."
+    )
+    if cmp.get("institucion_usada"):
+        st.caption(f"Institución usada para agrupar: `{cmp['institucion_usada']}`")
+
+    if cmp.get("pct_supera_companieros_institucion") is not None:
+        st.success(
+            "Por volumen de actividad registrada, superas aproximadamente a "
+            f"**{cmp['pct_supera_companieros_institucion']}%** del resto de inscritos de tu misma institución "
+            "(comparación con otros perfiles, no contigo)."
+        )
+    elif cmp.get("n_inscritos_misma_institucion", 0) <= 1:
+        st.caption("No hay otros inscritos con la misma institución para comparar en esta muestra.")
+
+    if cmp.get("pct_supera_companieros_global") is not None:
+        st.info(
+            "Frente al conjunto **global** de inscritos: superas aproximadamente a "
+            f"**{cmp['pct_supera_companieros_global']}%** en actividad registrada."
+        )
+
+    if cmp.get("muestra_eventos_truncada"):
+        st.caption(
+            f"Nota: solo se analizaron hasta **{cmp.get('limite_muestra_eventos', '?')}** filas de eventos; "
+            "si hay mucha historia, el conteo puede ser parcial."
+        )
+
+
+def _render_panel_tab_continuidad() -> None:
+    por_tema = uso_stats.obtener_estadisticas_temas()
+    lista = list(temario.LISTA_TEMAS)
+    n_total = len(lista)
+    con_practica = sum(1 for t in lista if int(por_tema.get(t, 0) or 0) > 0)
+    sin_practica = [t for t in lista if int(por_tema.get(t, 0) or 0) == 0]
+
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.metric("Temas con práctica registrada", f"{con_practica} / {n_total}")
+    with c2:
+        st.metric("Temas sin registros aún", len(sin_practica))
+    with c3:
+        pct = (con_practica / n_total) if n_total else 0.0
+        st.metric("Cobertura aproximada del temario", f"{pct:.0%}")
+
+    st.progress(min(max(pct, 0.0), 1.0))
+    st.caption("Barra: cobertura aproximada del temario según datos agregados de práctica.")
+
+    _render_debilidades_y_mapa()
+
+    ordenados = sorted(
+        [{"tema": t, "n": int(por_tema.get(t, 0) or 0)} for t in lista],
+        key=lambda x: (x["n"], x["tema"]),
+    )
+    prioridad = [x["tema"] for x in ordenados if x["n"] == 0][:12]
+    if not prioridad:
+        prioridad = [x["tema"] for x in ordenados[:8]]
+
+    st.markdown("##### Próximas prioridades (menos práctica registrada)")
+    for i, t in enumerate(prioridad[:8], 1):
+        st.caption(f"{i}. **{t}**")
+
+    st.markdown("##### Cómo avanzar con cobertura total")
+    st.markdown(
+        """
+        1. **A practicar:** elige en el multiselect los temas marcados arriba como prioridad (varios puntos del temario a la vez).
+
+        2. **Vamos paso a paso** o **Dime y te digo:** plantea dudas o ejercicios concretos de esos temas.
+
+        3. **Simulacro:** cuando domines un bloque, comprueba con un examen de prueba (primer o segundo parcial o temas personalizados).
+
+        4. **Te lo reviso:** valida tus resoluciones escritas de ejercicios largos.
+
+        5. Vuelve a **Seguimos** para ver cómo sube la cobertura del temario.
+        """
+    )
+
+    st.markdown("##### Detalle por tema (registros agregados)")
+    st.dataframe(
+        ordenados,
+        use_container_width=True,
+        hide_index=True,
+        height=min(420, 28 * n_total + 38),
+    )
+
+    st.caption(
+        "Los conteos por tema dependen de la configuración (Supabase o archivo local) y son "
+        "agregados; no sustituyen el criterio docente. Para cobertura **total**, repasa todos "
+        "los puntos del temario al menos una vez combinando los modos de estudio."
+    )
+
 
 def _render_debilidades_y_mapa() -> None:
     """Mapa de calor + lista de temas críticos (Quiz incorrecto + Tutor abierto con sesión)."""
@@ -231,10 +404,16 @@ def _render_portal_seguimos() -> None:
     tab_ini = st.session_state.get("seguimos_portal_tab", "registro")
     if tab_ini not in ("registro", "login"):
         tab_ini = "registro"
-    st.success(
-        "Bienvenido al portal de estudiantes. Primero crea tu cuenta; "
-        "si ya la tienes, inicia sesión en la sección inferior."
-    )
+    if tab_ini == "login":
+        st.info(
+            "Introduce **correo** y **contraseña**. Si aún no tienes cuenta, pulsa **← Volver** "
+            "y elige **Regístrate**."
+        )
+    else:
+        st.success(
+            "Completa el formulario para **crear tu cuenta**; si ya estás registrado, "
+            "usa la sección **Ya tengo cuenta** al final de esta página."
+        )
     auth_estudiantes.render_portal_participante(
         tab_inicial=tab_ini,
         on_session_ok=_ir_panel_seguimos,
@@ -305,66 +484,13 @@ def _render_panel_seguimos() -> None:
     elif codigo:
         st.caption(f"Referencia: `{codigo}`")
 
-    por_tema = uso_stats.obtener_estadisticas_temas()
-    lista = list(temario.LISTA_TEMAS)
-    n_total = len(lista)
-    con_practica = sum(1 for t in lista if int(por_tema.get(t, 0) or 0) > 0)
-    sin_practica = [t for t in lista if int(por_tema.get(t, 0) or 0) == 0]
+    _render_botones_acceso_rapido_modos()
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Temas con práctica registrada", f"{con_practica} / {n_total}")
-    with c2:
-        st.metric("Temas sin registros aún", len(sin_practica))
-    with c3:
-        pct = (con_practica / n_total) if n_total else 0.0
-        st.metric("Cobertura aproximada del temario", f"{pct:.0%}")
-
-    st.progress(min(max(pct, 0.0), 1.0))
-    st.caption("Barra: cobertura aproximada del temario según datos agregados de práctica.")
-
-    _render_debilidades_y_mapa()
-
-    ordenados = sorted(
-        [{"tema": t, "n": int(por_tema.get(t, 0) or 0)} for t in lista],
-        key=lambda x: (x["n"], x["tema"]),
-    )
-    prioridad = [x["tema"] for x in ordenados if x["n"] == 0][:12]
-    if not prioridad:
-        prioridad = [x["tema"] for x in ordenados[:8]]
-
-    st.markdown("##### Próximas prioridades (menos práctica registrada)")
-    for i, t in enumerate(prioridad[:8], 1):
-        st.caption(f"{i}. **{t}**")
-
-    st.markdown("##### Cómo avanzar con cobertura total")
-    st.markdown(
-        """
-        1. **A practicar:** elige en el multiselect los temas marcados arriba como prioridad (varios puntos del temario a la vez).
-
-        2. **Vamos paso a paso** o **Dime y te digo:** plantea dudas o ejercicios concretos de esos temas.
-
-        3. **Simulacro:** cuando domines un bloque, comprueba con un examen de prueba (primer o segundo parcial o temas personalizados).
-
-        4. **Te lo reviso:** valida tus resoluciones escritas de ejercicios largos.
-
-        5. Vuelve a **Seguimos** para ver cómo sube la cobertura del temario.
-        """
-    )
-
-    st.markdown("##### Detalle por tema (registros agregados)")
-    st.dataframe(
-        ordenados,
-        use_container_width=True,
-        hide_index=True,
-        height=min(420, 28 * n_total + 38),
-    )
-
-    st.caption(
-        "Los conteos por tema dependen de la configuración (Supabase o archivo local) y son "
-        "agregados; no sustituyen el criterio docente. Para cobertura **total**, repasa todos "
-        "los puntos del temario al menos una vez combinando los modos de estudio."
-    )
+    tab_cont, tab_rec = st.tabs(["Continuidad y temario", "Mi récord vs otros"])
+    with tab_cont:
+        _render_panel_tab_continuidad()
+    with tab_rec:
+        _render_tab_record_comparativa()
 
 
 def render_vista_seguimos() -> None:

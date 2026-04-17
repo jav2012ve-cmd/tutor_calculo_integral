@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import urllib.parse
 from datetime import datetime, timezone
 from typing import Any, Optional
@@ -679,4 +680,130 @@ def calcular_metricas_debilidad_por_tema(
         }
         for k, v in acum.items()
         if v["score"] > 0
+    }
+
+
+def _norm_institucion_comparativa(txt: Optional[str]) -> str:
+    s = (txt or "").strip().lower()
+    return re.sub(r"\s+", " ", s)
+
+
+def obtener_comparativa_practica_estudiante(
+    estudiante_id: str,
+    institucion_perfil: Optional[str] = None,
+    max_event_rows: int = 15000,
+) -> Optional[dict[str, Any]]:
+    """
+    Compara el volumen de eventos en ``app_usage_event`` (filas con ``estudiante_id``) del
+    participante frente al promedio de inscritos con la misma ``institucion`` en ``app_estudiante``
+    y frente al promedio entre todos los inscritos.
+
+    Requiere Supabase y datos en esas tablas; si falla la lectura, devuelve ``None``.
+    """
+    from collections import Counter
+
+    try:
+        UUID(str(estudiante_id).strip())
+    except ValueError:
+        return None
+    eid = str(estudiante_id).strip()
+
+    url, key = _credenciales_supabase()
+    if not url or not key:
+        return None
+    base = url.rstrip("/")
+    hdrs = _headers_rest(key)
+
+    try:
+        r1 = requests.get(
+            f"{base}/rest/v1/app_estudiante?select=id,institucion",
+            headers=hdrs,
+            timeout=_TIMEOUT_SEC,
+        )
+        if r1.status_code != 200:
+            return None
+        rows_e = r1.json() or []
+        if not isinstance(rows_e, list):
+            return None
+        id_a_inst: dict[str, str] = {}
+        for row in rows_e:
+            sid = row.get("id")
+            if sid is None:
+                continue
+            id_a_inst[str(sid)] = (row.get("institucion") or "").strip()
+    except (requests.RequestException, TypeError, ValueError):
+        return None
+
+    inst_user_raw = (institucion_perfil or "").strip() or id_a_inst.get(eid, "")
+    inst_key = _norm_institucion_comparativa(inst_user_raw)
+
+    ids_misma_inst = [
+        sid
+        for sid, ins in id_a_inst.items()
+        if inst_key and _norm_institucion_comparativa(ins) == inst_key
+    ]
+    todos_ids = list(id_a_inst.keys())
+
+    try:
+        lim = max(500, min(int(max_event_rows), 50_000))
+        r2 = requests.get(
+            f"{base}/rest/v1/{_TABLE_USAGE_EVENT}?select=estudiante_id"
+            f"&estudiante_id=not.is.null&limit={lim}",
+            headers=hdrs,
+            timeout=_TIMEOUT_SEC,
+        )
+        rows_ev: list[Any] = []
+        if r2.status_code == 200:
+            raw = r2.json()
+            if isinstance(raw, list):
+                rows_ev = raw
+    except (requests.RequestException, TypeError, ValueError):
+        rows_ev = []
+
+    conteo: Counter[str] = Counter()
+    for row in rows_ev:
+        sid = row.get("estudiante_id")
+        if sid:
+            conteo[str(sid)] += 1
+
+    truncado = len(rows_ev) >= lim
+
+    def _media_conteo(ids: list[str]) -> float:
+        if not ids:
+            return 0.0
+        return sum(float(conteo.get(i, 0)) for i in ids) / float(len(ids))
+
+    mi = int(conteo.get(eid, 0))
+    prom_inst = _media_conteo(ids_misma_inst)
+    prom_global = _media_conteo(todos_ids)
+
+    pct_supera_misma_inst: Optional[float] = None
+    if ids_misma_inst and len(ids_misma_inst) > 1:
+        otros = [int(conteo.get(i, 0)) for i in ids_misma_inst if i != eid]
+        if otros:
+            pct_supera_misma_inst = round(
+                100.0 * sum(1 for x in otros if mi > x) / float(len(otros)),
+                1,
+            )
+
+    pct_supera_global: Optional[float] = None
+    if len(todos_ids) > 1:
+        otros_g = [int(conteo.get(i, 0)) for i in todos_ids if i != eid]
+        if otros_g:
+            pct_supera_global = round(
+                100.0 * sum(1 for x in otros_g if mi > x) / float(len(otros_g)),
+                1,
+            )
+
+    return {
+        "mi_eventos": mi,
+        "n_inscritos_misma_institucion": len(ids_misma_inst),
+        "n_inscritos_total": len(todos_ids),
+        "promedio_eventos_misma_institucion": round(prom_inst, 2),
+        "promedio_eventos_global": round(prom_global, 2),
+        "institucion_usada": inst_user_raw or None,
+        "pct_supera_companieros_institucion": pct_supera_misma_inst,
+        "pct_supera_companieros_global": pct_supera_global,
+        "muestra_eventos_truncada": truncado,
+        "limite_muestra_eventos": lim,
     }
