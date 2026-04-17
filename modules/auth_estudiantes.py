@@ -428,10 +428,10 @@ def render_matriz_universidades() -> None:
             with cols[j]:
                 st.markdown(
                     f"""
-<div style="border-left: 5px solid {color}; border-radius: 8px; padding: 0.7rem 0.75rem; margin-bottom: 0.6rem; background: rgba(148, 163, 184, 0.08);">
+<div style="border-left: 5px solid {color}; border-radius: 8px; padding: 0.7rem 0.75rem; margin-bottom: 0.6rem; background: rgba(148, 163, 184, 0.08); min-height: 190px; display: flex; flex-direction: column;">
   <div style="font-weight: 700; margin-bottom: 0.25rem;">{clave}</div>
-  <div style="font-size: 0.92rem; margin-bottom: 0.35rem;"><strong>Enfoque:</strong> {enfoque}</div>
-  <div style="font-size: 0.9rem;"><strong>Bibliografía:</strong> {bib_txt}</div>
+  <div style="font-size: 0.92rem; margin-bottom: 0.35rem; line-height: 1.35;"><strong>Enfoque:</strong> {enfoque}</div>
+  <div style="font-size: 0.9rem; line-height: 1.35; margin-top: auto;"><strong>Bibliografía:</strong> {bib_txt}</div>
 </div>
 """,
                     unsafe_allow_html=True,
