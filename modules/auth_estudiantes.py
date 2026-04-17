@@ -507,8 +507,11 @@ def _imagen_universidad_data_uri(clave: str) -> Optional[str]:
 
 
 def render_matriz_universidades(*, key_prefix_registro: str = "portal_reg") -> None:
-    """Universidades de referencia: una sola grilla de cards (glass + carreras + hover)."""
-    st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
+    """Grilla de universidades de referencia (glass + carreras + hover + selección).
+
+    El título principal «Tu éxito…» lo pinta quien llame (p. ej. el portal), para poder
+    colocar antes el copy de registro sin columnas laterales.
+    """
     st.markdown("##### Universidades de referencia")
     st.caption(
         "Contenido académico por universidad para orientar enfoque y bibliografía sugerida en el tutor."
@@ -709,26 +712,24 @@ def render_portal_participante(
         st.caption(
             "Completa tus datos para crear tu cuenta y enlazar el progreso de estudio con tu perfil."
         )
+        _tarjeta_beneficios_registro()
+        st.markdown("##### Pasos")
+        st.caption("1) Completa el formulario.")
+        st.caption("2) Pulsa **Registrarme**.")
+        st.caption("3) Entrarás automáticamente al panel.")
 
-        info_col, form_col = st.columns([1, 2])
-        with info_col:
-            _tarjeta_beneficios_registro()
-            st.markdown("##### Pasos")
-            st.caption("1) Completa el formulario.")
-            st.caption("2) Pulsa **Registrarme**.")
-            st.caption("3) Entrarás automáticamente al panel.")
-        with form_col:
-            render_matriz_universidades(key_prefix_registro="portal_reg")
-            inst_pre = st.session_state.get(_PORTAL_INST_PRESELECCIONADA_KEY)
-            if inst_pre:
-                st.caption(f"Institución seleccionada desde la matriz: **{inst_pre}**")
-                st.session_state["portal_reg_reg_institucion"] = inst_pre
-            st.markdown("#### Crear cuenta")
-            render_formulario_registro(
-                key_prefix="portal_reg",
-                on_session_ok=on_session_ok,
-                redirigir_a_login=True,
-            )
+        st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
+        render_matriz_universidades(key_prefix_registro="portal_reg")
+        inst_pre = st.session_state.get(_PORTAL_INST_PRESELECCIONADA_KEY)
+        if inst_pre:
+            st.caption(f"Institución seleccionada desde la matriz: **{inst_pre}**")
+            st.session_state["portal_reg_reg_institucion"] = inst_pre
+        st.markdown("#### Crear cuenta")
+        render_formulario_registro(
+            key_prefix="portal_reg",
+            on_session_ok=on_session_ok,
+            redirigir_a_login=True,
+        )
 
 
 def _navegar_a_portal_seguimos(portal_tab: str) -> None:
