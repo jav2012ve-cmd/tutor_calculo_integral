@@ -27,6 +27,22 @@ _CEDULA_TOKEN_RE = re.compile(r"^[\w.-]+$", re.UNICODE)
 _ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
+def _reg_institution_widget_key(key_prefix: str) -> str:
+    """Clave del campo de institución (se versiona para evitar placeholders obsoletos en sesión)."""
+    return f"{key_prefix}_reg_plantel_nacional"
+
+
+def _migrar_widget_institucion_legacy(key_prefix: str) -> None:
+    """Si quedó valor bajo la key antigua (`…_reg_institucion`), pásalo a la key nueva."""
+    legacy = f"{key_prefix}_reg_institucion"
+    nuevo = _reg_institution_widget_key(key_prefix)
+    if legacy not in st.session_state:
+        return
+    leg_val = st.session_state.pop(legacy, "")
+    if nuevo not in st.session_state and leg_val:
+        st.session_state[nuevo] = leg_val
+
+
 def _supabase_ok() -> bool:
     u, k = uso_stats.supabase_url_y_clave()
     return bool(u and k)
@@ -307,6 +323,7 @@ def render_formulario_registro(
     on_session_ok: Optional[Callable[[], None]] = None,
     redirigir_a_login: bool = False,
 ) -> None:
+    _migrar_widget_institucion_legacy(key_prefix)
     with st.form(f"form_registro_{key_prefix}"):
         st.caption("Datos del participante (estudiante universitario).")
         c1, c2 = st.columns(2)
@@ -331,13 +348,15 @@ def render_formulario_registro(
         with c2:
             inst = st.text_input(
                 "Institución donde estudias",
-                key=f"{key_prefix}_reg_institucion",
+                key=_reg_institution_widget_key(key_prefix),
                 max_chars=200,
-                placeholder="Ej. UCV · USB · UNIMET · ULA · Monteávila",
+                placeholder="UCV, USB, UNIMET, ULA, LUZ, UC, UNEXPO, UCLA o Monteávila",
             )
             st.caption(
-                "Guía: siglas o nombre habitual — **UCV, USB, UNIMET, ULA, LUZ, UC, UNEXPO, UCLA, Monteávila**. "
-                "También vale el nombre por extenso (p. ej. *Universidad de Carabobo*)."
+                "**Plantel de referencia (siglas o nombre completo):** "
+                "**UCV** · **USB** · **UNIMET** · **ULA** · **LUZ** · **UC** · **UNEXPO** · **UCLA** · **Monteávila**. "
+                "Ejemplos por extenso: *Universidad Central de Venezuela*, *Universidad de Carabobo*, "
+                "*Universidad de Los Andes*."
             )
             clave_univ = contexto_universitario.clave_malla_desde_institucion(inst)
             if clave_univ in interfaz.MAPA_ESTILOS_INSTITUCIONALES:
@@ -428,8 +447,12 @@ def _portal_tarjeta():
 def _tarjeta_beneficios_registro() -> None:
     st.markdown("##### 🚀 Activa tu Ventaja Estratégica")
     st.markdown(
+        "**Plantel nacional de referencia:** "
+        "**UCV** · **USB** · **UNIMET** · **ULA** · **LUZ** · **UC** · **UNEXPO** · **UCLA** · **Monteávila**"
+    )
+    st.markdown(
         """
-        - 🎯 **Precisión Institucional:** IA entrenada con los parciales y la bibliografía de tu universidad (UCV, USB, UNIMET, ULA, LUZ, UC, UNEXPO, UCLA y Monteávila).
+        - 🎯 **Precisión Institucional:** IA entrenada con los parciales y la bibliografía alineadas a esos enfoques curriculares.
         - 🔥 **Mapa de Calor Personalizado:** Identifica exactamente en qué temas vas a fallar antes del examen real.
         - 🔄 **Sincronización Total:** Tu progreso, dudas y simulacros disponibles en cualquier dispositivo.
         """
@@ -690,7 +713,7 @@ def render_matriz_universidades(*, key_prefix_registro: str = "portal_reg") -> N
                     use_container_width=True,
                 ):
                     st.session_state[_PORTAL_INST_PRESELECCIONADA_KEY] = nombre_tarjeta
-                    st.session_state[f"{key_prefix_registro}_reg_institucion"] = nombre_tarjeta
+                    st.session_state[_reg_institution_widget_key(key_prefix_registro)] = nombre_tarjeta
                     st.rerun()
 
 
@@ -741,7 +764,7 @@ def render_portal_participante(
         inst_pre = st.session_state.get(_PORTAL_INST_PRESELECCIONADA_KEY)
         if inst_pre:
             st.caption(f"Institución seleccionada desde la matriz: **{inst_pre}**")
-            st.session_state["portal_reg_reg_institucion"] = inst_pre
+            st.session_state[_reg_institution_widget_key("portal_reg")] = inst_pre
         st.markdown("#### Crear cuenta")
         render_formulario_registro(
             key_prefix="portal_reg",
