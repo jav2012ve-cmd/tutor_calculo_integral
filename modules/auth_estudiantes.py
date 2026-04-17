@@ -222,6 +222,22 @@ def registrar_estudiante(
             return False, "Ya existe una cuenta con esos datos."
         err = (r.text or "")[:400]
         print(f"[auth] POST estudiante {r.status_code}: {err}")
+        try:
+            body = r.json()
+            api_msg = str(body.get("message") or "")
+        except (ValueError, TypeError):
+            api_msg = ""
+        low = api_msg.lower()
+        if r.status_code == 400 and "schema cache" in low and (
+            "carrera" in low or "semestre" in low
+        ):
+            return (
+                False,
+                "La tabla **app_estudiante** en Supabase no tiene aún las columnas **carrera** y **semestre**. "
+                "En el SQL Editor del proyecto ejecuta el script **`supabase_estudiantes_add_carrera_semestre.sql`** "
+                "(o vuelve a ejecutar **`supabase_estudiantes.sql`** completo), guarda y espera unos segundos; "
+                "si el error continúa, reinicia la API en Supabase para refrescar la caché de PostgREST.",
+            )
         return False, f"No se pudo registrar ({r.status_code}). {r.text[:200]}"
     except requests.RequestException as e:
         return False, f"Error de red: {e}"
