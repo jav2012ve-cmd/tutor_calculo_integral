@@ -15,7 +15,7 @@ import bcrypt
 import requests
 import streamlit as st
 
-from modules import uso_stats
+from modules import interfaz, planes_estudio_oficiales, uso_stats
 
 _TABLE = "app_estudiante"
 _TIMEOUT = 15
@@ -407,6 +407,37 @@ def _tarjeta_beneficios_registro() -> None:
     st.caption("Solo almacenamos datos del participante y el hash de contraseña.")
 
 
+def render_matriz_universidades() -> None:
+    """Muestra universidades objetivo (estilo + enfoque + bibliografía) en cuadrícula 3x2."""
+    st.markdown("##### Universidades de referencia")
+    st.caption(
+        "Contenido académico por universidad para orientar enfoque y bibliografía sugerida en el tutor."
+    )
+
+    claves = ("UCV", "USB", "UNIMET", "ULA", "LUZ", "UC")
+    for i in range(0, len(claves), 3):
+        cols = st.columns(3)
+        fila = claves[i : i + 3]
+        for j, clave in enumerate(fila):
+            estilo = interfaz.MAPA_ESTILOS_INSTITUCIONALES.get(clave, {})
+            plan = planes_estudio_oficiales.PLANES_DETALLADOS.get(clave, {})
+            color = str(estilo.get("color_primario") or "#64748b").strip()
+            enfoque = str(plan.get("enfoque") or "Sin enfoque cargado.")
+            bib = plan.get("bibliografia") or []
+            bib_txt = ", ".join(str(x) for x in bib) if bib else "Sin bibliografía sugerida."
+            with cols[j]:
+                st.markdown(
+                    f"""
+<div style="border-left: 5px solid {color}; border-radius: 8px; padding: 0.7rem 0.75rem; margin-bottom: 0.6rem; background: rgba(148, 163, 184, 0.08);">
+  <div style="font-weight: 700; margin-bottom: 0.25rem;">{clave}</div>
+  <div style="font-size: 0.92rem; margin-bottom: 0.35rem;"><strong>Enfoque:</strong> {enfoque}</div>
+  <div style="font-size: 0.9rem;"><strong>Bibliografía:</strong> {bib_txt}</div>
+</div>
+""",
+                    unsafe_allow_html=True,
+                )
+
+
 def render_portal_participante(
     *,
     tab_inicial: str = "registro",
@@ -424,6 +455,8 @@ def render_portal_participante(
             "`SUPABASE_SERVICE_ROLE_KEY`; guarda, reinicia la app y ejecuta `supabase_estudiantes.sql`."
         )
         return
+
+    render_matriz_universidades()
 
     if tab_inicial == "login":
         portal_msg = st.session_state.pop("_auth_portal_msg", None)
