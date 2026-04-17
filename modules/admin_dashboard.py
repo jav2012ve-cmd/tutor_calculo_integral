@@ -1,21 +1,10 @@
+"""Panel de analítica (Supabase service_role): ``render_admin_panel()`` desde ``app``.
+
+Requiere ``uso_stats`` y ``plotly.express`` (``px``). Opcional: ``ADMIN_PANEL_PASSWORD`` en Secrets.
 """
-Panel de analítica para operadores (lectura vía Supabase service_role).
-
-Uso: desde ``app.py`` o una app Streamlit aparte, llamar ``render_admin_panel()``.
-
-``SESSION_KEY_MODO_ADMIN`` debe coincidir con la clave en ``app.py`` para el modo manual.
-
-Seguridad: si defines en Secrets ``ADMIN_PANEL_PASSWORD`` (TOML), el panel exige esa clave
-una vez por sesión antes de consultar datos. Sin secret, solo se exige Supabase configurado
-(adecuado solo en entornos controlados).
-"""
-
-SESSION_KEY_MODO_ADMIN = "modo_administrador_manual"
-
-from __future__ import annotations
 
 import json
-from typing import Any, Optional
+from typing import Any
 
 import streamlit as st
 
@@ -30,6 +19,8 @@ try:
     import plotly.express as px
 except ImportError:  # pragma: no cover
     px = None  # type: ignore
+
+SESSION_KEY_MODO_ADMIN = "modo_administrador_manual"
 
 
 def _payload_a_dict(raw: Any) -> dict[str, Any]:
@@ -80,20 +71,6 @@ def _render_barrera_acceso_admin() -> bool:
         else:
             st.error("Contraseña incorrecta.")
     return False
-
-
-def _enriquecer_logs_con_institucion(df_logs: "pd.DataFrame", df_est: "pd.DataFrame") -> "pd.DataFrame":
-    if df_logs.empty or df_est.empty or "estudiante_id" not in df_logs.columns:
-        if not df_logs.empty and "institucion" not in df_logs.columns:
-            df_logs = df_logs.copy()
-            df_logs["institucion"] = "(sin perfil)"
-        return df_logs
-    est = df_est.rename(columns={"id": "estudiante_id"})[["estudiante_id", "institucion"]].drop_duplicates(
-        subset=["estudiante_id"]
-    )
-    out = df_logs.merge(est, on="estudiante_id", how="left")
-    out["institucion"] = out["institucion"].fillna("(sin institución en perfil)")
-    return out
 
 
 def _extraer_fallas_quiz(df_ev: "pd.DataFrame") -> "pd.DataFrame":
@@ -157,117 +134,147 @@ def render_admin_panel() -> None:
         st.info("No hay filas en las tablas consultadas o la lectura REST falló (revisa permisos **service_role**).")
         return
 
-    df_logs_enr = _enriquecer_logs_con_institucion(df_logs, df_est)
-
     n_registrados = int(df_est["id"].nunique()) if not df_est.empty and "id" in df_est.columns else 0
-    ids_logs = (
-        df_logs["estudiante_id"].dropna().astype(str).str.strip().unique()
-        if not df_logs.empty and "estudiante_id" in df_logs.columns
-        else []
-    )
-    n_con_log_ia = len([x for x in ids_logs if x])
     total_consultas_ia = len(df_logs)
-    prom_consultas_por_alumno = (
+    n_con_log_ia = 0
+    if not df_logs.empty and "estudiante_id" in df_logs.columns:
+        sid = df_logs["estudiante_id"].dropna().astype(str).str.strip()
+        n_con_log_ia = int(sid[sid != ""].nunique())
+
+    prom_consultas_por_alumno_ia = (
         round(total_consultas_ia / float(n_con_log_ia), 2) if n_con_log_ia else 0.0
     )
 
-    st.markdown("##### Métricas clave")
+    ev_con_usuario = pd.DataFrame()
+    if not df_eventos.empty and "estudiante_id" in df_eventos.columns:
+        ev_con_usuario = df_eventos.dropna(subset=["estudiante_id"]).copy()
+    n_unicos_con_eventos = 0
+    if not ev_con_usuario.empty:
+        n_unicos_con_eventos = ev_con_usuario["estudiante_id"].astype(str).str.strip().nunique()
+    prom_eventos_por_usuario_activo = (
+        round(len(ev_con_usuario) / float(n_unicos_con_eventos), 2) if n_unicos_con_eventos else 0.0
+    )
+
+    prom_consultas_por_registrado = (
+        round(total_consultas_ia / float(n_registrados), 3) if n_registrados else 0.0
+    )
+
+    st.markdown("### Métricas gruesas")
+    st.caption("Totales en la **muestra** descargada (límites REST en `uso_stats`).")
     col1, col2, col3 = st.columns(3)
-    col1.metric("Total alumnos (registrados)", n_registrados)
-    col2.metric("Consultas totales (IA, muestra)", total_consultas_ia)
-    col3.metric("Promedio consultas IA / alumno con log", prom_consultas_por_alumno)
+    col1.metric("Estudiantes totales", n_registrados)
+    col2.metric("Consultas totales (IA)", total_consultas_ia)
+    col3.metric(
+        "Promedio de uso por usuario",
+        prom_consultas_por_registrado,
+        help="Consultas IA en muestra / estudiantes registrados en muestra (incluye inactivos con 0).",
+    )
+    st.caption(
+        f"Detalle: **{prom_consultas_por_alumno_ia}** consultas IA de media por alumno con log identificado "
+        f"({n_con_log_ia} usuarios); **{prom_eventos_por_usuario_activo}** eventos de app por usuario con actividad "
+        f"en la muestra ({n_unicos_con_eventos} usuarios distintos en `app_usage_event`)."
+    )
 
     st.divider()
-    c1, c2 = st.columns(2)
-
-    with c1:
-        st.subheader("Alumnos activos por universidad")
-        st.caption(
-            "Estudiantes distintos con al menos un log en la muestra, agrupados por **institución** "
-            "(columna en `ia_logs` o cruce con perfil)."
-        )
-        df_pie_src = df_logs.copy()
-        if "institucion" not in df_pie_src.columns or df_pie_src["institucion"].isna().all():
-            df_pie_src = df_logs_enr.copy()
-        if (
-            df_pie_src.empty
-            or "institucion" not in df_pie_src.columns
-            or "estudiante_id" not in df_pie_src.columns
-        ):
-            st.caption("Sin datos para el gráfico de torta.")
-        else:
-            tmp = df_pie_src.dropna(subset=["estudiante_id"]).copy()
-            tmp["_inst"] = tmp["institucion"].fillna("(sin dato)").astype(str)
-            pie_df = tmp.groupby("_inst", as_index=False)["estudiante_id"].nunique()
-            pie_df = pie_df.rename(columns={"_inst": "institucion", "estudiante_id": "alumnos_activos"})
-            pie_df = pie_df[pie_df["alumnos_activos"] > 0]
-            if pie_df.empty:
-                st.caption("Sin alumnos con `estudiante_id` e institución en la muestra.")
-            else:
-                fig_uni = px.pie(
-                    pie_df,
-                    names="institucion",
-                    values="alumnos_activos",
-                    hole=0.4,
-                    title="Alumnos activos por universidad (cuenta única por institución)",
-                )
-                st.plotly_chart(fig_uni, use_container_width=True)
-
-    with c2:
-        st.subheader("Top 10 de temas fallidos (marketing)")
-        st.caption("Basado en eventos **quiz_respuesta_incorrecta** en la muestra de uso.")
-        df_fallas = _extraer_fallas_quiz(df_eventos)
-        if df_fallas.empty:
-            st.caption("No hay fallos de simulacro con tema válido en la muestra.")
-        else:
-            top10 = df_fallas.head(10).copy()
-            top10["rank"] = range(1, len(top10) + 1)
-            st.dataframe(
-                top10[["rank", "tema", "fallas"]],
-                use_container_width=True,
-                hide_index=True,
-                column_config={
-                    "rank": st.column_config.NumberColumn("#", format="%d"),
-                    "tema": st.column_config.TextColumn("Tema del temario"),
-                    "fallas": st.column_config.NumberColumn("Errores registrados", format="%d"),
-                },
-            )
-            fig_fallas = px.bar(
-                top10,
-                x="tema",
-                y="fallas",
-                title="Top 10 — volumen de errores en Simulacro",
-            )
-            fig_fallas.update_layout(xaxis_tickangle=-42, height=380)
-            st.plotly_chart(fig_fallas, use_container_width=True)
-
-    st.divider()
-    st.markdown("##### Detalle complementario")
-    modo_top = "—"
-    if not df_eventos.empty and "modo" in df_eventos.columns:
-        m = df_eventos["modo"].mode(dropna=True)
-        if len(m) > 0:
-            modo_top = str(m.iloc[0])
-    c4, c5, c6 = st.columns(3)
-    c4.metric("Estudiantes con ≥1 log IA", n_con_log_ia)
-    c5.metric("Filas en app_usage_event (muestra)", len(df_eventos))
-    c6.metric("Modo más frecuente (eventos)", modo_top)
-
-    st.subheader("Actividad temporal (logs IA)")
-    if df_logs.empty or "created_at" not in df_logs.columns:
-        st.caption("Sin fechas en ia_logs.")
+    st.markdown("### Distribución de estudiantes por universidad")
+    st.caption(
+        "Inscritos en `app_estudiante` por campo **institucion** (UCV, USB, UNIMET, etc.). "
+        "«Sin dato» agrupa vacíos u omisión."
+    )
+    if df_est.empty or "institucion" not in df_est.columns or "id" not in df_est.columns:
+        st.caption("Sin datos de estudiantes para la torta.")
     else:
-        ts = pd.to_datetime(df_logs["created_at"], utc=True, errors="coerce")
-        df_logs = df_logs.copy()
-        df_logs["_fecha"] = ts.dt.date
-        serie = df_logs.dropna(subset=["_fecha"]).groupby("_fecha").size().reset_index(name="consultas")
-        serie = serie.rename(columns={"_fecha": "fecha"})
-        if serie.empty:
-            st.caption("No se pudo agrupar por fecha.")
+        pie_src = df_est.copy()
+        pie_src["_inst"] = (
+            pie_src["institucion"]
+            .fillna("")
+            .astype(str)
+            .str.strip()
+            .replace("", "(sin dato)")
+        )
+        pie_df = pie_src.groupby("_inst", as_index=False)["id"].nunique()
+        pie_df = pie_df.rename(columns={"_inst": "institucion", "id": "estudiantes"})
+        pie_df = pie_df[pie_df["estudiantes"] > 0].sort_values("estudiantes", ascending=False)
+        if pie_df.empty:
+            st.caption("Sin filas válidas para agrupar.")
         else:
-            fig_linea = px.line(serie, x="fecha", y="consultas", markers=True, title="Consultas IA por día (UTC)")
-            st.plotly_chart(fig_linea, use_container_width=True)
+            fig_uni = px.pie(
+                pie_df,
+                names="institucion",
+                values="estudiantes",
+                hole=0.38,
+                title="Estudiantes registrados por institución",
+            )
+            fig_uni.update_traces(textposition="inside", textinfo="percent+label")
+            st.plotly_chart(fig_uni, use_container_width=True)
 
+    st.divider()
+    st.markdown("### Análisis de fallas")
+    st.caption("Los **5 temas** con más eventos ``quiz_respuesta_incorrecta`` en la muestra de uso.")
+    df_fallas = _extraer_fallas_quiz(df_eventos)
+    if df_fallas.empty:
+        st.caption("No hay fallos de simulacro con tema válido en la muestra.")
+    else:
+        top5 = df_fallas.head(5).copy()
+        fig_fallas = px.bar(
+            top5,
+            x="tema",
+            y="fallas",
+            title="Top 5 temas — respuestas incorrectas en Quiz",
+            color="fallas",
+            color_continuous_scale="Reds",
+        )
+        fig_fallas.update_layout(
+            xaxis_tickangle=-36,
+            height=400,
+            showlegend=False,
+            coloraxis_showscale=False,
+        )
+        st.plotly_chart(fig_fallas, use_container_width=True)
+
+    st.divider()
+    st.markdown("### Permanencia")
+    st.caption(
+        "Histogramas desde **app_usage_event** (UTC): volumen por **hora** y por **día del calendario** "
+        "para ventanas de notificaciones o promos."
+    )
+    if df_eventos.empty or "created_at" not in df_eventos.columns:
+        st.caption("Sin eventos con marca de tiempo en la muestra.")
+    else:
+        ts_ev = pd.to_datetime(df_eventos["created_at"], utc=True, errors="coerce")
+        ev2 = df_eventos.assign(_hora=ts_ev.dt.hour, _fecha=ts_ev.dt.date)
+        ev2 = ev2.dropna(subset=["_hora"])
+
+        h1, h2 = st.columns(2)
+        with h1:
+            hora_serie = ev2["_hora"].astype(int).value_counts().reindex(range(24), fill_value=0)
+            hora_df = hora_serie.reset_index()
+            hora_df.columns = ["hora", "eventos"]
+            fig_hora = px.bar(
+                hora_df,
+                x="hora",
+                y="eventos",
+                title="Actividad por hora del día (UTC)",
+                labels={"hora": "Hora (0–23)", "eventos": "Eventos"},
+            )
+            fig_hora.update_layout(bargap=0.12, height=360, xaxis=dict(dtick=1, range=[-0.5, 23.5]))
+            st.plotly_chart(fig_hora, use_container_width=True)
+
+        with h2:
+            ev_dia = df_eventos.assign(_fecha=ts_ev.dt.date).dropna(subset=["_fecha"])
+            if ev_dia.empty:
+                st.caption("No hay fechas válidas para histograma diario.")
+            else:
+                fig_dia = px.histogram(
+                    ev_dia,
+                    x="_fecha",
+                    title="Actividad por día (UTC)",
+                    labels={"_fecha": "Fecha", "count": "Eventos"},
+                )
+                fig_dia.update_layout(bargap=0.04, height=360)
+                st.plotly_chart(fig_dia, use_container_width=True)
+
+    st.divider()
     with st.expander("Vista previa de datos (muestra corta)", expanded=False):
         st.caption("ia_logs")
         st.dataframe(df_logs.head(12), use_container_width=True, hide_index=True)
@@ -277,4 +284,5 @@ def render_admin_panel() -> None:
     st.divider()
     if st.button("Volver a la aplicación", type="primary", key="admin_volver_sigma_app"):
         st.session_state[SESSION_KEY_MODO_ADMIN] = False
+        st.session_state["admin_access_check"] = False
         st.rerun()

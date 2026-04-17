@@ -38,7 +38,6 @@ from modules import (
     planes_estudio,
     planes_estudio_oficiales,
     contexto_universitario,
-    admin_dashboard,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -115,6 +114,37 @@ def _inyectar_supabase_desde_connections() -> None:
 
 
 _inyectar_supabase_desde_connections()
+
+
+def _cargar_admin_dashboard():
+    """Import diferido del panel admin para evitar caída global si ese módulo falla."""
+    try:
+        from modules import admin_dashboard as _admin_dashboard
+        return _admin_dashboard
+    except Exception as e:
+        st.error(f"No se pudo cargar el panel admin: {e}")
+        return None
+
+
+def _render_admin_panel_safe() -> bool:
+    """Renderiza panel admin solo si el módulo carga correctamente."""
+    _ad = _cargar_admin_dashboard()
+    if _ad is None:
+        return False
+    _ad.render_admin_panel()
+    return True
+
+
+def _clave_acceso_admin_portada() -> str:
+    """Clave para desbloquear el panel desde la portada (override con Secrets o env)."""
+    try:
+        v = str(st.secrets.get("ADMIN_PORTADA_PASSWORD", "")).strip()
+        if v:
+            return v
+    except Exception:
+        pass
+    return (os.environ.get("ADMIN_PORTADA_PASSWORD") or "sigma_admin").strip() or "sigma_admin"
+
 
 if not ia_core.configurar_gemini():
     st.stop()
@@ -759,35 +789,42 @@ if "historial_tutor_abierto" not in st.session_state: st.session_state.historial
 if "manuscrito_correccion" not in st.session_state: st.session_state.manuscrito_correccion = None
 
 # Modo administrador (manual): panel de métricas; desactivar con el botón del panel o desmarcando.
-if admin_dashboard.SESSION_KEY_MODO_ADMIN not in st.session_state:
-    st.session_state[admin_dashboard.SESSION_KEY_MODO_ADMIN] = False
+ADMIN_SESSION_KEY = "modo_administrador_manual"
+if ADMIN_SESSION_KEY not in st.session_state:
+    st.session_state[ADMIN_SESSION_KEY] = False
 try:
     _qp_ad = st.query_params.get("admin")
     if _qp_ad == "1" or (isinstance(_qp_ad, list) and "1" in _qp_ad):
-        st.session_state[admin_dashboard.SESSION_KEY_MODO_ADMIN] = True
+        st.session_state[ADMIN_SESSION_KEY] = True
 except Exception:
     pass
 
-if st.session_state.get(admin_dashboard.SESSION_KEY_MODO_ADMIN):
-    admin_dashboard.render_admin_panel()
-    st.stop()
+if st.session_state.get(ADMIN_SESSION_KEY):
+    if _render_admin_panel_safe():
+        st.stop()
 
 # --- 3. INTERFAZ PRINCIPAL ---
 _modo = st.session_state.get("modo_actual")
 if not _modo:
     st.title(interfaz.APP_DISPLAY_NAME)
     st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Seguimos**.")
-    with st.expander("Operadores — modo administrador", expanded=False):
-        st.caption(
-            "Activa el panel de métricas (Supabase). Equivale a marcar la casilla; también puedes usar "
-            "la URL con **`?admin=1`** en la raíz de la app."
-        )
-        st.checkbox(
-            "Modo administrador (panel de analítica)",
-            key=admin_dashboard.SESSION_KEY_MODO_ADMIN,
-        )
     interfaz.mostrar_portada_selector_modos()
     interfaz.mostrar_bienvenida()
+
+    with st.expander("Opciones avanzadas", expanded=False):
+        st.caption(
+            "Panel de métricas (Supabase). Al entrar se oculta el resto de la app hasta **Volver** en el panel. "
+            "También puedes usar **`?admin=1`** en la URL (atajo sin esta clave)."
+        )
+        if st.checkbox("Acceso Admin", key="portada_acceso_admin_cb"):
+            _pw = st.text_input("Clave de acceso", type="password", key="portada_acceso_admin_pwd")
+            if st.button("Entrar al panel", type="primary", key="portada_acceso_admin_btn"):
+                if (_pw or "").strip() == _clave_acceso_admin_portada():
+                    st.session_state[ADMIN_SESSION_KEY] = True
+                    st.rerun()
+                else:
+                    st.error("Clave incorrecta.")
+
     ruta = None
 else:
     c_img, c_tit = st.columns([1, 4], vertical_alignment="center")
@@ -800,6 +837,11 @@ else:
     auth_estudiantes.render_barra_sesion_compacta()
     interfaz.mostrar_cabecera_pagina_modo()
     ruta = _modo
+
+# Panel admin desde la barra lateral (después de fijar ``ruta``, antes del contenido del modo).
+if st.sidebar.checkbox("Acceso Administrador", key="admin_access_check"):
+    if _render_admin_panel_safe():
+        st.stop()
 
 # =======================================================
 # LÓGICA 0: SEGUIMOS (continuidad, alumnos registrados en sesión)

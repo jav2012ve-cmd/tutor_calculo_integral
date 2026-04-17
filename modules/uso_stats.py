@@ -882,7 +882,7 @@ def obtener_todos_los_logs_ia(limit: int = 8000) -> list[dict[str, Any]]:
         f"?select=id,created_at,estudiante_id,pregunta,respuesta,modelo,institucion,carrera"
         f"&order=created_at.desc&limit={lim}"
     )
-    return _get_json_rows(endpoint, key)
+    return _get_json_rows(endpoint)
 
 
 def obtener_todos_los_eventos_uso(limit: int = 15000) -> list[dict[str, Any]]:
@@ -899,7 +899,7 @@ def obtener_todos_los_eventos_uso(limit: int = 15000) -> list[dict[str, Any]]:
         f"?select=id,created_at,modo,payload,estudiante_id"
         f"&order=created_at.desc&limit={lim}"
     )
-    return _get_json_rows(endpoint, key)
+    return _get_json_rows(endpoint)
 
 
 def obtener_estudiantes_resumen_admin(limit: int = 8000) -> list[dict[str, Any]]:
@@ -916,4 +916,4 @@ def obtener_estudiantes_resumen_admin(limit: int = 8000) -> list[dict[str, Any]]
         f"?select=id,institucion,nombre,email,created_at"
         f"&order=created_at.desc&limit={lim}"
     )
-    return _get_json_rows(endpoint, key)
+    return _get_json_rows(endpoint)

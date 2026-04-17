@@ -103,18 +103,26 @@ def registrar_interaccion(pregunta: str, respuesta: str, modelo: str) -> None:
         try:
             import streamlit as st
 
-            inst = (st.session_state.get("auth_estudiante_institucion") or "").strip() or "Anónimo"
-            carr = (st.session_state.get("auth_estudiante_carrera") or "").strip() or "N/A"
-        except Exception:
-            inst, carr = "Anónimo", "N/A"
+            _i = st.session_state.get("auth_estudiante_institucion", "No especificado")
+            _c = st.session_state.get("auth_estudiante_carrera", "No especificado")
+            _inst = (str(_i).strip() or "No especificado")[:400]
+            _carr = (str(_c).strip() or "No especificado")[:300]
 
-        payload: dict[str, Any] = {
-            "pregunta": _truncar(pregunta or ""),
-            "respuesta": _truncar(respuesta or ""),
-            "modelo": (modelo or "")[:500],
-            "institucion": inst[:400],
-            "carrera": carr[:300],
-        }
+            payload: dict[str, Any] = {
+                "pregunta": _truncar(pregunta or ""),
+                "respuesta": _truncar(respuesta or ""),
+                "modelo": (modelo or "")[:500],
+                "institucion": _inst,
+                "carrera": _carr,
+            }
+        except Exception:
+            payload = {
+                "pregunta": _truncar(pregunta or ""),
+                "respuesta": _truncar(respuesta or ""),
+                "modelo": (modelo or "")[:500],
+                "institucion": "No especificado",
+                "carrera": "No especificado",
+            }
         if estudiante_id:
             payload["estudiante_id"] = estudiante_id
 
