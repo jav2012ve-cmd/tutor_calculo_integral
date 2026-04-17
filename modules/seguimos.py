@@ -393,17 +393,29 @@ def _render_entrada_seguimos() -> None:
 
 
 def _render_portal_seguimos() -> None:
-    if st.button("← Volver", key="seguimos_portal_volver"):
-        st.session_state.seguimos_paso = SEGUIMOS_PASO_ENTRADA
-        st.rerun()
+    tab_ini = st.session_state.get("seguimos_portal_tab", "registro")
+    if tab_ini not in ("registro", "login"):
+        tab_ini = "registro"
+
+    c_nav_1, c_nav_2 = st.columns(2)
+    with c_nav_1:
+        if st.button("← Volver", key="seguimos_portal_volver", use_container_width=True):
+            st.session_state.seguimos_paso = SEGUIMOS_PASO_ENTRADA
+            st.rerun()
+    with c_nav_2:
+        if tab_ini == "registro":
+            if st.button("Ya tengo cuenta", key="seguimos_portal_ir_login", use_container_width=True):
+                st.session_state.seguimos_portal_tab = "login"
+                st.rerun()
+        else:
+            if st.button("Regístrate", key="seguimos_portal_ir_registro", use_container_width=True):
+                st.session_state.seguimos_portal_tab = "registro"
+                st.rerun()
 
     if not _supabase_configurado():
         st.warning("Sin Supabase configurado no se puede usar el portal. Pulsa **← Volver**.")
         return
 
-    tab_ini = st.session_state.get("seguimos_portal_tab", "registro")
-    if tab_ini not in ("registro", "login"):
-        tab_ini = "registro"
     if tab_ini == "login":
         st.info(
             "Introduce **correo** y **contraseña**. Si aún no tienes cuenta, pulsa **← Volver** "
