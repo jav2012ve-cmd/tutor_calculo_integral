@@ -301,6 +301,7 @@ def render_formulario_registro(
     *,
     key_prefix: str,
     on_session_ok: Optional[Callable[[], None]] = None,
+    redirigir_a_login: bool = False,
 ) -> None:
     with st.form(f"form_registro_{key_prefix}"):
         st.caption("Datos del participante (estudiante universitario).")
@@ -366,6 +367,12 @@ def render_formulario_registro(
             else:
                 ok, msg = registrar_estudiante(e2, p2, nom, ced, inst, fn, carrera, semestre)
                 if ok:
+                    if redirigir_a_login:
+                        st.session_state["seguimos_portal_tab"] = "login"
+                        st.session_state["_auth_portal_msg"] = (
+                            "Cuenta creada con éxito. Ahora inicia sesión con tu correo y contraseña."
+                        )
+                        st.rerun()
                     ok_in, msg_in = autenticar(e2, p2)
                     if ok_in:
                         if on_session_ok:
@@ -409,7 +416,7 @@ def render_portal_participante(
     Portal dedicado.
 
     - ``tab_inicial="login"`` (desde «Ya tengo cuenta»): solo correo y contraseña, sin textos de registro.
-    - ``tab_inicial="registro"`` (desde «Regístrate»): formulario completo de alta y, debajo, acceso por login.
+    - ``tab_inicial="registro"`` (desde «Regístrate»): formulario completo de alta y luego redirección a login.
     """
     if not _supabase_ok():
         st.caption(
@@ -419,8 +426,11 @@ def render_portal_participante(
         return
 
     if tab_inicial == "login":
+        portal_msg = st.session_state.pop("_auth_portal_msg", None)
         with _portal_tarjeta():
             st.markdown("### Iniciar sesión")
+            if portal_msg:
+                st.success(str(portal_msg))
             st.caption("Ingresa el **correo** y la **contraseña** con los que te registraste.")
             render_formulario_login(key_prefix="portal_log", on_session_ok=on_session_ok)
         return
@@ -440,12 +450,11 @@ def render_portal_participante(
             st.caption("3) Entrarás automáticamente al panel.")
         with form_col:
             st.markdown("#### Crear cuenta")
-            render_formulario_registro(key_prefix="portal_reg", on_session_ok=on_session_ok)
-
-    with _portal_tarjeta():
-        st.markdown("#### Ya tengo cuenta")
-        st.caption("Ingresa con tu correo y contraseña para continuar.")
-        render_formulario_login(key_prefix="portal_log_alt", on_session_ok=on_session_ok)
+            render_formulario_registro(
+                key_prefix="portal_reg",
+                on_session_ok=on_session_ok,
+                redirigir_a_login=True,
+            )
 
 
 def _navegar_a_portal_seguimos(portal_tab: str) -> None:

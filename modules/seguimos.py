@@ -411,8 +411,8 @@ def _render_portal_seguimos() -> None:
         )
     else:
         st.success(
-            "Completa el formulario para **crear tu cuenta**; si ya estás registrado, "
-            "usa la sección **Ya tengo cuenta** al final de esta página."
+            "Completa el formulario para **crear tu cuenta**. Al finalizar, "
+            "te llevaremos automáticamente a **Iniciar sesión**."
         )
     auth_estudiantes.render_portal_participante(
         tab_inicial=tab_ini,
