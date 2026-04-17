@@ -1475,5 +1475,11 @@ elif ruta == "e) Corrección de Manuscritos":
             st.session_state.manuscrito_correccion = None
             st.rerun()
 
+# =======================================================
+# LÓGICA F: PLANES DE ESTUDIO OFICIALES
+# =======================================================
+elif ruta == interfaz.MODO_PLANES_ESTUDIO_OFICIALES:
+    interfaz.mostrar_planes_estudio_oficiales()
+
 # --- Pie del panel central: total de interacciones ---
 interfaz.mostrar_dudas_resueltas()

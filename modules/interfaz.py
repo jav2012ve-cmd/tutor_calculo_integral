@@ -8,6 +8,10 @@ from PIL import Image
 from modules.temario import LISTA_TEMAS
 from modules import uso_stats
 from modules import seguimos
+from modules import planes_estudio_oficiales
+
+# Modo «hoja» de referencia académica por universidad (matriz de portada).
+MODO_PLANES_ESTUDIO_OFICIALES = "f) Planes de Estudio Oficiales"
 
 # Nombre de la aplicación (pestaña del navegador, títulos principales)
 # ∑ (U+2211) sustituye la S inicial de «Sigma» en pantalla y en la pestaña del navegador.
@@ -76,6 +80,12 @@ def _imagen_por_modo(modo_id: str) -> Optional[str]:
             "te_lo_reviso.jpg",
             "TeLoReviso.jpg",
         ),
+        MODO_PLANES_ESTUDIO_OFICIALES: _ruta_primera_existente(
+            "botonPlanesEstudio.jpg",
+            "BotonPlanesEstudio.jpg",
+            "planes_estudio.jpg",
+            "PlanesEstudio.jpg",
+        ),
     }
     return mapping.get(modo_id)
 
@@ -141,6 +151,14 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
             "Te lo reviso",
             "Sube una foto de tu resolución escrita: se identifica el enunciado, se valora tu trabajo "
             "(correcto / parcial / incorrecto) y se sugieren mejoras.",
+        ),
+    ),
+    (
+        (
+            MODO_PLANES_ESTUDIO_OFICIALES,
+            "Planes de Estudio Oficiales",
+            "Consulta la guía según tu universidad: enfoque, temas críticos y bibliografía sugerida "
+            "(perfil desde Seguimos).",
         ),
     ),
 )
@@ -302,7 +320,7 @@ def mostrar_portada_selector_modos() -> None:
     )
 
     for i, fila in enumerate(MATRIZ_MODOS_2X3):
-        cols = st.columns(3)
+        cols = st.columns(len(fila))
         for j, (modo_id, etiqueta, ayuda) in enumerate(fila):
             with cols[j]:
                 if st.button(
@@ -362,6 +380,70 @@ def mostrar_cabecera_pagina_modo() -> Optional[str]:
 
     st.divider()
     return tema_seleccionado
+
+
+def mostrar_planes_estudio_oficiales() -> None:
+    """
+    Vista «Planes de Estudio Oficiales»: usa ``auth_estudiante_institucion`` (y carrera si existe)
+    para mostrar guía, temas críticos y bibliografía de ``planes_estudio_oficiales.PLANES_DETALLADOS``.
+    """
+    st.header("Planes de Estudio Oficiales")
+    st.caption(
+        "Referencia V1 alineada a la malla típica de tu universidad. "
+        "Completa tu **institución** (y carrera) en **Seguimos** para personalizar esta hoja."
+    )
+
+    inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+    carrera = (st.session_state.get("auth_estudiante_carrera") or "").strip()
+
+    uso_stats.registrar_uso(
+        "Planes de Estudio Oficiales",
+        detalle={"institucion": inst or None, "carrera": carrera or None},
+    )
+
+    if not inst:
+        st.warning(
+            "No hay **institución** en tu perfil de sesión. "
+            "Inicia sesión o actualiza tus datos en **Seguimos** para ver la guía personalizada."
+        )
+        st.markdown(
+            "Mientras tanto puedes revisar el **temario** y los demás modos; "
+            "al guardar tu universidad aquí verás enfoque, temas prioritarios y bibliografía sugerida."
+        )
+        return
+
+    plan = planes_estudio_oficiales.obtener_plan_desde_institucion(inst)
+
+    if not plan:
+        st.warning(
+            f"No tenemos un plan detallado para «{inst}». "
+            "Si crees que es un error, revisa cómo escribiste la institución en **Seguimos**."
+        )
+        st.info(
+            "Puedes seguir usando el tutor y el temario común; si tu universidad es UCV, USB, "
+            "UNIMET, ULA, LUZ o UC, verifica que el nombre coincida con el perfil."
+        )
+        return
+
+    st.subheader(f"Malla: {plan['nombre_curso']}")
+    linea_perfil = f"**Institución en tu perfil:** {inst}"
+    if carrera:
+        linea_perfil += f" · **Carrera:** {carrera}"
+    st.markdown(linea_perfil)
+
+    st.info(f"**Enfoque institucional:** {plan['enfoque']}")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("#### Temas prioritarios")
+        for tema in plan["temas_criticos"]:
+            st.markdown(f"- {tema}")
+    with col2:
+        st.markdown("#### Bibliografía sugerida")
+        for libro in plan["bibliografia"]:
+            st.markdown(f"- {libro}")
+
+    st.success(f"**Guía de estudio:** {plan['guia_estudio']}")
 
 
 def mostrar_dudas_resueltas() -> None:

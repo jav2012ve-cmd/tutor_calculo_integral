@@ -32,6 +32,7 @@ MODULOS = (
     "Quiz",
     "Tutor Preguntas Abiertas",
     "Corrección de Manuscritos",
+    "Planes de Estudio Oficiales",
 )
 
 STATS_TEMA_NO_ESPECIFICADO = "(No especificado)"
