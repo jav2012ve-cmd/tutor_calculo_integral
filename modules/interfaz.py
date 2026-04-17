@@ -396,7 +396,7 @@ def inyectar_estilo_matematico():
             font-family: 'Roboto Mono', monospace !important;
         }
         .stApp h2, .stApp h3, .stApp h4, .stApp h5, .stApp h6,
-        .stApp p, .stApp label, .stApp span, .stApp li, .stApp td, .stApp th,
+        .stApp p, .stApp label, .stApp li, .stApp td, .stApp th,
         .stApp button, .stApp input, .stApp textarea, .stApp select,
         .stCaption, [data-testid="stMarkdownContainer"] {
             font-family: 'Roboto Mono', monospace !important;
