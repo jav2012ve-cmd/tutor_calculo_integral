@@ -6,9 +6,12 @@ Requiere SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY en secrets o entorno.
 
 from __future__ import annotations
 
+import base64
+import html
 import re
 import urllib.parse
 from datetime import date, timedelta
+from pathlib import Path
 from typing import Any, Callable, Optional
 
 import bcrypt
@@ -21,6 +24,7 @@ _TABLE = "app_estudiante"
 _TIMEOUT = 15
 _EMAIL_RE = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 _CEDULA_TOKEN_RE = re.compile(r"^[\w.-]+$", re.UNICODE)
+_ROOT_DIR = Path(__file__).resolve().parents[1]
 
 
 def _supabase_ok() -> bool:
@@ -429,20 +433,136 @@ def _tarjeta_beneficios_registro() -> None:
     st.caption("Solo almacenamos datos del participante y el hash de contraseña.")
 
 
+_PLANES_MATRIZ_FALLBACK: dict[str, dict[str, Any]] = {
+    "UNEXPO": {
+        "enfoque": "Formación tecnológica aplicada a ingeniería y ciencias exactas.",
+        "bibliografia": ["Leithold", "Stewart"],
+    },
+    "UCLA": {
+        "enfoque": "Enfoque integral en ingeniería, agronomía y ciencias en el occidente.",
+        "bibliografia": ["Thomas", "Purcell"],
+    },
+    "Monteavila": {
+        "enfoque": "Rigor académico con orientación a gestión, economía y proyectos.",
+        "bibliografia": ["Spivak (lecturas selectas)", "Sears & Zemansky"],
+    },
+}
+
+_CARRERAS_VINCULADAS: dict[str, tuple[str, ...]] = {
+    "UCV": ("Ingeniería", "Mecánica", "Eléctrica", "Civil", "Computación", "Física"),
+    "USB": ("Ingeniería", "Mecánica", "Eléctrica", "Civil", "Computación", "Física"),
+    "UNEXPO": ("Ingeniería", "Mecánica", "Eléctrica", "Civil", "Computación", "Física"),
+    "UNIMET": ("Ingeniería", "Economía", "Ciencias Administrativas"),
+    "Monteavila": ("Ingeniería", "Economía", "Ciencias Administrativas"),
+    "ULA": ("Ingeniería", "Agronomía", "Ciencias"),
+    "LUZ": ("Ingeniería", "Agronomía", "Ciencias"),
+    "UCLA": ("Ingeniería", "Agronomía", "Ciencias"),
+    "UC": ("Ingeniería", "Agronomía", "Ciencias"),
+}
+
+_IMAGENES_UNIVERSIDAD_CANDIDATAS: dict[str, tuple[str, ...]] = {
+    "UCV": ("UCV.jpg", "UCV.png"),
+    "USB": ("USB.jpg", "USB.png"),
+    "UNIMET": ("UNIMET.jpg", "UNIMET.png"),
+    "ULA": ("ULA.jpg", "ULA.png"),
+    "LUZ": ("LUZ.jpg", "LUZ.png"),
+    "UC": ("UC.jpg", "UC.png"),
+    "UNEXPO": ("UNEXPO.jpg", "UNEXPO.png"),
+    "UCLA": ("UCLA.jpg", "UCLA.png"),
+    "Monteavila": (
+        "Monteavila.jpg",
+        "MONTEAVILA.jpg",
+        "Monteavila.png",
+        "UMA.jpg",
+        "ImagenesUniversidades2.png",
+    ),
+}
+
+
+@st.cache_data(show_spinner=False)
+def _imagen_universidad_data_uri(clave: str) -> Optional[str]:
+    mime_por_ext = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+    }
+    for nombre in _IMAGENES_UNIVERSIDAD_CANDIDATAS.get(clave, ()):
+        ruta = _ROOT_DIR / nombre
+        if not ruta.exists():
+            continue
+        ext = ruta.suffix.lower()
+        mime = mime_por_ext.get(ext)
+        if not mime:
+            continue
+        try:
+            binario = ruta.read_bytes()
+        except OSError:
+            continue
+        encoded = base64.b64encode(binario).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
+    return None
+
+
 def render_matriz_universidades() -> None:
-    """Muestra universidades objetivo con cards estilo glassmorphism de alto contraste."""
+    """Universidades de referencia: una sola grilla de cards (glass + carreras + hover)."""
+    st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
     st.markdown("##### Universidades de referencia")
     st.caption(
         "Contenido académico por universidad para orientar enfoque y bibliografía sugerida en el tutor."
     )
 
-    paleta_expandida = {
+    st.markdown(
+        """
+<style>
+.auth-uni-card {
+  border-radius: 12px;
+  padding: 0.72rem 0.78rem;
+  margin-bottom: 0.62rem;
+  border-right: 1px solid #cbd5e166;
+  border-bottom: 1px solid #cbd5e166;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  min-height: 268px;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(5px);
+  border-top: 6px solid var(--p);
+  border-left: 1px solid color-mix(in srgb, var(--p) 28%, transparent);
+  transition: box-shadow 0.22s ease, border-color 0.22s ease, transform 0.18s ease;
+}
+.auth-uni-card:hover {
+  border-top-color: var(--s) !important;
+  border-left-color: color-mix(in srgb, var(--s) 45%, transparent) !important;
+  box-shadow: 0 0 0 2px var(--s), 0 12px 28px rgba(15, 23, 42, 0.12);
+  transform: translateY(-2px);
+}
+</style>
+""",
+        unsafe_allow_html=True,
+    )
+
+    paleta_expandida: dict[str, dict[str, str]] = {
         "UCV": {"emoji": "🏛️"},
         "USB": {"emoji": "🌲"},
         "UNIMET": {"emoji": "⚙️"},
         "ULA": {"emoji": "🏔️", "color_primario": "#1E3A8A", "color_secundario": "#FFFFFF"},
-        "LUZ": {"emoji": "🌞", "color_primario": "#B8860B", "color_secundario": "#166534"},
-        "UC": {"emoji": "🔥", "color_primario": "#EA580C", "color_secundario": "#166534"},
+        "LUZ": {"emoji": "☀️", "color_primario": "#B8860B", "color_secundario": "#166534"},
+        "UC": {"emoji": "🌄", "color_primario": "#EA580C", "color_secundario": "#166534"},
+        "UNEXPO": {
+            "emoji": "🔧",
+            "color_primario": "#0F766E",
+            "color_secundario": "#F97316",
+        },
+        "UCLA": {
+            "emoji": "🌿",
+            "color_primario": "#065F46",
+            "color_secundario": "#D97706",
+        },
+        "Monteavila": {
+            "emoji": "🏙️",
+            "color_primario": "#7C3AED",
+            "color_secundario": "#F59E0B",
+        },
     }
 
     def _badge_enfoque(enfoque: str) -> str:
@@ -455,13 +575,43 @@ def render_matriz_universidades() -> None:
             return "Ritmo Intensivo"
         return "Método Balanceado"
 
-    claves = ("UCV", "USB", "UNIMET", "ULA", "LUZ", "UC")
+    def _html_carreras_badges(labels: tuple[str, ...], color_p: str) -> str:
+        pills = []
+        for lab in labels:
+            esc = html.escape(lab)
+            pills.append(
+                f'<span style="display:inline-block;font-size:0.68rem;font-weight:600;'
+                f"color:#fff;background:{html.escape(color_p, quote=True)};"
+                f"padding:0.12rem 0.42rem;margin:0.08rem 0.12rem 0.08rem 0;"
+                f'border-radius:999px;line-height:1.2;">{esc}</span>'
+            )
+        inner = "".join(pills)
+        return (
+            '<div style="margin:0.32rem 0 0.42rem 0;">'
+            '<div style="font-size:0.72rem;font-weight:700;color:#334155;margin-bottom:0.22rem;">'
+            "Carreras vinculadas</div>"
+            f'<div style="line-height:1.45;">{inner}</div></div>'
+        )
+
+    claves = (
+        "UCV",
+        "USB",
+        "UNIMET",
+        "ULA",
+        "LUZ",
+        "UC",
+        "UNEXPO",
+        "UCLA",
+        "Monteavila",
+    )
     for i in range(0, len(claves), 3):
         cols = st.columns(3)
         fila = claves[i : i + 3]
         for j, clave in enumerate(fila):
             estilo = interfaz.MAPA_ESTILOS_INSTITUCIONALES.get(clave, {})
-            plan = planes_estudio_oficiales.PLANES_DETALLADOS.get(clave, {})
+            plan = planes_estudio_oficiales.PLANES_DETALLADOS.get(
+                clave, _PLANES_MATRIZ_FALLBACK.get(clave, {})
+            )
             estilo_extra = paleta_expandida.get(clave, {})
             color = str(
                 estilo_extra.get("color_primario")
@@ -474,52 +624,41 @@ def render_matriz_universidades() -> None:
                 or "#e2e8f0"
             ).strip()
             emoji = str(estilo_extra.get("emoji") or "🎓")
-            enfoque = str(plan.get("enfoque") or "Sin enfoque cargado.")
-            badge = _badge_enfoque(enfoque)
+            enfoque_raw = str(plan.get("enfoque") or "Sin enfoque cargado.")
+            enfoque = html.escape(enfoque_raw)
+            badge = html.escape(_badge_enfoque(enfoque_raw))
             bib = plan.get("bibliografia") or []
-            bib_txt = ", ".join(str(x) for x in bib) if bib else "Sin bibliografía sugerida."
+            bib_txt_raw = ", ".join(str(x) for x in bib) if bib else "Sin bibliografía sugerida."
+            bib_txt = html.escape(bib_txt_raw)
+            carreras = _CARRERAS_VINCULADAS.get(clave, ())
+            carreras_html = _html_carreras_badges(carreras, color)
+            nombre_tarjeta = "Monteávila" if clave == "Monteavila" else clave
+            img_data_uri = _imagen_universidad_data_uri(clave)
+            if img_data_uri:
+                miniatura_html = (
+                    '<div style="margin:0.1rem 0 0.5rem 0;">'
+                    f'<img src="{img_data_uri}" alt="Campus {html.escape(nombre_tarjeta)}" '
+                    'style="width:100%;height:72px;object-fit:cover;border-radius:9px;'
+                    f'border:1px solid {color}66;" />'
+                    "</div>"
+                )
+            else:
+                miniatura_html = (
+                    '<div style="margin:0.1rem 0 0.5rem 0;height:72px;border-radius:9px;'
+                    f'background:{color}22;border:1px dashed {color}66;display:flex;'
+                    'align-items:center;justify-content:center;font-size:0.8rem;color:#475569;">'
+                    "Miniatura próximamente</div>"
+                )
             with cols[j]:
                 st.markdown(
                     f"""
-<div style="border-top: 6px solid {color}; border-radius: 12px; padding: 0.72rem 0.78rem; margin-bottom: 0.62rem; background: linear-gradient(140deg, {color_sec}22 0%, #ffffff 100%); border-left: 1px solid {color}44; border-right: 1px solid #cbd5e166; border-bottom: 1px solid #cbd5e166; box-shadow: 0 8px 20px rgba(15,23,42,0.08); min-height: 205px; display: flex; flex-direction: column; backdrop-filter: blur(5px);">
-  <div style="font-weight: 700; margin-bottom: 0.35rem;">{emoji} ∑igma para {clave}</div>
-  <div style="display:inline-block; width: fit-content; font-size: 0.78rem; font-weight: 700; color: #0f172a; background: {color}33; border: 1px solid {color}66; border-radius: 999px; padding: 0.16rem 0.54rem; margin-bottom: 0.42rem;">{badge}</div>
+<div class="auth-uni-card" style="--p: {color}; --s: {color_sec}; background: linear-gradient(140deg, {color_sec}22 0%, #ffffff 100%);">
+  <div style="font-weight: 700; margin-bottom: 0.35rem;">{emoji} ∑igma para {html.escape(nombre_tarjeta)}</div>
+  {miniatura_html}
+  <div style="display:inline-block; width: fit-content; font-size: 0.78rem; font-weight: 700; color: #0f172a; background: {color}33; border: 1px solid {color}66; border-radius: 999px; padding: 0.16rem 0.54rem; margin-bottom: 0.28rem;">{badge}</div>
+  {carreras_html}
   <div style="font-size: 0.92rem; margin-bottom: 0.35rem; line-height: 1.35;"><strong>Enfoque:</strong> {enfoque}</div>
   <div style="font-size: 0.9rem; line-height: 1.35; margin-top: auto;"><strong>Bibliografía:</strong> {bib_txt}</div>
-</div>
-""",
-                    unsafe_allow_html=True,
-                )
-
-
-def render_bienvenida_emocional() -> None:
-    """Bloque de bienvenida emocional con cards por universidad."""
-    st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
-
-    claves = ("UCV", "USB", "UNIMET", "ULA", "LUZ", "UC")
-
-    def _frase_valor_desde_enfoque(enfoque: str) -> str:
-        s = (enfoque or "").strip().rstrip(".")
-        if not s:
-            return "Avanza con claridad y enfoque."
-        # Toma una frase breve derivada del enfoque oficial.
-        corto = s.split(" y ", 1)[0].strip()
-        return corto if len(corto) <= 60 else (corto[:57].rstrip() + "...")
-
-    for i in range(0, len(claves), 3):
-        cols = st.columns(3)
-        fila = claves[i : i + 3]
-        for j, clave in enumerate(fila):
-            estilo = interfaz.MAPA_ESTILOS_INSTITUCIONALES.get(clave, {})
-            plan = planes_estudio_oficiales.PLANES_DETALLADOS.get(clave, {})
-            color = str(estilo.get("color_primario") or "#64748b").strip()
-            frase = _frase_valor_desde_enfoque(str(plan.get("enfoque") or ""))
-            with cols[j]:
-                st.markdown(
-                    f"""
-<div style="border-top: 5px solid {color}; border-radius: 10px; padding: 0.75rem 0.8rem; margin-bottom: 0.6rem; background: rgba(148, 163, 184, 0.08); min-height: 120px;">
-  <div style="font-weight: 700; margin-bottom: 0.35rem;">∑igma para {clave}</div>
-  <div style="font-size: 0.93rem; line-height: 1.35;">{frase}</div>
 </div>
 """,
                     unsafe_allow_html=True,
@@ -544,7 +683,6 @@ def render_portal_participante(
         )
         return
 
-    render_bienvenida_emocional()
     render_matriz_universidades()
 
     if tab_inicial == "login":
