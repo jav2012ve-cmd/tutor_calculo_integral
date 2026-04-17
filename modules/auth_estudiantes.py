@@ -430,11 +430,30 @@ def _tarjeta_beneficios_registro() -> None:
 
 
 def render_matriz_universidades() -> None:
-    """Muestra universidades objetivo (estilo + enfoque + bibliografía) en cuadrícula 3x2."""
+    """Muestra universidades objetivo con cards estilo glassmorphism de alto contraste."""
     st.markdown("##### Universidades de referencia")
     st.caption(
         "Contenido académico por universidad para orientar enfoque y bibliografía sugerida en el tutor."
     )
+
+    paleta_expandida = {
+        "UCV": {"emoji": "🏛️"},
+        "USB": {"emoji": "🌲"},
+        "UNIMET": {"emoji": "⚙️"},
+        "ULA": {"emoji": "🏔️", "color_primario": "#1E3A8A", "color_secundario": "#FFFFFF"},
+        "LUZ": {"emoji": "🌞", "color_primario": "#B8860B", "color_secundario": "#166534"},
+        "UC": {"emoji": "🔥", "color_primario": "#EA580C", "color_secundario": "#166534"},
+    }
+
+    def _badge_enfoque(enfoque: str) -> str:
+        s = (enfoque or "").lower()
+        if any(k in s for k in ("rigor", "analítico", "formal", "demostr")):
+            return "Rigor Teórico"
+        if any(k in s for k in ("pragmático", "práctic", "aplic", "técnico", "ingenier")):
+            return "Aplicación Práctica"
+        if any(k in s for k in ("acelerado", "trimestral", "velocidad")):
+            return "Ritmo Intensivo"
+        return "Método Balanceado"
 
     claves = ("UCV", "USB", "UNIMET", "ULA", "LUZ", "UC")
     for i in range(0, len(claves), 3):
@@ -443,15 +462,28 @@ def render_matriz_universidades() -> None:
         for j, clave in enumerate(fila):
             estilo = interfaz.MAPA_ESTILOS_INSTITUCIONALES.get(clave, {})
             plan = planes_estudio_oficiales.PLANES_DETALLADOS.get(clave, {})
-            color = str(estilo.get("color_primario") or "#64748b").strip()
+            estilo_extra = paleta_expandida.get(clave, {})
+            color = str(
+                estilo_extra.get("color_primario")
+                or estilo.get("color_primario")
+                or "#64748b"
+            ).strip()
+            color_sec = str(
+                estilo_extra.get("color_secundario")
+                or estilo.get("color_secundario")
+                or "#e2e8f0"
+            ).strip()
+            emoji = str(estilo_extra.get("emoji") or "🎓")
             enfoque = str(plan.get("enfoque") or "Sin enfoque cargado.")
+            badge = _badge_enfoque(enfoque)
             bib = plan.get("bibliografia") or []
             bib_txt = ", ".join(str(x) for x in bib) if bib else "Sin bibliografía sugerida."
             with cols[j]:
                 st.markdown(
                     f"""
-<div style="border-left: 5px solid {color}; border-radius: 8px; padding: 0.7rem 0.75rem; margin-bottom: 0.6rem; background: rgba(148, 163, 184, 0.08); min-height: 190px; display: flex; flex-direction: column;">
-  <div style="font-weight: 700; margin-bottom: 0.25rem;">{clave}</div>
+<div style="border-top: 6px solid {color}; border-radius: 12px; padding: 0.72rem 0.78rem; margin-bottom: 0.62rem; background: linear-gradient(140deg, {color_sec}22 0%, #ffffff 100%); border-left: 1px solid {color}44; border-right: 1px solid #cbd5e166; border-bottom: 1px solid #cbd5e166; box-shadow: 0 8px 20px rgba(15,23,42,0.08); min-height: 205px; display: flex; flex-direction: column; backdrop-filter: blur(5px);">
+  <div style="font-weight: 700; margin-bottom: 0.35rem;">{emoji} ∑igma para {clave}</div>
+  <div style="display:inline-block; width: fit-content; font-size: 0.78rem; font-weight: 700; color: #0f172a; background: {color}33; border: 1px solid {color}66; border-radius: 999px; padding: 0.16rem 0.54rem; margin-bottom: 0.42rem;">{badge}</div>
   <div style="font-size: 0.92rem; margin-bottom: 0.35rem; line-height: 1.35;"><strong>Enfoque:</strong> {enfoque}</div>
   <div style="font-size: 0.9rem; line-height: 1.35; margin-top: auto;"><strong>Bibliografía:</strong> {bib_txt}</div>
 </div>
