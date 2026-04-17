@@ -35,6 +35,8 @@ from modules import (
     graficos_entrenamiento,
     seguimos,
     auth_estudiantes,
+    planes_estudio,
+    contexto_universitario,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -551,10 +553,33 @@ def generar_respuesta_tutor_abierto(
     contexto_ejercicios = str(banco_preguntas.BANCO_FIXED[:10]) 
     estilos_examen = banco_muestras.EJEMPLOS_ESTILO
 
+    inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+    carrera = (st.session_state.get("auth_estudiante_carrera") or "").strip()
+    bloque_perfil_alumno = ""
+    if inst and carrera:
+        bloque_perfil_alumno = (
+            f"Estás atendiendo a un estudiante de la {inst} de la carrera {carrera}. "
+            "Ajusta tu lenguaje y prioridades de los temas según la malla programática típica de "
+            "esta universidad en Venezuela (ej. UCV, USB, UNIMET)."
+        )
+    bloque_malla_prompt = contexto_universitario.texto_instruccion_contexto_malla(inst)
+    bloque_institucional = planes_estudio.texto_contexto_ia_para_estudiante()
+    bloques_contexto_estudiante: list[str] = []
+    if bloque_perfil_alumno:
+        bloques_contexto_estudiante.append(bloque_perfil_alumno)
+    if bloque_malla_prompt:
+        bloques_contexto_estudiante.append(bloque_malla_prompt)
+    if bloque_institucional:
+        bloques_contexto_estudiante.append(bloque_institucional)
+    inyeccion_perfil_y_plan = (
+        "\n\n    ".join(bloques_contexto_estudiante) if bloques_contexto_estudiante else ""
+    )
+
     # 2. Prompt del Sistema (La personalidad del profesor)
     prompt_tutor = f"""
     Eres el tutor virtual de Cálculo Integral para estudiantes registrados en la plataforma.
     Tu objetivo es ayudar al estudiante a entender la teoría, pero SIEMPRE aterrizándola a la práctica de la clase.
+    {inyeccion_perfil_y_plan if inyeccion_perfil_y_plan else ""}
 
     CONTEXTO DEL CURSO (Tu base de conocimiento):
     --- Estilos de Examen ---
