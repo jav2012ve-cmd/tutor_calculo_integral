@@ -57,10 +57,6 @@ def _render_botones_acceso_rapido_modos() -> None:
     if not auth_estudiantes.sesion_activa():
         return
     st.markdown("##### Acceso rápido a los modos de estudio")
-    st.caption(
-        "Abre la misma herramienta que en la portada. Vuelve a **Seguimos** con **← Volver al inicio** "
-        "desde la cabecera del modo."
-    )
     for fila_ini in range(0, len(_ACCESO_RAPIDO_MODOS), 3):
         chunk = _ACCESO_RAPIDO_MODOS[fila_ini : fila_ini + 3]
         cols = st.columns(len(chunk))
