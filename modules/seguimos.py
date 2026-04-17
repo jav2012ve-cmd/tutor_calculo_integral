@@ -371,8 +371,6 @@ def _render_entrada_seguimos() -> None:
         st.caption("Tienes sesión activa; el resumen de continuidad está en el panel.")
         return
 
-    st.markdown("##### Cuenta de participante")
-    st.success("**Paso 1:** crea tu cuenta o entra si ya estás registrado.")
     c1, c2 = st.columns(2)
     with c1:
         if st.button("Regístrate", type="primary", use_container_width=True, key="seguimos_btn_registrate"):
@@ -384,12 +382,6 @@ def _render_entrada_seguimos() -> None:
             st.session_state.seguimos_paso = SEGUIMOS_PASO_PORTAL
             st.session_state.seguimos_portal_tab = "login"
             st.rerun()
-
-    st.divider()
-    st.info(
-        "**Seguimos** resume tu avance según el temario y te orienta para lograr **cobertura amplia** "
-        "del curso (práctica, consultas, simulacro, etc.)."
-    )
 
 
 def _render_portal_seguimos() -> None:
