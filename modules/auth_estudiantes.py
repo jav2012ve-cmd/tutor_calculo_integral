@@ -333,7 +333,11 @@ def render_formulario_registro(
                 "Institución donde estudias",
                 key=f"{key_prefix}_reg_institucion",
                 max_chars=200,
-                placeholder="Ej. UCV / USB / UNIMET",
+                placeholder="Ej. UCV · USB · UNIMET · ULA · Monteávila",
+            )
+            st.caption(
+                "Guía: siglas o nombre habitual — **UCV, USB, UNIMET, ULA, LUZ, UC, UNEXPO, UCLA, Monteávila**. "
+                "También vale el nombre por extenso (p. ej. *Universidad de Carabobo*)."
             )
             clave_univ = contexto_universitario.clave_malla_desde_institucion(inst)
             if clave_univ in interfaz.MAPA_ESTILOS_INSTITUCIONALES:
