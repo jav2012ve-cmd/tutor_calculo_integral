@@ -34,6 +34,7 @@ MODULOS = (
     "Tutor Preguntas Abiertas",
     "Corrección de Manuscritos",
     "Planes de Estudio Oficiales",
+    "session_heartbeat",
 )
 
 STATS_TEMA_NO_ESPECIFICADO = "(No especificado)"
@@ -506,6 +507,45 @@ def _session_clear_supabase_warn() -> None:
         pass
 
 
+def _modo_actual_ui_sesion() -> Optional[str]:
+    try:
+        import streamlit as st
+
+        m = st.session_state.get("modo_actual")
+        if m is None:
+            return None
+        s = str(m).strip()
+        return s if s else None
+    except Exception:
+        return None
+
+
+def _enriquecer_detalle_con_modo_ui(detalle: Optional[dict[str, Any]]) -> dict[str, Any]:
+    """Añade ``modo_actual_ui`` al JSON de eventos de uso."""
+    out: dict[str, Any] = dict(detalle or {})
+    modo_ui = _modo_actual_ui_sesion()
+    if modo_ui is not None:
+        out["modo_actual_ui"] = modo_ui
+    return out
+
+
+def registrar_session_heartbeat(modo_ui: Optional[str] = None) -> None:
+    """
+    Evento ``session_heartbeat`` en ``app_usage_event`` (permanencia / cambio de contexto).
+    No incrementa contadores de producto en ``app_module_usage``.
+    """
+    from datetime import datetime, timezone
+
+    m = modo_ui if modo_ui is not None else _modo_actual_ui_sesion()
+    detalle: dict[str, Any] = {
+        "tipo_evento": "session_heartbeat",
+        "modo_actual": m,
+        "modo_actual_ui": m,
+        "ts_utc": datetime.now(timezone.utc).isoformat(),
+    }
+    registrar_evento_aprendizaje("session_heartbeat", detalle)
+
+
 def registrar_evento_aprendizaje(modulo: str, detalle: dict[str, Any]) -> None:
     """
     Inserta solo un evento en ``app_usage_event`` (sin incrementar contador de módulo
@@ -513,6 +553,7 @@ def registrar_evento_aprendizaje(modulo: str, detalle: dict[str, Any]) -> None:
     """
     if modulo not in MODULOS:
         return
+    detalle = _enriquecer_detalle_con_modo_ui(detalle)
     url, key = _credenciales_supabase()
     if url and key:
         ok_ev, _err_ev = _insert_event_supabase(modulo, detalle)
@@ -545,12 +586,13 @@ def registrar_uso(modulo: str, detalle: Optional[dict[str, Any]] = None) -> None
         _guardar_archivo(data)
 
     if detalle:
+        detalle_ev = _enriquecer_detalle_con_modo_ui(detalle)
         if url and key:
-            ok_ev, _err_ev = _insert_event_supabase(modulo, detalle)
+            ok_ev, _err_ev = _insert_event_supabase(modulo, detalle_ev)
             if not ok_ev:
-                _append_evento_local(modulo, detalle)
+                _append_evento_local(modulo, detalle_ev)
         else:
-            _append_evento_local(modulo, detalle)
+            _append_evento_local(modulo, detalle_ev)
 
     topic_keys = _extraer_topic_keys_validos(modulo, detalle)
     if topic_keys:
@@ -837,7 +879,7 @@ def obtener_todos_los_logs_ia(limit: int = 8000) -> list[dict[str, Any]]:
     base = url.rstrip("/")
     endpoint = (
         f"{base}/rest/v1/{_TABLE_IA_LOGS}"
-        f"?select=id,created_at,estudiante_id,pregunta,respuesta,modelo"
+        f"?select=id,created_at,estudiante_id,pregunta,respuesta,modelo,institucion,carrera"
         f"&order=created_at.desc&limit={lim}"
     )
     return _get_json_rows(endpoint, key)

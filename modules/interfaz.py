@@ -503,7 +503,8 @@ def _aplicar_iniciar_modo(seleccion_visual: Optional[str]) -> None:
     if not seleccion_visual:
         return
     anterior = st.session_state.get("modo_actual")
-    if seleccion_visual != anterior:
+    hubo_cambio = seleccion_visual != anterior
+    if hubo_cambio:
         st.session_state.quiz_activo = False
         st.session_state.preguntas_quiz = []
         st.session_state.indice_pregunta = 0
@@ -521,6 +522,11 @@ def _aplicar_iniciar_modo(seleccion_visual: Optional[str]) -> None:
         st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_ENTRADA
     if seleccion_visual != seguimos.MODO_ID:
         st.session_state.pop("seguimos_paso", None)
+    if hubo_cambio:
+        try:
+            uso_stats.registrar_session_heartbeat(seleccion_visual)
+        except Exception:
+            pass
 
 
 def mostrar_portada_selector_modos() -> None:

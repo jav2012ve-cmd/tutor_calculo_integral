@@ -100,10 +100,20 @@ def registrar_interaccion(pregunta: str, respuesta: str, modelo: str) -> None:
             return
 
         url = f"{base.rstrip('/')}/rest/v1/{_TABLE}"
+        try:
+            import streamlit as st
+
+            inst = (st.session_state.get("auth_estudiante_institucion") or "").strip() or "Anónimo"
+            carr = (st.session_state.get("auth_estudiante_carrera") or "").strip() or "N/A"
+        except Exception:
+            inst, carr = "Anónimo", "N/A"
+
         payload: dict[str, Any] = {
             "pregunta": _truncar(pregunta or ""),
             "respuesta": _truncar(respuesta or ""),
             "modelo": (modelo or "")[:500],
+            "institucion": inst[:400],
+            "carrera": carr[:300],
         }
         if estudiante_id:
             payload["estudiante_id"] = estudiante_id

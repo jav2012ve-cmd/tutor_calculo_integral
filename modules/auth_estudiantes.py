@@ -248,6 +248,11 @@ def autenticar(email: str, password: str) -> tuple[bool, str]:
     else:
         st.session_state.pop("auth_estudiante_codigo", None)
 
+    try:
+        uso_stats.registrar_session_heartbeat("login_sesion")
+    except Exception:
+        pass
+
     return True, "Sesión iniciada."
 
 
