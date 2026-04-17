@@ -397,9 +397,17 @@ def _render_portal_seguimos() -> None:
     if tab_ini not in ("registro", "login"):
         tab_ini = "registro"
 
-    c_nav_1, c_nav_2 = st.columns(2)
+    try:
+        c_nav_1, c_nav_2, c_nav_3 = st.columns(3, gap="small")
+    except TypeError:
+        c_nav_1, c_nav_2, c_nav_3 = st.columns(3)
     with c_nav_1:
-        if st.button("← Volver", key="seguimos_portal_volver", use_container_width=True):
+        if st.button(
+            "← Paso anterior",
+            key="seguimos_portal_volver",
+            use_container_width=True,
+            help="Vuelve a elegir Regístrate o Ya tengo cuenta",
+        ):
             st.session_state.seguimos_paso = SEGUIMOS_PASO_ENTRADA
             st.rerun()
     with c_nav_2:
@@ -411,15 +419,28 @@ def _render_portal_seguimos() -> None:
             if st.button("Regístrate", key="seguimos_portal_ir_registro", use_container_width=True):
                 st.session_state.seguimos_portal_tab = "registro"
                 st.rerun()
+    with c_nav_3:
+        if st.button(
+            "Portada",
+            key="seguimos_portal_portada",
+            use_container_width=True,
+            help="Salir de Seguimos y volver a la portada de la app",
+        ):
+            from modules import interfaz as _interfaz
+
+            _interfaz._limpiar_estado_volver_inicio()
+            st.rerun()
 
     if not _supabase_configurado():
-        st.warning("Sin Supabase configurado no se puede usar el portal. Pulsa **← Volver**.")
+        st.warning(
+            "Sin Supabase configurado no se puede usar el portal. "
+            "Usa **Portada** para salir o **Paso anterior** para volver."
+        )
         return
 
     if tab_ini == "login":
         st.info(
-            "Introduce **correo** y **contraseña**. Si aún no tienes cuenta, pulsa **← Volver** "
-            "y elige **Regístrate**."
+            "Introduce **correo** y **contraseña**. Si aún no tienes cuenta, pulsa **Regístrate** arriba."
         )
     else:
         st.success(

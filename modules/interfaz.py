@@ -580,9 +580,15 @@ def mostrar_cabecera_pagina_modo() -> Optional[str]:
     if not modo:
         return None
 
-    if st.button("← Volver al inicio", key="btn_volver_inicio"):
-        _limpiar_estado_volver_inicio()
-        st.rerun()
+    # En el portal de registro/login, ``seguimos`` ya pinta la navegación (paso anterior / portada).
+    en_portal_seguimos = (
+        modo == seguimos.MODO_ID
+        and st.session_state.get("seguimos_paso") == seguimos.SEGUIMOS_PASO_PORTAL
+    )
+    if not en_portal_seguimos:
+        if st.button("← Volver al inicio", key="btn_volver_inicio"):
+            _limpiar_estado_volver_inicio()
+            st.rerun()
 
     etiq, ayuda = meta_modo(modo)
     st.markdown(f"### {etiq}")
