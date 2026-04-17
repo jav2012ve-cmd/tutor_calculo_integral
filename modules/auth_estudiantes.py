@@ -422,15 +422,15 @@ def _portal_tarjeta():
 
 
 def _tarjeta_beneficios_registro() -> None:
-    st.markdown("##### ¿Por qué registrarte?")
+    st.markdown("##### 🚀 Activa tu Ventaja Estratégica")
     st.markdown(
         """
-        - Guarda tu progreso de estudio en la nube.
-        - Consulta tu continuidad en **Seguimos** con tu perfil.
-        - Mantén tus datos académicos organizados por institución.
+        - 🎯 **Precisión Institucional:** IA entrenada con los parciales y la bibliografía de tu facultad (UCV, USB, UCAB...).
+        - 🔥 **Mapa de Calor Personalizado:** Identifica exactamente en qué temas vas a fallar antes del examen real.
+        - 🔄 **Sincronización Total:** Tu progreso, dudas y simulacros disponibles en cualquier dispositivo.
         """
     )
-    st.caption("Solo almacenamos datos del participante y el hash de contraseña.")
+    st.caption("Únete a la élite que estudia con inteligencia de datos.")
 
 
 _PLANES_MATRIZ_FALLBACK: dict[str, dict[str, Any]] = {
@@ -478,6 +478,8 @@ _IMAGENES_UNIVERSIDAD_CANDIDATAS: dict[str, tuple[str, ...]] = {
     ),
 }
 
+_PORTAL_INST_PRESELECCIONADA_KEY = "_auth_portal_institucion_preseleccionada"
+
 
 @st.cache_data(show_spinner=False)
 def _imagen_universidad_data_uri(clave: str) -> Optional[str]:
@@ -504,7 +506,7 @@ def _imagen_universidad_data_uri(clave: str) -> Optional[str]:
     return None
 
 
-def render_matriz_universidades() -> None:
+def render_matriz_universidades(*, key_prefix_registro: str = "portal_reg") -> None:
     """Universidades de referencia: una sola grilla de cards (glass + carreras + hover)."""
     st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
     st.markdown("##### Universidades de referencia")
@@ -649,6 +651,7 @@ def render_matriz_universidades() -> None:
                     'align-items:center;justify-content:center;font-size:0.8rem;color:#475569;">'
                     "Miniatura próximamente</div>"
                 )
+            btn_key = f"{key_prefix_registro}_pick_{clave.lower()}"
             with cols[j]:
                 st.markdown(
                     f"""
@@ -663,6 +666,14 @@ def render_matriz_universidades() -> None:
 """,
                     unsafe_allow_html=True,
                 )
+                if st.button(
+                    f"Elegir {nombre_tarjeta}",
+                    key=btn_key,
+                    use_container_width=True,
+                ):
+                    st.session_state[_PORTAL_INST_PRESELECCIONADA_KEY] = nombre_tarjeta
+                    st.session_state[f"{key_prefix_registro}_reg_institucion"] = nombre_tarjeta
+                    st.rerun()
 
 
 def render_portal_participante(
@@ -682,8 +693,6 @@ def render_portal_participante(
             "`SUPABASE_SERVICE_ROLE_KEY`; guarda, reinicia la app y ejecuta `supabase_estudiantes.sql`."
         )
         return
-
-    render_matriz_universidades()
 
     if tab_inicial == "login":
         portal_msg = st.session_state.pop("_auth_portal_msg", None)
@@ -709,6 +718,11 @@ def render_portal_participante(
             st.caption("2) Pulsa **Registrarme**.")
             st.caption("3) Entrarás automáticamente al panel.")
         with form_col:
+            render_matriz_universidades(key_prefix_registro="portal_reg")
+            inst_pre = st.session_state.get(_PORTAL_INST_PRESELECCIONADA_KEY)
+            if inst_pre:
+                st.caption(f"Institución seleccionada desde la matriz: **{inst_pre}**")
+                st.session_state["portal_reg_reg_institucion"] = inst_pre
             st.markdown("#### Crear cuenta")
             render_formulario_registro(
                 key_prefix="portal_reg",
