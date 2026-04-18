@@ -343,7 +343,7 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
     (
         (
             seguimos.MODO_ID,
-            "Seguimos",
+            "Seguimos // Registrate",
             "",
         ),
         (
