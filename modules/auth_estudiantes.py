@@ -222,23 +222,43 @@ def registrar_estudiante(
             return False, "Ya existe una cuenta con esos datos."
         err = (r.text or "")[:400]
         print(f"[auth] POST estudiante {r.status_code}: {err}")
+        body: dict[str, Any] = {}
         try:
-            body = r.json()
-            api_msg = str(body.get("message") or "")
+            body = r.json() if r.text else {}
         except (ValueError, TypeError):
-            api_msg = ""
-        low = api_msg.lower()
-        if r.status_code == 400 and "schema cache" in low and (
-            "carrera" in low or "semestre" in low
+            body = {}
+        api_msg = str(body.get("message") or "")
+        code_api = str(body.get("code") or "")
+        low_msg = api_msg.lower()
+        low_all = (r.text or "").lower()
+        falta_columna_perfil = (
+            code_api == "PGRST204"
+            or (
+                r.status_code == 400
+                and (
+                    ("schema cache" in low_all and ("carrera" in low_all or "semestre" in low_all))
+                    or ("could not find" in low_all and "carrera" in low_all)
+                    or ("could not find" in low_all and "semestre" in low_all)
+                )
+            )
+        )
+        if falta_columna_perfil or (
+            r.status_code == 400
+            and "schema cache" in low_msg
+            and ("carrera" in low_msg or "semestre" in low_msg)
         ):
             return (
                 False,
-                "La tabla **app_estudiante** en Supabase no tiene aún las columnas **carrera** y **semestre**. "
-                "En el SQL Editor del proyecto ejecuta el script **`supabase_estudiantes_add_carrera_semestre.sql`** "
-                "(o vuelve a ejecutar **`supabase_estudiantes.sql`** completo), guarda y espera unos segundos; "
-                "si el error continúa, reinicia la API en Supabase para refrescar la caché de PostgREST.",
+                "Falta actualizar la base de datos: la tabla **app_estudiante** necesita las columnas "
+                "**carrera** y **semestre**. En Supabase → **SQL Editor** ejecuta "
+                "**`supabase_estudiantes_add_carrera_semestre.sql`**, guarda y espera unos segundos.",
             )
-        return False, f"No se pudo registrar ({r.status_code}). {r.text[:200]}"
+        # Nunca mostrar JSON ni detalles técnicos al usuario.
+        return (
+            False,
+            "No se pudo completar el registro. Revisa los datos o inténtalo más tarde. "
+            "Si el fallo continúa, comprueba la configuración de Supabase.",
+        )
     except requests.RequestException as e:
         return False, f"Error de red: {e}"
 
