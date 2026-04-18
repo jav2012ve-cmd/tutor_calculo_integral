@@ -10,8 +10,6 @@ from __future__ import annotations
 import base64
 import html
 import io
-from urllib.parse import quote
-
 import streamlit as st
 from PIL import Image
 
@@ -113,6 +111,10 @@ def _render_botones_acceso_rapido_modos() -> None:
     from modules import interfaz as _ix
 
     st.markdown("##### Acceso rápido a los modos de estudio")
+    st.caption(
+        "Pulsa **Entrar** en cada tarjeta: el cambio de modo no recarga la página entera, "
+        "así **no se pierde** tu sesión de participante."
+    )
     for fila_ini in range(0, len(_ACCESO_RAPIDO_MODOS), 3):
         chunk = _ACCESO_RAPIDO_MODOS[fila_ini : fila_ini + 3]
         cols = st.columns(len(chunk))
@@ -120,18 +122,24 @@ def _render_botones_acceso_rapido_modos() -> None:
             with cols[j]:
                 _, ayuda = _ix.meta_modo(mid)
                 data_uri = _tile_acceso_rapido_data_uri(mid)
-                qmid = quote(mid, safe="")
-                title_attr = html.escape(ayuda or etiqueta)
+                ayuda_limpia = (ayuda or "").strip()
+                ayuda_btn = f"{etiqueta} — {ayuda_limpia}" if ayuda_limpia else etiqueta
                 if data_uri:
+                    # Solo imagen (sin <a href="?…">): un enlace recarga la página y Streamlit pierde session_state.
                     st.markdown(
-                        f'<a href="?abrir_modo={qmid}" title="{title_attr}" '
-                        'style="display:block;text-decoration:none;">'
-                        f'<img src="{data_uri}" alt="{html.escape(etiqueta)}" '
-                        'style="width:100%;border-radius:10px;border:1px solid #e2e8f0;"/></a>',
+                        f'<img src="{data_uri}" alt="{html.escape(etiqueta, quote=True)}" '
+                        'style="width:100%;border-radius:10px;border:1px solid #e2e8f0;display:block;" />',
                         unsafe_allow_html=True,
                     )
                 else:
                     st.caption("Sin imagen")
+                if st.button(
+                    "Entrar",
+                    key=f"seguimos_acceso_modo_{fila_ini}_{j}",
+                    help=ayuda_btn,
+                    use_container_width=True,
+                ):
+                    _navegar_a_modo_desde_seguimos(mid)
                 st.caption(etiqueta)
 
 
