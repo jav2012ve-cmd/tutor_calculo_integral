@@ -7,7 +7,13 @@ Sin Supabase: se puede ir al panel con identificación solo de sesión.
 
 from __future__ import annotations
 
+import base64
+import html
+import io
+from urllib.parse import quote
+
 import streamlit as st
+from PIL import Image
 
 from modules import auth_estudiantes, temario, uso_stats
 
@@ -28,6 +34,54 @@ _ACCESO_RAPIDO_MODOS: tuple[tuple[str, str], ...] = (
     ("e) Corrección de Manuscritos", "Te lo reviso"),
     (MODO_PLANES_OFICIALES_ID, "Planes de estudio oficiales"),
 )
+
+
+def modo_id_valido_acceso_rapido(mid: str) -> bool:
+    """``mid`` coincide con un modo de la cuadrícula de acceso rápido."""
+    return any(m == mid for m, _ in _ACCESO_RAPIDO_MODOS)
+
+
+def aplicar_apertura_modo_desde_query_param() -> None:
+    """Si la URL trae ``?abrir_modo=…``, abre ese modo y limpia el parámetro (enlace desde teselas)."""
+    try:
+        qp = st.query_params
+        raw = qp.get("abrir_modo")
+        if raw is None:
+            return
+        mid = raw[0] if isinstance(raw, list) else str(raw)
+        from urllib.parse import unquote_plus
+
+        mid = unquote_plus(mid)
+        if not modo_id_valido_acceso_rapido(mid):
+            if "abrir_modo" in qp:
+                del qp["abrir_modo"]
+            return
+        st.session_state.modo_actual = mid
+        st.session_state.pop("seguimos_paso", None)
+        _limpiar_estado_al_salir_de_seguimos()
+        if "abrir_modo" in qp:
+            del qp["abrir_modo"]
+        st.rerun()
+    except Exception:
+        pass
+
+
+def _tile_acceso_rapido_data_uri(mid: str) -> str | None:
+    from modules import interfaz as _ix
+
+    pil = _ix.preview_imagen_modo_recorte_superior(mid, fraccion_altura=0.15)
+    if pil is None:
+        pth = _ix.ruta_imagen_modo(mid)
+        if not pth:
+            return None
+        with Image.open(pth) as im:
+            pil = im.copy()
+        w, h = pil.size
+        if h > 2:
+            pil = pil.crop((0, 0, w, max(1, int(h * 0.15))))
+    buf = io.BytesIO()
+    pil.save(buf, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
 
 
 def _limpiar_estado_al_salir_de_seguimos() -> None:
@@ -65,23 +119,20 @@ def _render_botones_acceso_rapido_modos() -> None:
         for j, (mid, etiqueta) in enumerate(chunk):
             with cols[j]:
                 _, ayuda = _ix.meta_modo(mid)
-                if st.button(
-                    etiqueta,
-                    key=f"seguimos_quick_{fila_ini}_{j}",
-                    use_container_width=True,
-                    type="secondary",
-                    help=ayuda or None,
-                ):
-                    _navegar_a_modo_desde_seguimos(mid)
-                img_crop = _ix.preview_imagen_modo_recorte_superior(mid, fraccion_altura=0.15)
-                if img_crop is not None:
-                    st.image(img_crop, use_container_width=True)
+                data_uri = _tile_acceso_rapido_data_uri(mid)
+                qmid = quote(mid, safe="")
+                title_attr = html.escape(ayuda or etiqueta)
+                if data_uri:
+                    st.markdown(
+                        f'<a href="?abrir_modo={qmid}" title="{title_attr}" '
+                        'style="display:block;text-decoration:none;">'
+                        f'<img src="{data_uri}" alt="{html.escape(etiqueta)}" '
+                        'style="width:100%;border-radius:10px;border:1px solid #e2e8f0;"/></a>',
+                        unsafe_allow_html=True,
+                    )
                 else:
-                    ruta = _ix.ruta_imagen_modo(mid)
-                    if ruta:
-                        st.image(ruta, use_container_width=True)
-                    else:
-                        st.caption("Sin imagen")
+                    st.caption("Sin imagen")
+                st.caption(etiqueta)
 
 
 def _render_tab_record_comparativa() -> None:

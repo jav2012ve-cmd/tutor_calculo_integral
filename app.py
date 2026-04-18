@@ -799,6 +799,9 @@ try:
 except Exception:
     pass
 
+# Enlaces ?abrir_modo=… desde teselas (p. ej. acceso rápido en Seguimos).
+seguimos.aplicar_apertura_modo_desde_query_param()
+
 if st.session_state.get(ADMIN_SESSION_KEY):
     if _render_admin_panel_safe():
         st.stop()

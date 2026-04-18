@@ -207,52 +207,59 @@ def registrar_estudiante(
         "semestre": sem,
     }
     insert_url = f"{_base_url()}/rest/v1/{_TABLE}"
-    try:
-        r = requests.post(
-            insert_url,
-            headers={**_headers(), "Prefer": "return=minimal"},
-            json=payload,
-            timeout=_TIMEOUT,
-        )
-        if r.status_code in (200, 201):
-            return True, "Cuenta creada. Ya puedes iniciar sesión."
-        if r.status_code == 409 or "23505" in (r.text or ""):
-            if "cedula" in (r.text or "").lower() or "email" in (r.text or "").lower():
-                return False, "Ese correo o cédula ya está registrado."
-            return False, "Ya existe una cuenta con esos datos."
-        err = (r.text or "")[:400]
-        print(f"[auth] POST estudiante {r.status_code}: {err}")
-        body: dict[str, Any] = {}
+    headers_ins = {**_headers(), "Prefer": "return=minimal"}
+
+    def _resp_sin_columnas_carrera_semestre(resp: requests.Response) -> bool:
         try:
-            body = r.json() if r.text else {}
+            body_j: dict[str, Any] = resp.json() if resp.text else {}
         except (ValueError, TypeError):
-            body = {}
-        api_msg = str(body.get("message") or "")
-        code_api = str(body.get("code") or "")
-        low_msg = api_msg.lower()
-        low_all = (r.text or "").lower()
-        falta_columna_perfil = (
+            body_j = {}
+        code_api = str(body_j.get("code") or "")
+        low_all = (resp.text or "").lower()
+        low_msg = str(body_j.get("message") or "").lower()
+        return bool(
             code_api == "PGRST204"
             or (
-                r.status_code == 400
+                resp.status_code == 400
                 and (
                     ("schema cache" in low_all and ("carrera" in low_all or "semestre" in low_all))
                     or ("could not find" in low_all and "carrera" in low_all)
                     or ("could not find" in low_all and "semestre" in low_all)
                 )
             )
-        )
-        if falta_columna_perfil or (
-            r.status_code == 400
-            and "schema cache" in low_msg
-            and ("carrera" in low_msg or "semestre" in low_msg)
-        ):
-            return (
-                False,
-                "Falta actualizar la base de datos: la tabla **app_estudiante** necesita las columnas "
-                "**carrera** y **semestre**. En Supabase → **SQL Editor** ejecuta "
-                "**`supabase_estudiantes_add_carrera_semestre.sql`**, guarda y espera unos segundos.",
+            or (
+                resp.status_code == 400
+                and "schema cache" in low_msg
+                and ("carrera" in low_msg or "semestre" in low_msg)
             )
+        )
+
+    try:
+        r = requests.post(insert_url, headers=headers_ins, json=payload, timeout=_TIMEOUT)
+        if r.status_code in (200, 201):
+            return True, "Cuenta creada. Ya puedes iniciar sesión."
+        if r.status_code == 409 or "23505" in (r.text or ""):
+            if "cedula" in (r.text or "").lower() or "email" in (r.text or "").lower():
+                return False, "Ese correo o cédula ya está registrado."
+            return False, "Ya existe una cuenta con esos datos."
+
+        if _resp_sin_columnas_carrera_semestre(r):
+            payload_min = {k: v for k, v in payload.items() if k not in ("carrera", "semestre")}
+            r2 = requests.post(
+                insert_url, headers=headers_ins, json=payload_min, timeout=_TIMEOUT
+            )
+            if r2.status_code in (200, 201):
+                return (
+                    True,
+                    "Cuenta creada. Tu base aún no tiene las columnas carrera/semestre: "
+                    "ejecuta en Supabase **`supabase_estudiantes_add_carrera_semestre.sql`** cuando puedas "
+                    "para guardar ese dato en el perfil.",
+                )
+            err2 = (r2.text or "")[:400]
+            print(f"[auth] POST estudiante (sin carrera/sem) {r2.status_code}: {err2}")
+
+        err = (r.text or "")[:400]
+        print(f"[auth] POST estudiante {r.status_code}: {err}")
         # Nunca mostrar JSON ni detalles técnicos al usuario.
         return (
             False,
