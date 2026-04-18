@@ -822,24 +822,35 @@ def render_portal_participante(
 
     with _portal_tarjeta():
         st.markdown("### Registro de nuevos estudiantes")
-        st.caption(
-            "Completa tus datos para crear tu cuenta y enlazar el progreso de estudio con tu perfil."
-        )
-        try:
-            col_ventaja, col_pasos = st.columns(2, gap="large")
-        except TypeError:
-            col_ventaja, col_pasos = st.columns(2)
-        with col_ventaja:
-            _tarjeta_beneficios_registro()
-        with col_pasos:
-            _tarjeta_pasos_registro()
+        inst_pre = (st.session_state.get(_PORTAL_INST_PRESELECCIONADA_KEY) or "").strip()
+        inst_widget = (
+            st.session_state.get(_reg_institution_widget_key("portal_reg")) or ""
+        ).strip()
+        solo_formulario = bool(inst_pre or inst_widget)
 
-        st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
-        render_matriz_universidades(key_prefix_registro="portal_reg")
-        inst_pre = st.session_state.get(_PORTAL_INST_PRESELECCIONADA_KEY)
-        if inst_pre:
-            st.caption(f"Institución seleccionada desde la matriz: **{inst_pre}**")
-            st.session_state[_reg_institution_widget_key("portal_reg")] = inst_pre
+        if solo_formulario:
+            st.caption(
+                "Completa el formulario para crear tu cuenta. "
+                f"Institución: **{inst_pre or inst_widget}**."
+            )
+            if inst_pre:
+                st.session_state[_reg_institution_widget_key("portal_reg")] = inst_pre
+        else:
+            st.caption(
+                "Completa tus datos para crear tu cuenta y enlazar el progreso de estudio con tu perfil."
+            )
+            try:
+                col_ventaja, col_pasos = st.columns(2, gap="large")
+            except TypeError:
+                col_ventaja, col_pasos = st.columns(2)
+            with col_ventaja:
+                _tarjeta_beneficios_registro()
+            with col_pasos:
+                _tarjeta_pasos_registro()
+
+            st.markdown("### 🚀 Tu éxito en Cálculo empieza aquí")
+            render_matriz_universidades(key_prefix_registro="portal_reg")
+
         st.markdown("#### Crear cuenta")
         render_formulario_registro(
             key_prefix="portal_reg",
