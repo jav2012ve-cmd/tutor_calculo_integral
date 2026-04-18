@@ -560,6 +560,37 @@ _IMAGENES_UNIVERSIDAD_CANDIDATAS: dict[str, tuple[str, ...]] = {
 }
 
 _PORTAL_INST_PRESELECCIONADA_KEY = "_auth_portal_institucion_preseleccionada"
+_REG_UNIV_QUERY_KEY = "reg_univ"
+
+
+def aplicar_registro_universidad_desde_query_param() -> None:
+    """
+    Si la URL trae ``?reg_univ=…``, abre el portal de registro de Seguimos con la institución precargada.
+    Pensado para abrirse en **otra pestaña** desde la matriz de universidades (misma app, nueva vista).
+    """
+    try:
+        qp = st.query_params
+        raw = qp.get(_REG_UNIV_QUERY_KEY)
+        if raw is None:
+            return
+        nombre = raw[0] if isinstance(raw, list) else str(raw)
+        nombre = urllib.parse.unquote_plus(nombre).strip()
+        if not nombre:
+            if _REG_UNIV_QUERY_KEY in qp:
+                del qp[_REG_UNIV_QUERY_KEY]
+            return
+        from modules import seguimos as _seg
+
+        st.session_state.modo_actual = _seg.MODO_ID
+        st.session_state.seguimos_paso = _seg.SEGUIMOS_PASO_PORTAL
+        st.session_state.seguimos_portal_tab = "registro"
+        st.session_state[_PORTAL_INST_PRESELECCIONADA_KEY] = nombre
+        st.session_state[_reg_institution_widget_key("portal_reg")] = nombre
+        if _REG_UNIV_QUERY_KEY in qp:
+            del qp[_REG_UNIV_QUERY_KEY]
+        st.rerun()
+    except Exception as ex:
+        print(f"[auth] aplicar_registro_universidad_desde_query_param: {ex}")
 
 
 @st.cache_data(show_spinner=False)
@@ -735,7 +766,15 @@ def render_matriz_universidades(*, key_prefix_registro: str = "portal_reg") -> N
                     'align-items:center;justify-content:center;font-size:0.8rem;color:#475569;">'
                     "Miniatura próximamente</div>"
                 )
-            btn_key = f"{key_prefix_registro}_pick_{clave.lower()}"
+            qv = urllib.parse.quote(nombre_tarjeta, safe="")
+            href_reg = f"?{_REG_UNIV_QUERY_KEY}={qv}"
+            cta_html = (
+                f'<div style="margin-top:0.45rem;">'
+                f'<a href="{href_reg}" target="_blank" rel="noopener noreferrer" '
+                f'style="display:block;text-align:center;padding:0.42rem 0.55rem;background:{html.escape(color, quote=True)};'
+                f"color:#fff;border-radius:9px;text-decoration:none;font-size:0.82rem;font-weight:700;"
+                f'">Registrarme con {html.escape(nombre_tarjeta)} · nueva pestaña</a></div>'
+            )
             with cols[j]:
                 st.markdown(
                     f"""
@@ -746,18 +785,11 @@ def render_matriz_universidades(*, key_prefix_registro: str = "portal_reg") -> N
   {carreras_html}
   <div style="font-size: 0.92rem; margin-bottom: 0.35rem; line-height: 1.35;"><strong>Enfoque:</strong> {enfoque}</div>
   <div style="font-size: 0.9rem; line-height: 1.35; margin-top: auto;"><strong>Bibliografía:</strong> {bib_txt}</div>
+  {cta_html}
 </div>
 """,
                     unsafe_allow_html=True,
                 )
-                if st.button(
-                    f"Elegir {nombre_tarjeta}",
-                    key=btn_key,
-                    use_container_width=True,
-                ):
-                    st.session_state[_PORTAL_INST_PRESELECCIONADA_KEY] = nombre_tarjeta
-                    st.session_state[_reg_institution_widget_key(key_prefix_registro)] = nombre_tarjeta
-                    st.rerun()
 
 
 def render_portal_participante(

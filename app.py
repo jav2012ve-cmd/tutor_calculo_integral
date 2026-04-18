@@ -799,6 +799,8 @@ try:
 except Exception:
     pass
 
+# ?reg_univ=… abre registro en Seguimos con institución precargada (enlace en nueva pestaña desde la matriz).
+auth_estudiantes.aplicar_registro_universidad_desde_query_param()
 # Enlaces ?abrir_modo=… desde teselas (p. ej. acceso rápido en Seguimos).
 seguimos.aplicar_apertura_modo_desde_query_param()
 
