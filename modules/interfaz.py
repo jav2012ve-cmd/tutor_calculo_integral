@@ -697,14 +697,10 @@ def mostrar_planes_estudio_oficiales() -> None:
 
 
 def mostrar_dudas_resueltas() -> None:
-    """Al pie del panel central: un solo contador con la suma de interacciones por modo."""
-    st.divider()
-    warn = st.session_state.get("_uso_stats_supabase_warn")
-    if warn:
-        st.caption(warn)
-    stats = uso_stats.obtener_estadisticas()
-    total = sum(int(stats.get(m, 0) or 0) for m in uso_stats.MODULOS)
-    st.metric("Dudas resueltas", total)
+    """Al pie del panel central: cintillo Σigma (marca, impacto, enlaces, copyright)."""
+    from modules.footer_sigma import render_footer_sigma
+
+    render_footer_sigma()
 
 
 def mostrar_bienvenida():
