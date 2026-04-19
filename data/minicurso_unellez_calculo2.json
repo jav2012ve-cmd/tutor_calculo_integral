@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Cálculo II UNELLEZ (CI-5101202); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar según programa oficial UNELLEZ.",
+  "universidad_clave": "UNELLEZ",
+  "carrera_id": "unellez_ingenieria_civil_sistemas",
+  "carrera_nombre_oficial": "Malla Curricular de Ingeniería (Cálculo II)",
+  "curso_codigo": "CI-5101202",
+  "fuente": {
+    "titulo": "Programa de Cálculo II - UNELLEZ",
+    "url": "https://unellez.edu.ve/portal/pensa/pregrado",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida",
+      "temas": ["1.1.1", "1.1.3", "1.1.4", "1.1.8"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones de la Integral",
+      "temas": ["3.1.1", "3.2.1", "3.2.2", "3.3.1", "3.4.1"]
+    },
+    {
+      "id": 5,
+      "nombre": "Ecuaciones Diferenciales Ordinarias",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.2.1", "5.2.2"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.3 Sustitución",
+    "3.2.1 Volúmenes de Revolución",
+    "3.4.1 Centroides",
+    "5.1.4 ED Lineales de Primer Orden",
+    "5.2.1 Modelado Poblacional"
+  ],
+  "horas_orientativas_por_atomico": {
+    "1.1.3 Sustitución": 6.0,
+    "3.2.1 Volúmenes de Revolución": 8.0,
+    "3.4.1 Centroides": 6.0,
+    "5.1.4 ED Lineales de Primer Orden": 8.0
+  },
+  "notas": "Programa semestral con énfasis en aplicaciones físicas y de modelado. El bloque de ED de primer orden es vital para las materias posteriores de la carrera."
+}
