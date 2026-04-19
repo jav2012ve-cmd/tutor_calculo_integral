@@ -1,8 +1,9 @@
 """
-Panel «Seguimos»: continuidad para estudiantes identificados.
+Panel «Seguimos»: minicurso virtual por el temario y continuidad para estudiantes identificados.
 
+El minicurso guía bloques atómicos del temario (meta: 5 prácticas + 5 aciertos en simulacro por tema).
 Flujo con Supabase: entrada → portal de registro / login → panel.
-Sin Supabase: se puede ir al panel con identificación solo de sesión.
+Sin Supabase: se puede ir al panel con identificación solo de sesión (sin trazado en nube del minicurso).
 """
 
 from __future__ import annotations
@@ -13,7 +14,7 @@ import io
 import streamlit as st
 from PIL import Image
 
-from modules import auth_estudiantes, temario, uso_stats
+from modules import auth_estudiantes, seguimos_curso, temario, uso_stats
 
 MODO_ID = "0) Seguimos (continuidad)"
 
@@ -202,66 +203,75 @@ def _render_tab_record_comparativa() -> None:
 
 
 def _render_panel_tab_continuidad() -> None:
-    por_tema = uso_stats.obtener_estadisticas_temas()
-    lista = list(temario.LISTA_TEMAS)
-    n_total = len(lista)
-    con_practica = sum(1 for t in lista if int(por_tema.get(t, 0) or 0) > 0)
-    sin_practica = [t for t in lista if int(por_tema.get(t, 0) or 0) == 0]
+    eventos_mc: list = []
+    sid_mc = None
+    if auth_estudiantes.sesion_activa() and _supabase_configurado():
+        sid_mc = st.session_state.get("auth_estudiante_id")
+        if sid_mc:
+            eventos_mc = uso_stats.obtener_eventos_aprendizaje_estudiante(str(sid_mc), limit=4000)
 
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        st.metric("Temas con práctica registrada", f"{con_practica} / {n_total}")
-    with c2:
-        st.metric("Temas sin registros aún", len(sin_practica))
-    with c3:
-        pct = (con_practica / n_total) if n_total else 0.0
-        st.metric("Cobertura aproximada del temario", f"{pct:.0%}")
-
-    st.progress(min(max(pct, 0.0), 1.0))
-    st.caption("Barra: cobertura aproximada del temario según datos agregados de práctica.")
-
-    _render_debilidades_y_mapa()
-
-    ordenados = sorted(
-        [{"tema": t, "n": int(por_tema.get(t, 0) or 0)} for t in lista],
-        key=lambda x: (x["n"], x["tema"]),
-    )
-    prioridad = [x["tema"] for x in ordenados if x["n"] == 0][:12]
-    if not prioridad:
-        prioridad = [x["tema"] for x in ordenados[:8]]
-
-    st.markdown("##### Próximas prioridades (menos práctica registrada)")
-    for i, t in enumerate(prioridad[:8], 1):
-        st.caption(f"{i}. **{t}**")
-
-    st.markdown("##### Cómo avanzar con cobertura total")
-    st.markdown(
-        """
-        1. **A practicar:** elige en el multiselect los temas marcados arriba como prioridad (varios puntos del temario a la vez).
-
-        2. **Vamos paso a paso** o **Dime y te digo:** plantea dudas o ejercicios concretos de esos temas.
-
-        3. **Simulacro:** cuando domines un bloque, comprueba con un examen de prueba (primer o segundo parcial o temas personalizados).
-
-        4. **Te lo reviso:** valida tus resoluciones escritas de ejercicios largos.
-
-        5. Vuelve a **Seguimos** para ver cómo sube la cobertura del temario.
-        """
+    seguimos_curso.render_panel_minicurso(
+        eventos=eventos_mc,
+        sesion_supabase=bool(sid_mc),
     )
 
-    st.markdown("##### Detalle por tema (registros agregados)")
-    st.dataframe(
-        ordenados,
-        use_container_width=True,
-        hide_index=True,
-        height=min(420, 28 * n_total + 38),
-    )
+    st.divider()
+    with st.expander("Vista extendida: conteos globales, prioridades y debilidades", expanded=False):
+        por_tema = uso_stats.obtener_estadisticas_temas()
+        lista = list(temario.LISTA_TEMAS)
+        n_total = len(lista)
+        con_practica = sum(1 for t in lista if int(por_tema.get(t, 0) or 0) > 0)
+        sin_practica = [t for t in lista if int(por_tema.get(t, 0) or 0) == 0]
 
-    st.caption(
-        "Los conteos por tema dependen de la configuración (Supabase o archivo local) y son "
-        "agregados; no sustituyen el criterio docente. Para cobertura **total**, repasa todos "
-        "los puntos del temario al menos una vez combinando los modos de estudio."
-    )
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            st.metric("Temas con práctica registrada", f"{con_practica} / {n_total}")
+        with c2:
+            st.metric("Temas sin registros aún", len(sin_practica))
+        with c3:
+            pct = (con_practica / n_total) if n_total else 0.0
+            st.metric("Cobertura aproximada del temario", f"{pct:.0%}")
+
+        st.progress(min(max(pct, 0.0), 1.0))
+        st.caption("Barra: cobertura aproximada del temario según datos agregados de uso del producto.")
+
+        _render_debilidades_y_mapa()
+
+        ordenados = sorted(
+            [{"tema": t, "n": int(por_tema.get(t, 0) or 0)} for t in lista],
+            key=lambda x: (x["n"], x["tema"]),
+        )
+        prioridad = [x["tema"] for x in ordenados if x["n"] == 0][:12]
+        if not prioridad:
+            prioridad = [x["tema"] for x in ordenados[:8]]
+
+        st.markdown("##### Próximas prioridades (menos práctica registrada)")
+        for i, t in enumerate(prioridad[:8], 1):
+            st.caption(f"{i}. **{t}**")
+
+        st.markdown("##### Otras rutas de estudio (independientes del minicurso)")
+        st.markdown(
+            """
+            1. **Vamos paso a paso** o **Dime y te digo:** consultas aisladas (no suman al contador 5+5 del minicurso).
+
+            2. **Te lo reviso:** manuscritos y validación escrita.
+
+            3. El **minicurso** solo reconoce cierres completos en **A practicar** y aciertos en **Simulacro** con tema válido.
+            """
+        )
+
+        st.markdown("##### Detalle por tema (registros agregados del producto)")
+        st.dataframe(
+            ordenados,
+            use_container_width=True,
+            hide_index=True,
+            height=min(420, 28 * n_total + 38),
+        )
+
+        st.caption(
+            "Los conteos por tema dependen de la configuración (Supabase o archivo local) y son "
+            "agregados; no sustituyen el criterio docente."
+        )
 
 
 def _render_debilidades_y_mapa() -> None:
@@ -551,7 +561,7 @@ def _render_panel_seguimos() -> None:
     nombre = _nombre_estudiante()
     codigo = _codigo_referencia()
 
-    st.success(f"Hola, **{nombre}**. Aquí tienes tu resumen de continuidad.")
+    st.success(f"Hola, **{nombre}**. Tu **minicurso** Seguimos y el resumen de actividad están en la pestaña principal.")
 
     if auth_estudiantes.sesion_activa():
         em = (st.session_state.get("auth_estudiante_email") or "").strip()
@@ -581,7 +591,7 @@ def _render_panel_seguimos() -> None:
 
     _render_botones_acceso_rapido_modos()
 
-    tab_cont, tab_rec = st.tabs(["Continuidad y temario", "Mi récord vs otros"])
+    tab_cont, tab_rec = st.tabs(["Minicurso y temario", "Mi récord vs otros"])
     with tab_cont:
         _render_panel_tab_continuidad()
     with tab_rec:

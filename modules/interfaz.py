@@ -343,8 +343,9 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
     (
         (
             seguimos.MODO_ID,
-            "Seguimos // Registrate",
-            "",
+            "Seguimos // Minicurso",
+            "Minicurso virtual por el temario: tema en foco, bloques superados (5 práctica + 5 simulacro por tema) "
+            "y ritmo frente a un tiempo orientativo. Registro e inicio de sesión desde el mismo panel.",
         ),
         (
             "a) Entrenamiento (Temario)",

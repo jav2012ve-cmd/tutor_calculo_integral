@@ -34,6 +34,7 @@ from modules import (
     registro_interacciones,
     graficos_entrenamiento,
     seguimos,
+    seguimos_curso,
     auth_estudiantes,
     planes_estudio,
     planes_estudio_oficiales,
@@ -1014,6 +1015,16 @@ elif ruta == "a) Entrenamiento (Temario)":
                     _render_texto_con_latex(ejercicio.get("explicacion", "Procedimiento estándar aplicado correctamente."))
 
                 if st.button("Siguiente Ejercicio ➡️", type="primary", key=f"btn_next_{idx}"):
+                    t_train = temario.normalizar_tema_curso(ejercicio.get("tema"))
+                    if t_train:
+                        uso_stats.registrar_evento_aprendizaje(
+                            "Entrenamiento",
+                            {
+                                "tipo_evento": seguimos_curso.EVENTO_PRACTICA_OK,
+                                "tema": t_train,
+                                "indice_ejercicio": idx + 1,
+                            },
+                        )
                     st.session_state.entrenamiento_idx += 1
                     st.session_state.entrenamiento_step = 1
                     st.session_state.entrenamiento_data_ia = None 
@@ -1315,11 +1326,21 @@ elif ruta == "c) Autoevaluación (Quiz)":
                             "puntos": pts,
                             "es_correcta": es_correcta
                         })
-                        if not es_correcta:
-                            t_quiz = temario.normalizar_tema_curso(
-                                pregunta_data.get("tema")
-                            )
-                            if t_quiz:
+                        t_quiz = temario.normalizar_tema_curso(pregunta_data.get("tema"))
+                        if t_quiz:
+                            if es_correcta:
+                                uso_stats.registrar_evento_aprendizaje(
+                                    "Quiz",
+                                    {
+                                        "tipo_evento": seguimos_curso.EVENTO_QUIZ_OK,
+                                        "tema": t_quiz,
+                                        "modalidad": st.session_state.get(
+                                            "quiz_modalidad", ""
+                                        ),
+                                        "indice_pregunta": actual + 1,
+                                    },
+                                )
+                            else:
                                 uso_stats.registrar_evento_aprendizaje(
                                     "Quiz",
                                     {
