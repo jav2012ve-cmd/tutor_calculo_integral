@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Matemáticas II UNIMET (FBMA02); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar orden u omisiones según programa oficial UNIMET.",
+  "universidad_clave": "UNIMET",
+  "carrera_id": "unimet_ingenieria",
+  "carrera_nombre_oficial": "Facultad de Ingeniería (Matemáticas II)",
+  "curso_codigo": "FBMA02",
+  "fuente": {
+    "titulo": "Programa Matemáticas II - UNIMET",
+    "url": "https://www.unimet.edu.ve/matematicas-ii/",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida y Técnicas",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.4", "1.1.5", "1.1.6", "1.1.7", "1.1.8"]
+    },
+    {
+      "id": 2,
+      "nombre": "Integral Definida y Aplicaciones Geométricas",
+      "temas": ["2.1.1", "2.1.2", "2.1.3", "2.1.4", "2.2.1", "2.2.2", "2.2.3"]
+    },
+    {
+      "id": 3,
+      "nombre": "Integrales Impropias",
+      "temas": ["3.1.1", "3.1.2", "3.1.3"]
+    },
+    {
+      "id": 4,
+      "nombre": "Sucesiones y Series",
+      "temas": ["4.1.1", "4.1.2", "4.1.3", "4.2.1", "4.2.2", "4.2.3"]
+    },
+    {
+      "id": 5,
+      "nombre": "Ecuaciones Diferenciales de Primer Orden",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.2.1", "5.2.2"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Directas",
+    "1.1.3 Cambio de Variable",
+    "1.1.7 Integración por Partes",
+    "1.1.4 Sustitución Trigonométrica",
+    "2.1.3 Teorema Fundamental",
+    "2.2.1 Volúmenes: Discos y Arandelas",
+    "3.1.1 Impropias",
+    "4.1.2 Criterios de Convergencia de Series",
+    "5.1.2 ED: Separación de Variables",
+    "5.1.4 ED: Lineales de Primer Orden"
+  ],
+  "horas_orientativas_por_atomico": {
+    "1.1.4 Sustitución Trigonométrica": 5.0,
+    "2.2.1 Volúmenes: Discos y Arandelas": 8.0,
+    "4.1.2 Criterios de Convergencia de Series": 10.0,
+    "5.1.4 ED: Lineales de Primer Orden": 6.0
+  },
+  "notas": "Régimen trimestral por competencias. Incluye ED de primer orden, lo que lo diferencia de la USB y lo asemeja parcialmente a la UCV pero en menor tiempo."
+}
