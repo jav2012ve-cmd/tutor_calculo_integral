@@ -8,6 +8,7 @@ from PIL import Image
 from modules import perfil_curso, temario
 from modules import uso_stats
 from modules import seguimos
+from modules import demo_sigma
 from modules import planes_estudio_oficiales
 from modules import contexto_universitario
 
@@ -508,6 +509,7 @@ def _limpiar_estado_volver_inicio() -> None:
     st.session_state.pop("estudiante_codigo_seguimos", None)
     st.session_state.pop("_seguimos_uso_registrado_sesion", None)
     st.session_state.pop("seguimos_paso", None)
+    demo_sigma.desactivar_demo_al_volver_portada()
 
 
 def _aplicar_iniciar_modo(seleccion_visual: Optional[str]) -> None:
@@ -541,11 +543,44 @@ def _aplicar_iniciar_modo(seleccion_visual: Optional[str]) -> None:
             pass
 
 
+def mostrar_portada_cero() -> None:
+    """
+    Portada mínima: imagen de bienvenida y tres acciones (Ruta Maestra, registro, demo).
+    La cuadrícula de modos se muestra aparte solo si hay sesión o demo activo.
+    """
+    ruta = demo_sigma.ruta_imagen_portada_bienvenida()
+    if ruta:
+        st.image(ruta, use_container_width=True)
+    else:
+        st.warning(
+            "Coloca la imagen de bienvenida como **`assets/portada_sigma_hud.png`** (o `.jpg`) "
+            "en la raíz del proyecto, o define la variable de entorno **`SIGMA_PORTADA_IMAGEN`** "
+            "con la ruta absoluta al archivo."
+        )
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if st.button("Seguimos la Ruta Maestra", use_container_width=True, type="primary"):
+            _aplicar_iniciar_modo(seguimos.MODO_ID)
+            st.rerun()
+    with c2:
+        if st.button("Registrate", use_container_width=True):
+            _aplicar_iniciar_modo(seguimos.MODO_ID)
+            st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_PORTAL
+            st.session_state.seguimos_portal_tab = "registro"
+            st.rerun()
+    with c3:
+        if st.button("Demo", use_container_width=True):
+            demo_sigma.activar_demo()
+            st.rerun()
+
+
 def mostrar_portada_selector_modos() -> None:
     """
     Solo en la portada (sin modo activo): cuadrícula 2×3 con vista previa recortada del botón.
     Al elegir un modo, la app muestra otra «página» con imagen completa y la interfaz del modo.
     """
+    if not demo_sigma.acceso_modos_sin_login():
+        return
     st.markdown("#### 🎛️ Modo de estudio")
     st.caption(
         "Pulsa un modo para abrir su página: verás el botón completo y las herramientas de ese modo."

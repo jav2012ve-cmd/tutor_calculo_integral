@@ -40,6 +40,7 @@ from modules import (
     planes_estudio,
     planes_estudio_oficiales,
     contexto_universitario,
+    demo_sigma,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -160,13 +161,24 @@ model, nombre_modelo = ia_core.iniciar_modelo()
 def generar_contenido_seguro(
     prompt_parts: Union[str, list],
     intentos_max: Optional[int] = None,
+    demo_consumo_clave: Optional[str] = None,
 ) -> Optional[Any]:
     """
     Intenta llamar a la IA con texto o imágenes.
     Soporta lista de partes (prompt + imagen) o solo texto.
+
+    ``demo_consumo_clave``: en modo demo sin sesión, cada respuesta exitosa cuenta
+    contra el tope de consultas de esa función (ver ``modules.demo_sigma``).
     """
     if intentos_max is None:
         intentos_max = INTENTOS_MAX_IA
+    if demo_consumo_clave and not demo_sigma.puede_usar_demo_ia(demo_consumo_clave):
+        st.warning(
+            f"En modo demo solo hay **{demo_sigma.DEMO_MAX_CONSULTAS_POR_FUNCION}** consultas de IA "
+            f"por función. Ya usaste el cupo en esta sección. **Inicia sesión** o **regístrate** "
+            "en Tu Ruta Maestra para continuar sin límite."
+        )
+        return None
     texto_pregunta = registro_interacciones.serializar_pregunta(prompt_parts)
     modelo_log = nombre_modelo or ""
     errores_recientes = ""
@@ -177,6 +189,7 @@ def generar_contenido_seguro(
             registro_interacciones.registrar_interaccion(
                 texto_pregunta, texto_respuesta, modelo_log
             )
+            demo_sigma.consumir_demo_ia(demo_consumo_clave)
             return response
         except Exception as e:
             errores_recientes = str(e)
@@ -414,7 +427,12 @@ Responde ÚNICAMENTE con JSON válido, sin markdown:
     return temario.normalizar_tema_curso(data.get("tema_catedra"))
 
 
-def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
+def generar_tutor_paso_a_paso(
+    pregunta_texto: str,
+    tema: str,
+    *,
+    demo_consumo_clave: Optional[str] = demo_sigma.CLAVE_ENTRENAMIENTO,
+) -> Optional[dict]:
     """Genera la tutoría para el modo Entrenamiento (Banco/IA)."""
     regla_tema = ""
     if "1.1.1" in (tema or "") or "Integrales Indefinidas" in (tema or ""):
@@ -459,7 +477,7 @@ def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
     }}
     Orden aleatorio en estrategias.
     """
-    response = generar_contenido_seguro(prompt)
+    response = generar_contenido_seguro(prompt, demo_consumo_clave=demo_consumo_clave)
     if response:
         return limpiar_json(response.text)
     return None
@@ -467,6 +485,8 @@ def generar_tutor_paso_a_paso(pregunta_texto: str, tema: str) -> Optional[dict]:
 def analizar_problema_usuario(
     texto_usuario: Optional[str],
     imagen_usuario: Any = None,
+    *,
+    demo_consumo_clave: Optional[str] = demo_sigma.CLAVE_GUIADA,
 ) -> Optional[dict]:
     """
     Analiza un problema subido por el alumno (texto o imagen).
@@ -508,13 +528,17 @@ def analizar_problema_usuario(
         contenido.append(imagen_usuario)
         contenido.append("Transcribe y resuelve.")
 
-    response = generar_contenido_seguro(contenido)
+    response = generar_contenido_seguro(contenido, demo_consumo_clave=demo_consumo_clave)
     if response:
         return limpiar_json(response.text)
     return None
 
 
-def evaluar_manuscrito(imagen_manuscrito: Any) -> Optional[dict]:
+def evaluar_manuscrito(
+    imagen_manuscrito: Any,
+    *,
+    demo_consumo_clave: Optional[str] = demo_sigma.CLAVE_MANUSCRITO,
+) -> Optional[dict]:
     """
     Analiza un manuscrito (foto de resolución del estudiante).
     Identifica el enunciado, valora la resolución y emite juicio con sugerencias.
@@ -573,7 +597,7 @@ def evaluar_manuscrito(imagen_manuscrito: Any) -> Optional[dict]:
     Si no hay errores o pasos omitidos, usa listas vacías [].
     """
     contenido = [prompt, imagen_manuscrito]
-    response = generar_contenido_seguro(contenido)
+    response = generar_contenido_seguro(contenido, demo_consumo_clave=demo_consumo_clave)
     if response:
         return limpiar_json(response.text)
     return None
@@ -657,7 +681,10 @@ def generar_respuesta_tutor_abierto(
     {pregunta_usuario}
     """
     
-    response = generar_contenido_seguro(prompt_tutor)
+    response = generar_contenido_seguro(
+        prompt_tutor,
+        demo_consumo_clave=demo_sigma.CLAVE_TUTOR,
+    )
     if response:
         return response.text
     return "Lo siento, tuve un problema pensando la respuesta."
@@ -816,10 +843,16 @@ if st.session_state.get(ADMIN_SESSION_KEY):
 # --- 3. INTERFAZ PRINCIPAL ---
 _modo = st.session_state.get("modo_actual")
 if not _modo:
-    st.title(interfaz.APP_DISPLAY_NAME)
-    st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Tu Ruta Maestra Σigma**.")
-    interfaz.mostrar_portada_selector_modos()
-    interfaz.mostrar_bienvenida()
+    interfaz.mostrar_portada_cero()
+    if demo_sigma.acceso_modos_sin_login():
+        st.title(interfaz.APP_DISPLAY_NAME)
+        st.info(
+            "👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de "
+            "**Tu Ruta Maestra Σigma**."
+        )
+        demo_sigma.mostrar_banner_usos_demo()
+        interfaz.mostrar_portada_selector_modos()
+        interfaz.mostrar_bienvenida()
 
     with st.expander("Opciones avanzadas", expanded=False):
         st.caption(
@@ -899,7 +932,10 @@ elif ruta == "a) Entrenamiento (Temario)":
                         faltantes = NUM_EJERCICIOS_ENTRENAMIENTO - len(lista_entrenamiento)
                         if faltantes > 0:
                             prompt_train = temario.generar_prompt_quiz(temas_entrenamiento, faltantes)
-                            respuesta_ia = generar_contenido_seguro(prompt_train)
+                            respuesta_ia = generar_contenido_seguro(
+                                prompt_train,
+                                demo_consumo_clave=demo_sigma.CLAVE_ENTRENAMIENTO,
+                            )
                             
                             if respuesta_ia:
                                 preguntas_ia = limpiar_json(respuesta_ia.text)
@@ -1230,7 +1266,10 @@ elif ruta == "c) Autoevaluación (Quiz)":
                     falta = cantidad_total - len(lista_final_preguntas)
                     if falta > 0:
                         prompt_quiz = temario.generar_prompt_quiz(temas, falta)
-                        respuesta = generar_contenido_seguro(prompt_quiz)
+                        respuesta = generar_contenido_seguro(
+                            prompt_quiz,
+                            demo_consumo_clave=demo_sigma.CLAVE_QUIZ,
+                        )
                         if respuesta:
                             preguntas_ia = limpiar_json(respuesta.text)
                             if preguntas_ia:

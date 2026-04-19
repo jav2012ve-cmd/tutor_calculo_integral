@@ -15,7 +15,7 @@ import io
 import streamlit as st
 from PIL import Image
 
-from modules import auth_estudiantes, perfil_curso, ruta_maestra, seguimos_curso, temario, uso_stats
+from modules import auth_estudiantes, demo_sigma, perfil_curso, ruta_maestra, seguimos_curso, temario, uso_stats
 
 MODO_ID = "0) Seguimos (continuidad)"
 
@@ -53,6 +53,10 @@ def aplicar_apertura_modo_desde_query_param() -> None:
 
         mid = unquote_plus(mid)
         if not modo_id_valido_acceso_rapido(mid):
+            if "abrir_modo" in qp:
+                del qp["abrir_modo"]
+            return
+        if not demo_sigma.acceso_modos_sin_login():
             if "abrir_modo" in qp:
                 del qp["abrir_modo"]
             return
