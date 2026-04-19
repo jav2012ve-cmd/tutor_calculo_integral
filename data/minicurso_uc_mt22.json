@@ -1,0 +1,61 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Cálculo II UC (Carabobo), curso MT22; no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar según programa oficial Facultad de Ingeniería UC.",
+  "advertencia_fuente": "El campo `fuente.url` apunta a `ing.ucv.ve` (UCV). Sustituir por el enlace oficial de ingeniería o programa de la **Universidad de Carabobo** cuando lo tengas.",
+  "universidad_clave": "UC",
+  "carrera_id": "uc_ingenieria_civil_mecanica_quimica",
+  "carrera_nombre_oficial": "Facultad de Ingeniería (Cálculo II)",
+  "curso_codigo": "MT22",
+  "fuente": {
+    "titulo": "Programa de Cálculo II - Facultad de Ingeniería UC",
+    "url": "http://www.ing.ucv.ve/",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.4", "1.1.5", "1.1.6", "1.1.7", "1.1.8"]
+    },
+    {
+      "id": 2,
+      "nombre": "La Integral Definida",
+      "temas": ["2.1.1", "2.1.2", "2.1.3", "2.1.4", "2.1.5"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones de la Integral",
+      "temas": ["3.1.1", "3.2.1", "3.2.2", "3.2.3", "3.3.1", "3.3.2", "3.4.1"]
+    },
+    {
+      "id": 4,
+      "nombre": "Impropias y Series",
+      "temas": ["4.1.1", "4.1.2", "4.2.1", "4.2.2", "4.2.3", "4.2.4", "4.2.5"]
+    },
+    {
+      "id": 5,
+      "nombre": "Ecuaciones Diferenciales de Primer Orden",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.1.5", "5.2.1"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Directas",
+    "1.1.3 Cambio de Variable",
+    "1.1.8 Integración por Partes",
+    "1.1.4 Sustitución Trigonométrica",
+    "2.1.4 Regla de Barrow",
+    "3.2.1 Volúmenes: Discos y Arandelas",
+    "4.2.2 Criterios de Convergencia de Series",
+    "4.2.4 Series de Taylor",
+    "5.1.1 ED: Conceptos básicos",
+    "5.1.5 ED: Lineales de Primer Orden"
+  ],
+  "horas_orientativas_por_atomico": {
+    "1.1.4 Sustitución Trigonométrica": 6.0,
+    "1.1.8 Integración por Partes": 5.0,
+    "4.2.2 Criterios de Convergencia de Series": 12.0,
+    "5.1.5 ED: Lineales de Primer Orden": 7.0
+  },
+  "notas": "Programa semestral tradicional de alta exigencia. El bloque de Series es significativamente más extenso y evaluado con mayor profundidad que en otras instituciones."
+}
