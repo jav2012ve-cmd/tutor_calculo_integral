@@ -1,0 +1,82 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "La numeración atómica de esta malla (unidades 1–5, ítems 1.1.x … 5.3.x) no coincide con `modules/temario.LISTA_TEMAS`. Para usar el minicurso actual (5 práctica + 5 quiz) hace falta una tabla de mapeo ítem_malla → clave_temario_app o ampliar el temario en código.",
+  "universidad_clave": "UCV",
+  "carrera_id": "ucv_ingenieria_civil_electrica_mecanica",
+  "carrera_nombre_oficial": "Ingeniería (Malla 0252 Corregida)",
+  "curso_codigo": "0252",
+  "fuente": {
+    "titulo": "Programa Analítico Cálculo II - Facultad de Ingeniería UCV",
+    "url": "http://www.ing.ucv.ve/pensa/calculo2.pdf",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.4", "1.1.5", "1.1.6", "1.1.7", "1.1.8"]
+    },
+    {
+      "id": 2,
+      "nombre": "La Integral Definida",
+      "temas": ["2.1.1", "2.1.2", "2.1.3", "2.1.4", "2.1.5"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones Geométricas",
+      "temas": ["3.1.1", "3.1.2", "3.2.1", "3.2.2", "3.2.3", "3.3.1", "3.3.2"]
+    },
+    {
+      "id": 4,
+      "nombre": "Series e Integrales Impropias",
+      "temas": ["4.1.1", "4.1.2", "4.2.1", "4.2.2", "4.2.3", "4.2.4"]
+    },
+    {
+      "id": 5,
+      "nombre": "Ecuaciones Diferenciales",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.2.1", "5.2.2", "5.3.1"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Indefinidas Directas (Polinomios)",
+    "1.1.2 Integrales de Trascendentes Básicas",
+    "1.1.3 Cambios de variables (Sustitución simple)",
+    "1.1.4 Sustitución Trigonométrica",
+    "1.1.5 División de Polinomios",
+    "1.1.6 Fracciones Simples (Lineales)",
+    "1.1.7 Fracciones Simples (Cuadráticos)",
+    "1.1.8 Integral por partes",
+    "2.1.1 Sumas de Riemann",
+    "2.1.2 Propiedades de la Integral Definida",
+    "2.1.3 Teorema del Valor Medio",
+    "2.1.4 Teorema Fundamental del Cálculo (Parte I)",
+    "2.1.5 Regla de Barrow",
+    "3.1.1 Áreas entre curvas (Eje X)",
+    "3.1.2 Áreas entre curvas (Eje Y)",
+    "3.2.1 Sólidos: Método de Discos",
+    "3.2.2 Sólidos: Método de Arandelas",
+    "3.2.3 Sólidos: Método de Capas",
+    "3.3.1 Longitud de Arco (Cartesianas)",
+    "3.3.2 Área de Superficie de Revolución",
+    "4.1.1 Integrales Impropias: Límites Infinitos",
+    "4.1.2 Integrales Impropias: Discontinuidades",
+    "4.2.1 Series: Definición y Convergencia",
+    "4.2.2 Series: Criterios de Convergencia",
+    "4.2.3 Series de Potencias",
+    "4.2.4 Series de Taylor y Maclaurin",
+    "5.1.1 ED 1er Orden: Separación de Variables",
+    "5.1.2 ED 1er Orden: Homogéneas",
+    "5.1.3 ED 1er Orden: Exactas y Factor Integrante",
+    "5.1.4 ED 1er Orden: Lineales",
+    "5.2.1 ED Orden Superior: Homogéneas",
+    "5.2.2 ED Orden Superior: No Homogéneas",
+    "5.3.1 Aplicaciones: Modelado Físico"
+  ],
+  "horas_orientativas_por_atomico": {
+    "1.1.8 Integral por partes": 5.0,
+    "3.2.3 Sólidos: Método de Capas": 4.0,
+    "4.2.2 Series: Criterios de Convergencia": 8.0,
+    "5.1.4 ED 1er Orden: Lineales": 6.0
+  },
+  "notas": "Malla atomizada en 33 temas con numeración jerárquica corregida según el número de Unidad. Se garantiza el mapeo progresivo para Ingeniería UCV."
+}
