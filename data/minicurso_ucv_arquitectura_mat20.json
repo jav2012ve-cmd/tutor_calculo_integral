@@ -1,0 +1,52 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Matemáticas 20 (FAU); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para práctica/quiz y minicurso en la app.",
+  "advertencia_consistencia": "`unidades` incluye códigos no desarrollados en `orden_temario_atomico` (p. ej. 1.1.2, 1.1.3, 1.1.8, 2.1.1–2.1.4, 3.1.2, 3.2.2, 4.1.2). Completar orden u omisiones según programa FAU.",
+  "universidad_clave": "UCV",
+  "carrera_id": "ucv_arquitectura",
+  "carrera_nombre_oficial": "Arquitectura (Matemáticas 20)",
+  "curso_codigo": "Mat-20",
+  "fuente": {
+    "titulo": "Plan de Estudios - Facultad de Arquitectura UCV",
+    "url": "http://www.fau.ucv.ve/pensa.html",
+    "tipo": "malla"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "Cálculo Integral Indefinido",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.8"]
+    },
+    {
+      "id": 2,
+      "nombre": "La Integral Definida y el Problema del Área",
+      "temas": ["2.1.1", "2.1.2", "2.1.3", "2.1.4", "2.1.5"]
+    },
+    {
+      "id": 3,
+      "nombre": "Geometría de la Integral: Áreas y Volúmenes",
+      "temas": ["3.1.1", "3.1.2", "3.2.1", "3.2.2", "3.3.1"]
+    },
+    {
+      "id": 4,
+      "nombre": "Superficies de Revolución y Multivariables",
+      "temas": ["4.1.1", "4.1.2", "4.2.1", "4.2.2"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Directas",
+    "2.1.5 Cálculo de áreas simples",
+    "3.1.1 Áreas entre curvas (Polinomios)",
+    "3.3.1 Longitud de Arco estructural",
+    "3.2.1 Sólidos: Método de Discos",
+    "4.1.1 Superficies de Revolución",
+    "4.2.2 Introducción a Integrales Dobles"
+  ],
+  "horas_orientativas_por_atomico": {
+    "3.1.1 Áreas entre curvas (Polinomios)": 8.0,
+    "3.2.1 Sólidos: Método de Discos": 10.0,
+    "4.1.1 Superficies de Revolución": 8.0,
+    "4.2.2 Introducción a Integrales Dobles": 6.0
+  },
+  "notas": "Curso con enfoque geométrico profundo. Se omiten Ecuaciones Diferenciales, Series y métodos de integración avanzados para priorizar el cálculo de áreas, superficies y volúmenes aplicados al diseño estructural."
+}
