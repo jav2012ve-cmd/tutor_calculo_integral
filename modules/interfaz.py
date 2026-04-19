@@ -551,12 +551,6 @@ def mostrar_portada_cero() -> None:
     ruta = demo_sigma.ruta_imagen_portada_bienvenida()
     if ruta:
         st.image(ruta, use_container_width=True)
-    else:
-        st.warning(
-            "Coloca la imagen de bienvenida como **`assets/portada_sigma_hud.png`** (o `.jpg`) "
-            "en la raíz del proyecto, o define la variable de entorno **`SIGMA_PORTADA_IMAGEN`** "
-            "con la ruta absoluta al archivo."
-        )
     c1, c2, c3 = st.columns(3)
     with c1:
         if st.button("Seguimos la Ruta Maestra", use_container_width=True, type="primary"):
