@@ -845,7 +845,6 @@ _modo = st.session_state.get("modo_actual")
 if not _modo:
     interfaz.mostrar_portada_cero()
     if demo_sigma.acceso_modos_sin_login():
-        st.title(interfaz.APP_DISPLAY_NAME)
         st.info(
             "👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de "
             "**Tu Ruta Maestra Σigma**."

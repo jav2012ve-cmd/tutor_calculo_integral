@@ -548,6 +548,7 @@ def mostrar_portada_cero() -> None:
     Portada mínima: imagen de bienvenida y tres acciones (Ruta Maestra, registro, demo).
     La cuadrícula de modos se muestra aparte solo si hay sesión o demo activo.
     """
+    st.title(APP_DISPLAY_NAME)
     ruta = demo_sigma.ruta_imagen_portada_bienvenida()
     if ruta:
         st.image(ruta, use_container_width=True)
