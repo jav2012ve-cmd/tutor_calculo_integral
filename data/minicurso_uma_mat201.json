@@ -1,0 +1,53 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Matemáticas II (UMA / Ciencias Administrativas); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` lista códigos no todos presentes en `orden_temario_atomico` (p. ej. 1.1.2, 1.1.8, 1.1.9, 2.1.1, 2.1.2, 2.1.5, 3.1.1, 3.1.4, 3.2.1, 4.1.1, 4.1.3, 4.2.2). Completar según malla oficial.",
+  "universidad_clave": "UMA",
+  "carrera_id": "uma_ciencias_administrativas",
+  "carrera_nombre_oficial": "Ciencias Administrativas (Matemáticas II)",
+  "curso_codigo": "MAT-201",
+  "fuente": {
+    "titulo": "Malla Curricular Ciencias Administrativas - UMA",
+    "url": "https://www.uma.edu.ve/postgrado/ciencias-administrativas/",
+    "tipo": "malla"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida y Aplicaciones Marginales",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.8", "1.1.9"]
+    },
+    {
+      "id": 2,
+      "nombre": "La Integral Definida",
+      "temas": ["2.1.1", "2.1.2", "2.1.4", "2.1.5"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones Económico-Financieras",
+      "temas": ["3.1.1", "3.1.2", "3.1.3", "3.1.4", "3.2.1", "3.2.2"]
+    },
+    {
+      "id": 4,
+      "nombre": "Cálculo de Varias Variables y Optimización",
+      "temas": ["4.1.1", "4.1.2", "4.1.3", "4.2.1", "4.2.2"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Directas y Marginales",
+    "1.1.3 Cambio de Variable en Costos",
+    "2.1.4 Regla de Barrow",
+    "3.1.2 Excedente del Consumidor",
+    "3.1.3 Excedente del Productor",
+    "3.2.2 Valor Presente de Flujos Continuos",
+    "4.1.2 Derivadas Parciales",
+    "4.2.1 Optimización de Utilidades"
+  ],
+  "horas_orientativas_por_atomico": {
+    "3.1.2 Excedente del Consumidor": 8.0,
+    "3.1.3 Excedente del Productor": 8.0,
+    "3.2.2 Valor Presente de Flujos Continuos": 6.0,
+    "4.2.1 Optimización de Utilidades": 10.0
+  },
+  "notas": "Programa enfocado exclusivamente en aplicaciones administrativas. Se incluye el cálculo multivariable básico y se descartan los temas de ingeniería (ED y Series)."
+}
