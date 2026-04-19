@@ -1,0 +1,51 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Cálculo II UNEXPO Barquisimeto (MAT-224); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar según programa oficial UNEXPO.",
+  "universidad_clave": "UNEXPO",
+  "carrera_id": "unexpo_ingenieria_mecanica_electrica",
+  "carrera_nombre_oficial": "Facultad de Ingeniería (Cálculo II)",
+  "curso_codigo": "MAT-224",
+  "fuente": {
+    "titulo": "Programa de Cálculo II - UNEXPO Barquisimeto",
+    "url": "http://www.bqto.unexpo.edu.ve/",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida y Técnicas",
+      "temas": ["1.1.1", "1.1.3", "1.1.4", "1.1.6", "1.1.7", "1.1.8"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones Mecánicas",
+      "temas": ["3.1.1", "3.2.1", "3.3.1", "3.4.1", "3.4.2", "3.4.3"]
+    },
+    {
+      "id": 5,
+      "nombre": "Sucesiones y Series",
+      "temas": ["4.1.1", "4.2.1", "4.2.2", "4.2.3"]
+    },
+    {
+      "id": 6,
+      "nombre": "Ecuaciones Diferenciales Especiales",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.2.1"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.8 Integral por Partes",
+    "3.4.2 Teoremas de Pappus",
+    "3.4.3 Presión Hidrostática",
+    "4.2.1 Criterios de Convergencia",
+    "5.1.3 ED: Bernoulli",
+    "5.1.4 ED: Riccati"
+  ],
+  "horas_orientativas_por_atomico": {
+    "3.4.2 Teoremas de Pappus": 6.0,
+    "5.1.3 ED: Bernoulli": 5.0,
+    "5.1.4 ED: Riccati": 4.0,
+    "4.2.1 Criterios de Convergencia": 10.0
+  },
+  "notas": "Enfoque politécnico. Incluye aplicaciones avanzadas de mecánica (Pappus) y tipos de ED adicionales (Riccati). El estudiante suele ser muy hábil en el planteamiento físico."
+}
