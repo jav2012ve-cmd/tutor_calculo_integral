@@ -15,7 +15,7 @@ import io
 import streamlit as st
 from PIL import Image
 
-from modules import auth_estudiantes, ruta_maestra, seguimos_curso, temario, uso_stats
+from modules import auth_estudiantes, perfil_curso, ruta_maestra, seguimos_curso, temario, uso_stats
 
 MODO_ID = "0) Seguimos (continuidad)"
 
@@ -218,7 +218,7 @@ def _render_panel_tab_continuidad() -> None:
     )
 
     st.divider()
-    with st.expander("Seguimiento del temario canónico Σigma (5 práctica + 5 simulacro por tema)", expanded=False):
+    with st.expander("Seguimiento del temario activo (5 práctica + 5 simulacro por tema)", expanded=False):
         seguimos_curso.render_panel_minicurso(
             eventos=eventos_mc,
             sesion_supabase=bool(sid_mc),
@@ -227,7 +227,7 @@ def _render_panel_tab_continuidad() -> None:
     st.divider()
     with st.expander("Vista extendida: conteos globales, prioridades y debilidades", expanded=False):
         por_tema = uso_stats.obtener_estadisticas_temas()
-        lista = list(temario.LISTA_TEMAS)
+        lista = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
         n_total = len(lista)
         con_practica = sum(1 for t in lista if int(por_tema.get(t, 0) or 0) > 0)
         sin_practica = [t for t in lista if int(por_tema.get(t, 0) or 0) == 0]
@@ -265,7 +265,7 @@ def _render_panel_tab_continuidad() -> None:
 
             2. **Te lo reviso:** manuscritos y validación escrita.
 
-            3. La **Ruta Maestra** y el **seguimiento canónico** reconocen cierres en **A practicar** y aciertos en **Simulacro** cuando el tema del ítem coincide con el temario Σigma o con el código/título del ítem atómico.
+            3. La **Ruta Maestra** y el **seguimiento 5+5** reconocen cierres en **A practicar** y aciertos en **Simulacro** cuando el tema del ítem coincide con tu **temario activo** o con el código/título del ítem atómico.
             """
         )
 
@@ -356,7 +356,7 @@ def _render_debilidades_y_mapa() -> None:
         import pandas as pd
 
         filas = []
-        for t in temario.LISTA_TEMAS:
+        for t in (perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)):
             info = metricas.get(t) or {
                 "score": 0.0,
                 "errores_quiz": 0,

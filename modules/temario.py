@@ -35,8 +35,10 @@ TEMAS_PARCIAL_2 = [
     "2.3.2 Aplicaciones de Ecuaciones Diferenciales de Orden superior",
 ]
 
-# Unimos todo para el menú general
+# Lista canónica Σigma (banco / prompts actuales): **solo** UCAB · Economía · Matemáticas III.
+# El resto de malllas usan ``perfil_curso.lista_temas_activa()`` (átomos de minicurso JSON).
 LISTA_TEMAS = TEMAS_PARCIAL_1 + TEMAS_PARCIAL_2
+LISTA_TEMAS_UCAB_ECONOMIA_MATEMATICAS_III = LISTA_TEMAS
 
 # --- Gráficos (Plotly) en modo ENTRENAMIENTO ---
 # Política: solo algunos temas; el gráfico se muestra si el planteamiento del ejercicio lo permite
@@ -63,22 +65,35 @@ TEMAS_ENTRENAMIENTO_SIN_GRAFICO_PLOTLY = [
 ]
 
 
-def normalizar_tema_curso(valor: Any) -> Optional[str]:
+def normalizar_tema_curso(valor: Any, temas_validos: Optional[list[str]] = None) -> Optional[str]:
     """
-    Convierte texto de la IA (o similar) al string exacto de LISTA_TEMAS, o None.
+    Convierte texto de la IA (o similar) al string exacto de la lista de temas activa, o None.
+
+    ``temas_validos``: si se omite, usa ``perfil_curso.lista_temas_activa()`` (UCAB Econ Mat III
+    → ``LISTA_TEMAS``; resto → átomos del minicurso).
     """
+    temas = temas_validos
+    if temas is None:
+        try:
+            from modules.perfil_curso import lista_temas_activa
+
+            temas = lista_temas_activa()
+        except Exception:
+            temas = list(LISTA_TEMAS)
+    if not temas:
+        return None
     if valor is None:
         return None
     s = str(valor).strip()
     if not s or s.upper() == "NULL":
         return None
-    if s in LISTA_TEMAS:
+    if s in temas:
         return s
     s_lower = s.lower()
-    for t in LISTA_TEMAS:
+    for t in temas:
         if t.lower() == s_lower:
             return t
-    for t in LISTA_TEMAS:
+    for t in temas:
         if s_lower in t.lower() or t.lower() in s_lower:
             return t
     return None

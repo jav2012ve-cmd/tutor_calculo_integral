@@ -5,7 +5,7 @@ from typing import Optional, TypedDict
 
 import streamlit as st
 from PIL import Image
-from modules.temario import LISTA_TEMAS
+from modules import perfil_curso, temario
 from modules import uso_stats
 from modules import seguimos
 from modules import planes_estudio_oficiales
@@ -616,9 +616,16 @@ def mostrar_cabecera_pagina_modo() -> Optional[str]:
     if modo == "a) Entrenamiento (Temario)":
         st.divider()
         st.markdown("##### 📘 Temario detallado")
-        if "tema_seleccionado" not in st.session_state:
-            st.session_state.tema_seleccionado = LISTA_TEMAS[0]
-        tema_seleccionado = st.selectbox("Selecciona el punto:", LISTA_TEMAS, key="tema_select_pagina_modo")
+        lt = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+        if not perfil_curso.lista_temas_activa():
+            st.caption(
+                "Temario inferido o de respaldo. Ajusta **institución/carrera** y revisa **Tu Ruta Maestra Σigma** "
+                "para alinear el pensum."
+            )
+        prev = st.session_state.get("tema_seleccionado")
+        if prev not in lt:
+            st.session_state.tema_seleccionado = lt[0]
+        tema_seleccionado = st.selectbox("Selecciona el punto:", lt, key="tema_select_pagina_modo")
         st.session_state.tema_seleccionado = tema_seleccionado
 
     st.divider()

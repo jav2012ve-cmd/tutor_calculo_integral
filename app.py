@@ -28,6 +28,7 @@ from modules import (
     ia_core,
     interfaz,
     temario,
+    perfil_curso,
     banco_preguntas,
     banco_muestras,
     uso_stats,
@@ -378,12 +379,15 @@ def limpiar_json(texto: Optional[str]) -> Optional[Any]:
 
 
 def _bloque_lista_temas_oficial() -> str:
-    return "\n".join(f"  - {t}" for t in temario.LISTA_TEMAS)
+    lt = perfil_curso.lista_temas_activa()
+    if not lt:
+        lt = list(temario.LISTA_TEMAS)
+    return "\n".join(f"  - {t}" for t in lt)
 
 
 def clasificar_tema_desde_texto(texto_usuario: str) -> Optional[str]:
     """
-    Pide a la IA que elija un tema de LISTA_TEMAS alineado a la consulta (estadísticas).
+    Pide a la IA que elija un tema del temario activo alineado a la consulta (estadísticas).
     """
     t = (texto_usuario or "").strip()
     if not t:
@@ -863,9 +867,10 @@ elif ruta == "a) Entrenamiento (Temario)":
 
     # --- PANTALLA 0: CONFIGURACIÓN ---
     if not st.session_state.entrenamiento_activo:
+        _opts_train = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
         temas_entrenamiento = st.multiselect(
             "🎯 Selecciona los temas a practicar:",
-            options=temario.LISTA_TEMAS,
+            options=_opts_train,
             placeholder="Ej. Ecuaciones Diferenciales Lineales..."
         )
 
@@ -1189,7 +1194,8 @@ elif ruta == "c) Autoevaluación (Quiz)":
                 st.rerun()
 
         with st.expander("⚙️ Personalizado"):
-            temas_custom = st.multiselect("Temas:", temario.LISTA_TEMAS)
+            _opts_quiz = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+            temas_custom = st.multiselect("Temas:", _opts_quiz)
             if st.button("▶️ Iniciar simulacro personalizado"):
                 if not temas_custom:
                     st.error("Selecciona tema.")

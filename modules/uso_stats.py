@@ -24,7 +24,7 @@ from uuid import UUID
 
 import requests
 
-from modules import temario
+from modules import perfil_curso, temario
 
 MODULOS = (
     "Seguimos",
@@ -387,7 +387,7 @@ def _extraer_topic_keys_validos(
     """Temas del temario presentes en ``detalle`` (uno o varios), sin duplicados."""
     if not detalle:
         return []
-    valid = set(temario.LISTA_TEMAS)
+    valid = set(perfil_curso.lista_temas_para_metricas_agregadas())
     raw: list[str] = []
     if modulo in ("Entrenamiento", "Quiz"):
         for x in detalle.get("temas") or []:
@@ -616,7 +616,7 @@ def obtener_estadisticas_temas() -> dict[str, int]:
     Conteos por tema del temario (0 si no hay registro).
     Origen: Supabase ``app_topic_usage`` o archivo local ``data/topic_usage.json``.
     """
-    base: dict[str, int] = {t: 0 for t in temario.LISTA_TEMAS}
+    base: dict[str, int] = {t: 0 for t in perfil_curso.lista_temas_para_metricas_agregadas()}
     url, key = _credenciales_supabase()
     if url and key:
         try:
@@ -636,7 +636,7 @@ def obtener_estadisticas_temas() -> dict[str, int]:
         try:
             with open(path, "r", encoding="utf-8") as f:
                 local = json.load(f)
-            for t in temario.LISTA_TEMAS:
+            for t in perfil_curso.lista_temas_para_metricas_agregadas():
                 if t in local:
                     base[t] = int(local[t] or 0)
         except (json.JSONDecodeError, OSError, TypeError):
@@ -686,9 +686,10 @@ def calcular_metricas_debilidad_por_tema(
     Devuelve ``tema_oficial -> {score, errores_quiz, consultas_tutor}`` solo para temas con actividad > 0.
     """
     acum: dict[str, dict[str, float]] = {}
+    activos = set(perfil_curso.lista_temas_para_metricas_agregadas())
 
     def _add(tema: Optional[str], quiz_delta: float, tutor_delta: float) -> None:
-        if not tema or tema not in temario.LISTA_TEMAS:
+        if not tema or tema not in activos:
             return
         slot = acum.setdefault(
             tema, {"score": 0.0, "errores_quiz": 0.0, "consultas_tutor": 0.0}

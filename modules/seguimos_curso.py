@@ -1,5 +1,5 @@
 """
-Seguimiento del temario canónico Σigma (bloque dentro de «Tu Ruta Maestra Σigma»): trazado por ``temario.LISTA_TEMAS``.
+Seguimiento del temario activo (bloque dentro de «Tu Ruta Maestra Σigma»): usa ``perfil_curso.lista_temas_activa()``.
 
 Independiente de consultas puntuales en otros modos: aquí solo cuentan eventos
 ``seguimos_practica_ok`` (A practicar) y ``quiz_respuesta_correcta`` (Simulacro),
@@ -16,7 +16,7 @@ from typing import Any, Optional
 
 import streamlit as st
 
-from modules import temario
+from modules import perfil_curso, temario
 
 META_PRACTICA = 5
 META_QUIZ = 5
@@ -43,9 +43,8 @@ def _parse_payload(pl: Any) -> dict[str, Any]:
 
 def conteos_minicurso_por_tema(eventos: list[dict[str, Any]]) -> dict[str, dict[str, int]]:
     """Acumula conteos por tema oficial a partir de filas ``app_usage_event``."""
-    out: dict[str, dict[str, int]] = {
-        t: {"practica_ok": 0, "quiz_ok": 0} for t in temario.LISTA_TEMAS
-    }
+    temas = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+    out: dict[str, dict[str, int]] = {t: {"practica_ok": 0, "quiz_ok": 0} for t in temas}
     for row in eventos:
         modo = (row.get("modo") or "").strip()
         pl = _parse_payload(row.get("payload"))
@@ -75,7 +74,8 @@ def etiqueta_tema_corta(tema_completo: str) -> str:
 
 
 def orden_temario() -> list[str]:
-    return list(temario.LISTA_TEMAS)
+    lt = perfil_curso.lista_temas_activa()
+    return list(lt) if lt else list(temario.LISTA_TEMAS)
 
 
 def primera_tema_pendiente(conteos: dict[str, dict[str, int]]) -> Optional[str]:
@@ -105,7 +105,7 @@ def render_panel_minicurso(
     sesion_supabase: bool,
 ) -> None:
     """Bloque de seguimiento 5+5 del temario canónico (pestaña Continuidad)."""
-    st.markdown("### Temario canónico Σigma (seguimiento 5+5)")
+    st.markdown("### Temario activo (seguimiento 5+5)")
     st.markdown(
         "<div style='color:#1e293b;font-size:1.02rem;line-height:1.55;margin-bottom:0.75rem;'>"
         "Es un <strong>itinerario guiado</strong> por el temario en bloques cortos. "

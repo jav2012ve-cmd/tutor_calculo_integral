@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 import streamlit as st
 
-from modules import contexto_universitario, seguimos_curso, temario
+from modules import minicurso_catalogo, perfil_curso, seguimos_curso, temario
 
 _ATOM_CODE_RE = re.compile(r"^(\d+(?:\.\d+)*)\b")
 
@@ -37,7 +37,7 @@ TIPS_POR_UNIVERSIDAD: dict[str, str] = {
     "UNELLEZ": "Tip UNELLEZ: refuerza modelado poblacional y volúmenes de revolución como puente hacia ED.",
     "UBV": "Tip UBV PFG: prioriza interpretación física (presión, mezclas, almacenamiento) al validar integrales y ED.",
     "UCLA": "Tip UCLA: mantén orden en integración por partes y en volúmenes; el DCyT suele valorar el planteamiento explícito.",
-    "UCAB": "Tip UCAB: practica el simulacro mezclando series con aplicaciones geométricas según tu malla FING.",
+    "UCAB": "Tip UCAB: en Ingeniería (FING) mezcla series con aplicaciones geométricas; en Economía Mat III el temario activo sigue la lista Σigma del banco histórico.",
     "UMA": "Tip UMA: articula finanzas y probabilidad con el temario de integrales cuando el curso lo exija.",
 }
 
@@ -141,58 +141,6 @@ def hito_para_atomo(atom: str) -> tuple[str, str]:
     return ("fund", "Fundamentos de Integración")
 
 
-def listar_entradas_minicurso_v2() -> list[dict[str, Any]]:
-    """Cada entrada: path, label, data (dict del JSON)."""
-    carpeta = os.path.join(_raiz_proyecto(), "data")
-    if not os.path.isdir(carpeta):
-        return []
-    out: list[dict[str, Any]] = []
-    for nombre in sorted(os.listdir(carpeta)):
-        if not (nombre.startswith("minicurso_") and nombre.endswith(".json")):
-            continue
-        if nombre == "minicurso_anexo_ucv_ingenieria.json":
-            continue
-        ruta = os.path.join(carpeta, nombre)
-        try:
-            with open(ruta, encoding="utf-8") as f:
-                data = json.load(f)
-        except (OSError, json.JSONDecodeError, TypeError):
-            continue
-        if not isinstance(data, dict):
-            continue
-        if int(data.get("schema_version") or 0) != 2:
-            continue
-        clave = (data.get("universidad_clave") or "").strip()
-        if not clave:
-            continue
-        cnom = (data.get("carrera_nombre_oficial") or "").strip() or (data.get("carrera_id") or "").strip()
-        curso = (data.get("curso_codigo") or "").strip()
-        suf = f" · {curso}" if curso else ""
-        label = f"{clave} — {cnom}{suf}"
-        out.append({"path": ruta, "label": label, "data": data, "basename": nombre})
-    return out
-
-
-def inferir_indice_por_institucion(institucion: str, entradas: list[dict[str, Any]]) -> int:
-    if not entradas or not (institucion or "").strip():
-        return 0
-    inst_raw = institucion.strip()
-    inst_u = inst_raw.upper()
-    clave = contexto_universitario.clave_malla_desde_institucion(inst_raw)
-    if clave:
-        for i, e in enumerate(entradas):
-            if (e["data"].get("universidad_clave") or "").upper() == clave.upper():
-                return i
-    for i, e in enumerate(entradas):
-        if (e["data"].get("universidad_clave") or "").upper() == inst_u:
-            return i
-    for i, e in enumerate(entradas):
-        ck = (e["data"].get("universidad_clave") or "").strip().upper()
-        if len(ck) >= 3 and ck in inst_u:
-            return i
-    return 0
-
-
 def horas_para_atomo(data: dict[str, Any], atom: str) -> float:
     hmap = data.get("horas_orientativas_por_atomico")
     if isinstance(hmap, dict) and atom in hmap:
@@ -218,7 +166,13 @@ def _tema_coincide_atomo(tema_raw: str, atom: str, code: str) -> bool:
     if code:
         if code.lower() in tl:
             return True
-        for t_of in temario.LISTA_TEMAS:
+        try:
+            from modules.perfil_curso import lista_temas_activa
+
+            canon = lista_temas_activa()
+        except Exception:
+            canon = list(temario.LISTA_TEMAS)
+        for t_of in canon:
             if t_of.lower() == tl or tl in t_of.lower():
                 if code in t_of:
                     return True
@@ -257,7 +211,13 @@ def atomo_dominado_app(
         return True
     cc = conteos_canon if conteos_canon is not None else seguimos_curso.conteos_minicurso_por_tema(eventos)
     code = codigo_atomico(atom)
-    for t in temario.LISTA_TEMAS:
+    try:
+        from modules.perfil_curso import lista_temas_activa
+
+        activos = lista_temas_activa()
+    except Exception:
+        activos = list(temario.LISTA_TEMAS)
+    for t in activos:
         if code and code in t:
             slots = cc.get(t, {"practica_ok": 0, "quiz_ok": 0})
             if seguimos_curso.tema_superado(slots):
@@ -335,19 +295,21 @@ def render_panel_ruta_maestra(
         "<div style='color:#1e293b;font-size:1.02rem;line-height:1.55;margin-bottom:0.9rem;'>"
         "Itinerario por **tu pensum** (datos oficiales mapeados por universidad y carrera). "
         "La columna de horas resume la **inversión estimada** por ítem atómico; la cobertura cruza lo que ya registraste "
-        "en **A practicar** y **Simulacro** cuando el tema coincide con el banco Σigma."
+        "en **A practicar** y **Simulacro** cuando el tema coincide con tu **temario activo**."
         "</div>",
         unsafe_allow_html=True,
     )
 
-    entradas = listar_entradas_minicurso_v2()
+    entradas = minicurso_catalogo.listar_entradas_minicurso_v2()
     if not entradas:
         st.warning("No hay archivos `minicurso_*.json` (schema 2) en `data/`.")
         return
 
     labels = [e["label"] for e in entradas]
     auth_inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
-    default_ix = inferir_indice_por_institucion(auth_inst, entradas) if auth_inst else 0
+    default_ix = (
+        minicurso_catalogo.inferir_indice_por_institucion(auth_inst, entradas) if auth_inst else 0
+    )
 
     ix = st.selectbox(
         "Universidad y programa (pensum)",
@@ -364,6 +326,11 @@ def render_panel_ruta_maestra(
     if not orden:
         st.error("Este archivo no define `orden_temario_atomico`.")
         return
+
+    if perfil_curso.es_ucab_economia_matematicas_iii():
+        st.session_state.pop("sigma_atomos_malla_activa", None)
+    else:
+        st.session_state["sigma_atomos_malla_activa"] = list(orden)
 
     conteos_canon = seguimos_curso.conteos_minicurso_por_tema(eventos) if sesion_supabase else {}
 
