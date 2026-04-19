@@ -1,0 +1,45 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Matemáticas II PFG UBV (MII-PFG); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar según documento rector PFG UBV.",
+  "universidad_clave": "UBV",
+  "carrera_id": "ubv_pfg_gas_petroleo_informatica",
+  "carrera_nombre_oficial": "PFG Ingeniería en Gas / Petróleo / Informática",
+  "curso_codigo": "MII-PFG",
+  "fuente": {
+    "titulo": "Documento Rector PFG Gas y Petróleo - UBV",
+    "url": "https://www.ubv.edu.ve/",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "Integral Indefinida y Métodos",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.4", "1.1.6"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones en la Industria Petrolera y Social",
+      "temas": ["3.1.1", "3.2.1", "3.2.2", "3.3.1", "3.4.1", "3.4.2"]
+    },
+    {
+      "id": 5,
+      "nombre": "Modelado con Ecuaciones Diferenciales",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.2.1", "5.2.2"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.3 Cambio de Variable",
+    "3.2.1 Volúmenes de Almacenamiento",
+    "3.4.1 Presión Hidrostática",
+    "5.1.2 ED: Variables Separables",
+    "5.2.2 Modelado de Mezclas y Ambiental"
+  ],
+  "horas_orientativas_por_atomico": {
+    "1.1.3 Cambio de Variable": 6.0,
+    "3.2.1 Volúmenes de Almacenamiento": 8.0,
+    "5.1.2 ED: Variables Separables": 10.0,
+    "5.2.2 Modelado de Mezclas y Ambiental": 8.0
+  },
+  "notas": "Programa orientado al modelado de procesos reales. Se prioriza la aplicación en la industria energética y la resolución de problemas de mezclas y presiones."
+}
