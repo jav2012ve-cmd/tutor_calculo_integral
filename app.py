@@ -813,7 +813,7 @@ if st.session_state.get(ADMIN_SESSION_KEY):
 _modo = st.session_state.get("modo_actual")
 if not _modo:
     st.title(interfaz.APP_DISPLAY_NAME)
-    st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Seguimos**.")
+    st.info("👤 **Cuenta de participante:** el registro e inicio de sesión están dentro de **Tu Ruta Maestra Σigma**.")
     interfaz.mostrar_portada_selector_modos()
     interfaz.mostrar_bienvenida()
 

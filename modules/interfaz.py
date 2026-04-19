@@ -343,9 +343,9 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
     (
         (
             seguimos.MODO_ID,
-            "Seguimos // Minicurso",
-            "Minicurso virtual por el temario: tema en foco, bloques superados (5 práctica + 5 simulacro por tema) "
-            "y ritmo frente a un tiempo orientativo. Registro e inicio de sesión desde el mismo panel.",
+            "Tu Ruta Maestra Σigma",
+            "Ruta por tu pensum universitario (hitos, horas, cobertura) más el seguimiento canónico Σigma "
+            "(5 práctica + 5 simulacro por tema). Registro e inicio de sesión desde el mismo panel.",
         ),
         (
             "a) Entrenamiento (Temario)",
@@ -384,7 +384,7 @@ MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
             MODO_PLANES_ESTUDIO_OFICIALES,
             "Planes de Estudio Oficiales",
             "Consulta la guía según tu universidad: enfoque, temas críticos y bibliografía sugerida "
-            "(perfil desde Seguimos).",
+            "(perfil desde Tu Ruta Maestra Σigma).",
         ),
     ),
 )
@@ -633,7 +633,7 @@ def mostrar_planes_estudio_oficiales() -> None:
     st.header("Planes de Estudio Oficiales")
     st.caption(
         "Referencia V1 alineada a la malla típica de tu universidad. "
-        "Completa tu **institución** (y carrera) en **Seguimos** para personalizar esta hoja."
+        "Completa tu **institución** (y carrera) en **Tu Ruta Maestra Σigma** para personalizar esta hoja."
     )
 
     inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
@@ -647,7 +647,7 @@ def mostrar_planes_estudio_oficiales() -> None:
     if not inst:
         st.warning(
             "No hay **institución** en tu perfil de sesión. "
-            "Inicia sesión o actualiza tus datos en **Seguimos** para ver la guía personalizada."
+            "Inicia sesión o actualiza tus datos en **Tu Ruta Maestra Σigma** para ver la guía personalizada."
         )
         st.markdown(
             "Mientras tanto puedes revisar el **temario** y los demás modos; "
@@ -660,7 +660,7 @@ def mostrar_planes_estudio_oficiales() -> None:
     if not plan:
         st.warning(
             f"No tenemos un plan detallado para «{inst}». "
-            "Si crees que es un error, revisa cómo escribiste la institución en **Seguimos**."
+            "Si crees que es un error, revisa cómo escribiste la institución en **Tu Ruta Maestra Σigma**."
         )
         st.info(
             "Puedes seguir usando el tutor y el temario común; si tu universidad es UCV, USB, "

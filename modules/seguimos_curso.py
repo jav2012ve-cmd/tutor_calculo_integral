@@ -1,5 +1,5 @@
 """
-Minicurso virtual «Seguimos»: trazado por el temario atómico (``temario.LISTA_TEMAS``).
+Seguimiento del temario canónico Σigma (bloque dentro de «Tu Ruta Maestra Σigma»): trazado por ``temario.LISTA_TEMAS``.
 
 Independiente de consultas puntuales en otros modos: aquí solo cuentan eventos
 ``seguimos_practica_ok`` (A practicar) y ``quiz_respuesta_correcta`` (Simulacro),
@@ -104,8 +104,8 @@ def render_panel_minicurso(
     eventos: list[dict[str, Any]],
     sesion_supabase: bool,
 ) -> None:
-    """Bloque principal del minicurso en la pestaña Continuidad de Seguimos."""
-    st.markdown("### Minicurso virtual «Seguimos»")
+    """Bloque de seguimiento 5+5 del temario canónico (pestaña Continuidad)."""
+    st.markdown("### Temario canónico Σigma (seguimiento 5+5)")
     st.markdown(
         "<div style='color:#1e293b;font-size:1.02rem;line-height:1.55;margin-bottom:0.75rem;'>"
         "Es un <strong>itinerario guiado</strong> por el temario en bloques cortos. "
@@ -186,6 +186,6 @@ def render_panel_minicurso(
         1. Abre **A practicar**, elige **solo** el tema en foco (o inclúyelo entre pocos temas) y completa ejercicios
            hasta el **resultado final**; cada uno cuenta +1 (máx. {META_PRACTICA} por bloque en el registro).
         2. Abre **Simulacro** con el mismo tema en la selección; cada acierto cuenta +1 (máx. {META_QUIZ} por bloque).
-        3. Vuelve a **Seguimos** para ver el progreso actualizado.
+        3. Vuelve a **Tu Ruta Maestra Σigma** para ver el progreso actualizado.
         """
     )

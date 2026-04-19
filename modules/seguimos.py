@@ -1,9 +1,10 @@
 """
-Panel «Seguimos»: minicurso virtual por el temario y continuidad para estudiantes identificados.
+Panel «Tu Ruta Maestra Σigma» (modo interno «Seguimos»): continuidad para estudiantes identificados.
 
-El minicurso guía bloques atómicos del temario (meta: 5 prácticas + 5 aciertos en simulacro por tema).
+Incluye la **Ruta Maestra** por pensum (JSON en ``data/``) y el seguimiento del temario canónico Σigma
+(meta: 5 prácticas + 5 aciertos en simulacro por tema cuando el ítem coincide con ese temario).
 Flujo con Supabase: entrada → portal de registro / login → panel.
-Sin Supabase: se puede ir al panel con identificación solo de sesión (sin trazado en nube del minicurso).
+Sin Supabase: panel con identificación solo de sesión (sin trazado en nube).
 """
 
 from __future__ import annotations
@@ -14,7 +15,7 @@ import io
 import streamlit as st
 from PIL import Image
 
-from modules import auth_estudiantes, seguimos_curso, temario, uso_stats
+from modules import auth_estudiantes, ruta_maestra, seguimos_curso, temario, uso_stats
 
 MODO_ID = "0) Seguimos (continuidad)"
 
@@ -210,10 +211,18 @@ def _render_panel_tab_continuidad() -> None:
         if sid_mc:
             eventos_mc = uso_stats.obtener_eventos_aprendizaje_estudiante(str(sid_mc), limit=4000)
 
-    seguimos_curso.render_panel_minicurso(
+    ruta_maestra.render_panel_ruta_maestra(
+        nombre=_nombre_estudiante(),
         eventos=eventos_mc,
         sesion_supabase=bool(sid_mc),
     )
+
+    st.divider()
+    with st.expander("Seguimiento del temario canónico Σigma (5 práctica + 5 simulacro por tema)", expanded=False):
+        seguimos_curso.render_panel_minicurso(
+            eventos=eventos_mc,
+            sesion_supabase=bool(sid_mc),
+        )
 
     st.divider()
     with st.expander("Vista extendida: conteos globales, prioridades y debilidades", expanded=False):
@@ -256,7 +265,7 @@ def _render_panel_tab_continuidad() -> None:
 
             2. **Te lo reviso:** manuscritos y validación escrita.
 
-            3. El **minicurso** solo reconoce cierres completos en **A practicar** y aciertos en **Simulacro** con tema válido.
+            3. La **Ruta Maestra** y el **seguimiento canónico** reconocen cierres en **A practicar** y aciertos en **Simulacro** cuando el tema del ítem coincide con el temario Σigma o con el código/título del ítem atómico.
             """
         )
 
@@ -499,7 +508,7 @@ def _render_portal_seguimos() -> None:
             "Portada",
             key="seguimos_portal_portada",
             use_container_width=True,
-            help="Salir de Seguimos y volver a la portada de la app",
+            help="Salir de Tu Ruta Maestra Σigma y volver a la portada de la app",
         ):
             from modules import interfaz as _interfaz
 
@@ -561,7 +570,9 @@ def _render_panel_seguimos() -> None:
     nombre = _nombre_estudiante()
     codigo = _codigo_referencia()
 
-    st.success(f"Hola, **{nombre}**. Tu **minicurso** Seguimos y el resumen de actividad están en la pestaña principal.")
+    st.success(
+        f"Hola, **{nombre}**. Tu **Ruta Maestra Σigma** y el resumen de actividad están en la pestaña principal."
+    )
 
     if auth_estudiantes.sesion_activa():
         em = (st.session_state.get("auth_estudiante_email") or "").strip()
@@ -591,7 +602,7 @@ def _render_panel_seguimos() -> None:
 
     _render_botones_acceso_rapido_modos()
 
-    tab_cont, tab_rec = st.tabs(["Minicurso y temario", "Mi récord vs otros"])
+    tab_cont, tab_rec = st.tabs(["Ruta Maestra Σigma", "Mi récord vs otros"])
     with tab_cont:
         _render_panel_tab_continuidad()
     with tab_rec:
