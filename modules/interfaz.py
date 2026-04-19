@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import base64
+import html as html_module
 import os
 from typing import Optional, TypedDict
 
 import streamlit as st
+import streamlit.components.v1 as components
 from PIL import Image
 from modules import perfil_curso, temario
 from modules import uso_stats
@@ -238,6 +241,76 @@ _LOGO_JPG = os.path.join(_ROOT, "LogoSigma.jpg")
 _LOGO_JPG_ASSETS = os.path.join(_ROOT, "assets", "LogoSigma.jpg")
 _LOGO_PNG = os.path.join(_ROOT, "LogoSigma.png")
 _LOGO_PNG_ASSETS = os.path.join(_ROOT, "assets", "LogoSigma.png")
+
+# Botones gráficos de la portada (raíz o ``assets/``).
+_BOTON_RUTA_MAESTRA = "BotonRutaMaestra.jpg"
+_BOTON_REGISTRO = "BotonRegistro.jpg"
+
+
+def _ruta_boton_portada(nombre_archivo: str) -> Optional[str]:
+    for p in (os.path.join(_ROOT, nombre_archivo), os.path.join(_ROOT, "assets", nombre_archivo)):
+        if os.path.isfile(p):
+            return p
+    return None
+
+
+def _mime_imagen_portada(ruta: str) -> str:
+    low = ruta.lower()
+    if low.endswith(".png"):
+        return "image/png"
+    if low.endswith(".webp"):
+        return "image/webp"
+    return "image/jpeg"
+
+
+def _altura_componente_boton_portada(ruta: str, ancho_referencia_px: int = 400) -> int:
+    try:
+        with Image.open(ruta) as im:
+            w, h = im.size
+            if w <= 0:
+                return 220
+            escala = min(ancho_referencia_px, w) / w
+            return max(96, int(h * escala) + 12)
+    except Exception:
+        return 220
+
+
+def _html_boton_portada_imagen(ruta: str, query_value: str, alt: str) -> str:
+    with open(ruta, "rb") as f:
+        b64 = base64.b64encode(f.read()).decode("ascii")
+    mime = _mime_imagen_portada(ruta)
+    alt_esc = html_module.escape(alt, quote=True)
+    q_esc = html_module.escape(query_value, quote=True)
+    return f"""<a href="?portada_action={q_esc}" target="_self" style="display:block;text-decoration:none;">
+  <img src="data:{mime};base64,{b64}" alt="{alt_esc}" style="width:100%;height:auto;border-radius:0.35rem;cursor:pointer;display:block;" />
+</a>"""
+
+
+def _consumir_portada_action_query_param() -> None:
+    """``?portada_action=ruta|registro`` desde los botones gráficos de la portada."""
+    if st.session_state.get("modo_actual"):
+        return
+    try:
+        qp = st.query_params
+        raw = qp.get("portada_action")
+        if raw is None:
+            return
+        val = (raw[0] if isinstance(raw, list) else str(raw)).strip().lower()
+        if val not in ("ruta", "registro"):
+            if "portada_action" in qp:
+                del qp["portada_action"]
+            return
+        if "portada_action" in qp:
+            del qp["portada_action"]
+        if val == "ruta":
+            _aplicar_iniciar_modo(seguimos.MODO_ID)
+        else:
+            _aplicar_iniciar_modo(seguimos.MODO_ID)
+            st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_PORTAL
+            st.session_state.seguimos_portal_tab = "registro"
+        st.rerun()
+    except Exception:
+        pass
 
 
 def _ruta_logo_sigma() -> Optional[str]:
@@ -548,21 +621,36 @@ def mostrar_portada_cero() -> None:
     Portada mínima: imagen de bienvenida y tres acciones (Ruta Maestra, registro, demo).
     La cuadrícula de modos se muestra aparte solo si hay sesión o demo activo.
     """
+    _consumir_portada_action_query_param()
     st.title(APP_DISPLAY_NAME)
     ruta = demo_sigma.ruta_imagen_portada_bienvenida()
     if ruta:
         st.image(ruta, use_container_width=True)
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("Seguimos la Ruta Maestra", use_container_width=True, type="primary"):
-            _aplicar_iniciar_modo(seguimos.MODO_ID)
-            st.rerun()
+        img_ruta = _ruta_boton_portada(_BOTON_RUTA_MAESTRA)
+        if img_ruta:
+            components.html(
+                _html_boton_portada_imagen(img_ruta, "ruta", "Ruta Maestra"),
+                height=_altura_componente_boton_portada(img_ruta),
+            )
+        else:
+            if st.button("Ruta Maestra", use_container_width=True, type="primary"):
+                _aplicar_iniciar_modo(seguimos.MODO_ID)
+                st.rerun()
     with c2:
-        if st.button("Registrate", use_container_width=True):
-            _aplicar_iniciar_modo(seguimos.MODO_ID)
-            st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_PORTAL
-            st.session_state.seguimos_portal_tab = "registro"
-            st.rerun()
+        img_reg = _ruta_boton_portada(_BOTON_REGISTRO)
+        if img_reg:
+            components.html(
+                _html_boton_portada_imagen(img_reg, "registro", "Registro"),
+                height=_altura_componente_boton_portada(img_reg),
+            )
+        else:
+            if st.button("Registro", use_container_width=True):
+                _aplicar_iniciar_modo(seguimos.MODO_ID)
+                st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_PORTAL
+                st.session_state.seguimos_portal_tab = "registro"
+                st.rerun()
     with c3:
         if st.button("Demo", use_container_width=True):
             demo_sigma.activar_demo()
