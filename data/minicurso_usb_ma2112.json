@@ -1,0 +1,39 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario MA2112 (Matemáticas III, USB); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "Solo figuran unidades 3 y 4; `unidades` lista códigos (p. ej. 3.1.1, 3.1.5, 4.1.1, 4.1.4) ausentes de `orden_temario_atomico`. Completar según PDF MA2112.",
+  "universidad_clave": "USB",
+  "carrera_id": "usb_ingenieria_ma2112",
+  "carrera_nombre_oficial": "Ingeniería y Licenciaturas (MA2112)",
+  "curso_codigo": "MA2112",
+  "fuente": {
+    "titulo": "Programa de Matemáticas III (MA2112) - USB",
+    "url": "https://www.mat.usb.ve/programas/MA2112.pdf",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 3,
+      "nombre": "Integración Múltiple",
+      "temas": ["3.1.1", "3.1.2", "3.1.3", "3.1.4", "3.1.5"]
+    },
+    {
+      "id": 4,
+      "nombre": "Ecuaciones Diferenciales de Primer Orden",
+      "temas": ["4.1.1", "4.1.2", "4.1.3", "4.1.4"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "3.1.2 Integrales Dobles: Regiones Generales",
+    "3.1.3 Cambio de orden de integración",
+    "3.1.4 Integrales en Polares",
+    "4.1.2 ED: Separación de Variables",
+    "4.1.3 ED: Ecuaciones Lineales"
+  ],
+  "horas_orientativas_por_atomico": {
+    "3.1.2 Integrales Dobles: Regiones Generales": 8.0,
+    "3.1.3 Cambio de orden de integración": 6.0,
+    "4.1.3 ED: Ecuaciones Lineales": 7.0
+  },
+  "notas": "Cierre del ciclo de integración básica en la USB. Este curso es vital para completar el temario atómico de Integrales Dobles y el inicio de Ecuaciones Diferenciales que no se cubren en MA1112."
+}
