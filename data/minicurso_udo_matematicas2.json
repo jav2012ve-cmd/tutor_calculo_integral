@@ -1,0 +1,50 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario Matemáticas II UDO (008-1824); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso y eventos en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar según programa oficial Universidad de Oriente.",
+  "universidad_clave": "UDO",
+  "carrera_id": "udo_ingenieria_civil_petroleo_industrial",
+  "carrera_nombre_oficial": "Malla Curricular de Ingeniería (Matemáticas II)",
+  "curso_codigo": "008-1824",
+  "fuente": {
+    "titulo": "Programa Matemáticas II - Universidad de Oriente",
+    "url": "http://www.udo.edu.ve",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "Cálculo Integral Indefinido",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.4", "1.1.8"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones de la Integral",
+      "temas": ["3.1.1", "3.2.1", "3.2.2", "3.3.1", "3.4.1", "3.4.2"]
+    },
+    {
+      "id": 4,
+      "nombre": "Series Numéricas",
+      "temas": ["4.1.1", "4.1.2", "4.2.1", "4.2.2"]
+    },
+    {
+      "id": 5,
+      "nombre": "Ecuaciones Diferenciales Ordinarias",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.2.1"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.4 Sustitución Trigonométrica",
+    "3.2.1 Volúmenes de Revolución",
+    "3.4.2 Centros de Masa",
+    "4.1.2 Criterios de Convergencia",
+    "5.1.4 ED Lineales de Primer Orden"
+  ],
+  "horas_orientativas_por_atomico": {
+    "4.1.2 Criterios de Convergencia": 10.0,
+    "3.2.1 Volúmenes de Revolución": 8.0,
+    "3.4.2 Centros de Masa": 6.0,
+    "5.1.4 ED Lineales de Primer Orden": 7.0
+  },
+  "notas": "Programa semestral tradicional. Se diferencia por el peso en aplicaciones de física mecánica e ingeniería de procesos (mezclas) en el bloque de ED."
+}
