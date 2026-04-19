@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Numeración y títulos propios de FACES; no coinciden con `modules/temario.LISTA_TEMAS`. Requiere mapeo a ítems de la app para eventos de minicurso/práctica/quiz.",
+  "advertencia_consistencia": "En `unidades` figuran más códigos (p. ej. 2.1.2, 2.1.3, 3.1.1, 3.1.4, 4.1.2, 4.2.2, 5.1.x, 5.2.2, 5.3.1) que entradas en `orden_temario_atomico`. Completar orden o marcar omisiones explícitas si el programa oficial lo exige.",
+  "universidad_clave": "UCV",
+  "carrera_id": "ucv_faces_economia_administracion",
+  "carrera_nombre_oficial": "Ciencias Económicas y Sociales (Matemáticas II)",
+  "curso_codigo": "1212",
+  "fuente": {
+    "titulo": "Programa Matemáticas II - Escuela de Economía UCV",
+    "url": "http://www.ucv.ve/facultades/faces/escuelas/economia/estudios/pregrado/mallas-curriculares.html",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida y Aplicaciones Marginales",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.5", "1.1.6"]
+    },
+    {
+      "id": 2,
+      "nombre": "La Integral Definida",
+      "temas": ["2.1.1", "2.1.2", "2.1.3", "2.1.4"]
+    },
+    {
+      "id": 3,
+      "nombre": "Análisis de Excedentes y Distribución",
+      "temas": ["3.1.1", "3.1.2", "3.1.3", "3.1.4", "3.2.1", "3.2.2"]
+    },
+    {
+      "id": 4,
+      "nombre": "Impropias y Probabilidad",
+      "temas": ["4.1.1", "4.1.2", "4.2.1", "4.2.2"]
+    },
+    {
+      "id": 5,
+      "nombre": "Integración Multivariable",
+      "temas": ["5.1.1", "5.1.2", "5.2.1", "5.2.2", "5.3.1"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Directas y Marginales",
+    "1.1.2 Integrales de Exponenciales",
+    "1.1.3 Sustitución en Modelos de Costos",
+    "1.1.5 Integral por Partes",
+    "1.1.6 Reconstrucción de Funciones Totales",
+    "2.1.1 Concepto Geométrico de Integral",
+    "2.1.4 Regla de Barrow",
+    "3.1.2 Excedente del Consumidor",
+    "3.1.3 Excedente del Productor",
+    "3.2.1 Curva de Lorenz",
+    "3.2.2 Índice de Gini",
+    "4.1.1 Impropias: Valor Presente Perpetuo",
+    "4.2.1 PDF en Estadística",
+    "5.2.1 Integrales Dobles en Regiones Rectangulares"
+  ],
+  "horas_orientativas_por_atomico": {
+    "3.1.2 Excedente del Consumidor": 6.0,
+    "3.1.3 Excedente del Productor": 6.0,
+    "3.2.1 Curva de Lorenz": 4.0,
+    "4.2.1 PDF en Estadística": 5.0
+  },
+  "notas": "Enfoque 100% económico. Se incluye el tema de Excedentes y Distribución del Ingreso que no está en Ingeniería. Se omite ED de orden superior y sustitución trigonométrica compleja."
+}
