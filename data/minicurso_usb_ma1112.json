@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "advertencia_integracion": "Temario MA1112 (USB); no coincide con `modules/temario.LISTA_TEMAS`. Requiere mapeo para minicurso, práctica y quiz en la app.",
+  "advertencia_consistencia": "`unidades` declara más códigos de tema que entradas en `orden_temario_atomico`. Completar el orden u omitir explícitamente según el PDF oficial MA1112.",
+  "universidad_clave": "USB",
+  "carrera_id": "usb_ingenieria_ciencias",
+  "carrera_nombre_oficial": "Ingeniería y Licenciaturas (MA1112)",
+  "curso_codigo": "MA1112",
+  "fuente": {
+    "titulo": "Programa de Matemáticas II (MA1112) - USB",
+    "url": "https://www.mat.usb.ve/programas/MA1112.pdf",
+    "tipo": "programa_analitico"
+  },
+  "unidades": [
+    {
+      "id": 1,
+      "nombre": "La Integral Indefinida y Técnicas de Integración",
+      "temas": ["1.1.1", "1.1.2", "1.1.3", "1.1.4", "1.1.5", "1.1.6", "1.1.7", "1.1.8"]
+    },
+    {
+      "id": 2,
+      "nombre": "La Integral Definida",
+      "temas": ["2.1.1", "2.1.2", "2.1.3", "2.1.4", "2.1.5"]
+    },
+    {
+      "id": 3,
+      "nombre": "Aplicaciones de la Integral",
+      "temas": ["3.1.1", "3.1.2", "3.2.1", "3.2.2", "3.2.3", "3.3.1", "3.3.2"]
+    },
+    {
+      "id": 4,
+      "nombre": "Integrales Impropias",
+      "temas": ["4.1.1", "4.1.2", "4.2.1", "4.2.2"]
+    },
+    {
+      "id": 5,
+      "nombre": "Sucesiones y Series",
+      "temas": ["5.1.1", "5.1.2", "5.1.3", "5.1.4", "5.2.1", "5.2.2", "5.3.1"]
+    }
+  ],
+  "orden_temario_atomico": [
+    "1.1.1 Integrales Directas",
+    "1.1.3 Cambio de Variable",
+    "1.1.7 Integración por Partes",
+    "1.1.4 Sustitución Trigonométrica",
+    "2.1.4 Regla de Barrow",
+    "3.2.1 Volúmenes: Discos y Arandelas",
+    "4.1.1 Impropias: Intervalos Infinitos",
+    "5.1.3 Criterios de Convergencia de Series",
+    "5.2.2 Series de Taylor"
+  ],
+  "horas_orientativas_por_atomico": {
+    "1.1.4 Sustitución Trigonométrica": 6.0,
+    "1.1.7 Integración por Partes": 5.0,
+    "3.2.1 Volúmenes: Discos y Arandelas": 8.0,
+    "5.1.3 Criterios de Convergencia de Series": 10.0,
+    "5.2.2 Series de Taylor": 7.0
+  },
+  "notas": "Régimen trimestral intensivo. Gran peso en Series y técnicas de integración manuales. No incluye Ecuaciones Diferenciales."
+}
