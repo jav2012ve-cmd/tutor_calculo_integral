@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import time
+from contextvars import ContextVar
 from typing import Any, List, Optional, Union
 
 import streamlit as st
@@ -25,6 +26,7 @@ for candidate in [HERE] + [os.path.abspath(os.path.join(HERE, os.pardir))] + [
 if modules_parent and modules_parent not in sys.path:
     sys.path.insert(0, modules_parent)
 
+from modules import pdf_text
 from modules import (
     ia_core,
     interfaz,
@@ -932,6 +934,10 @@ def _limpiar_latex_comunes_para_pdf(texto: Optional[str]) -> str:
     return t
 
 
+# True cuando ``_sanitizar_para_pdf`` se usa para el informe PDF con fuente TTF (uni=True).
+_PDF_USE_UNICODE_FONT: ContextVar[bool] = ContextVar("_PDF_USE_UNICODE_FONT", default=False)
+
+
 def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     """
     Convierte LaTeX a texto legible en el PDF: fracciones como (num/den),
@@ -942,7 +948,9 @@ def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     if not texto:
         return ""
 
-    t = _limpiar_latex_comunes_para_pdf(texto)
+    u = _PDF_USE_UNICODE_FONT.get()
+    t = pdf_text.latex_raw_preprocess(str(texto), uses_unicode_font=u)
+    t = _limpiar_latex_comunes_para_pdf(t)
     t = t.replace("$$", "").replace("$", "").strip()
 
     # \frac con contenido posiblemente anidado (ej. \frac{x^3}{3})
@@ -1018,17 +1026,50 @@ def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     t = re.sub(r"\\sqrt\{([^{}]+)\}", r" sqrt(\1) ", t)
     # Espacios múltiples y recorte
     t = re.sub(r"\s+", " ", t).strip()
-    return t[:500] if len(t) > 500 else t
+    t = t[:500] if len(t) > 500 else t
+    return pdf_text.finalize_pdf_string(t, uses_unicode_font=u)
+
+
+def clean_unicode_text(texto: Optional[str], pdf: Any = None) -> str:
+    """
+    Texto listo para ``cell`` / ``multi_cell``: preproceso LaTeX crudo y sustitución de
+    símbolos que FPDF no admite con Helvetica; con fuente TTF se conserva Unicode seguro.
+    """
+    u = bool(getattr(pdf, "_uses_dejavu", False))
+    s = pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=u)
+    return pdf_text.finalize_pdf_string(s, uses_unicode_font=u)
+
+
+def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
+    """Pipeline completo para contenido matemático del informe (LaTeX → texto → codificación)."""
+    u = bool(getattr(pdf, "_uses_dejavu", False))
+    tok = _PDF_USE_UNICODE_FONT.set(u)
+    try:
+        return _sanitizar_para_pdf(raw)
+    finally:
+        _PDF_USE_UNICODE_FONT.reset(tok)
+
+
+def _pdf_set_enunciado_font(pdf: Any, es_formula: bool) -> None:
+    if getattr(pdf, "_uses_dejavu", False):
+        pdf.set_font("DejaVuSans", "I" if es_formula else "", 9)
+    else:
+        pdf.set_font("Courier", "I", 9) if es_formula else pdf.set_font("Helvetica", "", 9)
+
+
+def _pdf_set_informe_sans(pdf: Any, style: str, size: float) -> None:
+    if getattr(pdf, "_uses_dejavu", False):
+        pdf.set_font("DejaVuSans", style, size)
+    else:
+        pdf.set_font("Helvetica", style, size)
 
 
 def _latin1_pdf(texto: Optional[str]) -> str:
-    """Texto seguro para celdas fpdf (latin-1)."""
-    s = (texto or "").replace("\r\n", "\n")
-    try:
-        s.encode("latin-1")
-        return s
-    except UnicodeEncodeError:
-        return s.encode("latin-1", errors="replace").decode("latin-1")
+    """Texto seguro latin-1 (sin fuente Unicode); mismo criterio que ``finalize_pdf_string``."""
+    return pdf_text.finalize_pdf_string(
+        pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=False),
+        uses_unicode_font=False,
+    )
 
 
 def _fragmentos_bloques_dolar(texto: Optional[str]) -> list[tuple[str, bool]]:
@@ -1056,7 +1097,7 @@ def _fragmentos_bloques_dolar(texto: Optional[str]) -> list[tuple[str, bool]]:
 
 
 def _pdf_render_enunciado_caja_sombreada(pdf: Any, texto_raw: Optional[str]) -> None:
-    """Enunciado con fondo suave; fórmulas en ``$...$`` con Courier cursiva."""
+    """Enunciado con fondo suave; fórmulas en ``$...$`` con cursiva (DejaVu o Courier)."""
     from fpdf import FPDF
 
     if not isinstance(pdf, FPDF):
@@ -1069,19 +1110,20 @@ def _pdf_render_enunciado_caja_sombreada(pdf: Any, texto_raw: Optional[str]) -> 
     y_top = float(pdf.get_y())
     pdf.set_fill_color(*fill_rgb)
     pdf.set_text_color(15, 23, 42)
-    for frag, es_formula in _fragmentos_bloques_dolar(texto_raw):
-        if not (frag or "").strip() and not es_formula:
-            continue
-        t = _sanitizar_para_pdf(frag) if frag.strip() else " "
-        if not (t or "").strip():
-            continue
-        t = _latin1_pdf(t)
-        if es_formula:
-            pdf.set_font("Courier", "I", 9)
-        else:
-            pdf.set_font("Helvetica", "", 9)
-        pdf.set_x(x0 + 1.0)
-        pdf.multi_cell(inner, 4.5, t, border=0, align="L", fill=1)
+    u = bool(getattr(pdf, "_uses_dejavu", False))
+    tok = _PDF_USE_UNICODE_FONT.set(u)
+    try:
+        for frag, es_formula in _fragmentos_bloques_dolar(texto_raw):
+            if not (frag or "").strip() and not es_formula:
+                continue
+            t = _sanitizar_para_pdf(frag) if frag.strip() else " "
+            if not (t or "").strip():
+                continue
+            _pdf_set_enunciado_font(pdf, es_formula)
+            pdf.set_x(x0 + 1.0)
+            pdf.multi_cell(inner, 4.5, t, border=0, align="L", fill=1)
+    finally:
+        _PDF_USE_UNICODE_FONT.reset(tok)
     y_bot = float(pdf.get_y())
     if y_bot <= y_top + 0.5:
         y_bot = y_top + 6.0
@@ -1108,13 +1150,13 @@ def _pdf_bloque_celda_sombreada(
     w0 = float(pdf.w - pdf.l_margin - pdf.r_margin)
     pdf.set_fill_color(*fill_rgb)
     pdf.set_draw_color(210, 210, 210)
-    pdf.set_font("Helvetica", "B", 9)
+    _pdf_set_informe_sans(pdf, "B", 9)
     pdf.set_text_color(40, 40, 40)
     pdf.set_x(x0)
-    pdf.cell(w0, 4.5, _latin1_pdf(etiqueta), border="LRT", ln=1, fill=1)
-    pdf.set_font("Helvetica", "", 9)
+    pdf.cell(w0, 4.5, clean_unicode_text(etiqueta, pdf), border="LRT", ln=1, fill=1)
+    _pdf_set_informe_sans(pdf, "", 9)
     pdf.set_x(x0)
-    pdf.multi_cell(w0, 4.5, _latin1_pdf(contenido), border="LRB", align="L", fill=1)
+    pdf.multi_cell(w0, 4.5, _pdf_texto_cuerpo(contenido, pdf), border="LRB", align="L", fill=1)
     pdf.set_text_color(0, 0, 0)
     pdf.ln(2)
 
@@ -1124,8 +1166,8 @@ def _pdf_tabla_datos_estudiante(pdf: Any, nombre: str, institucion: str, semestr
 
     if not isinstance(pdf, FPDF):
         return
-    pdf.set_font("Helvetica", "B", 10)
-    pdf.cell(0, 6, _latin1_pdf("Datos del participante"), ln=1)
+    _pdf_set_informe_sans(pdf, "B", 10)
+    pdf.cell(0, 6, clean_unicode_text("Datos del participante", pdf), ln=1)
     pdf.ln(1)
     col_etq = 44.0
     pdf.set_draw_color(200, 210, 222)
@@ -1136,12 +1178,12 @@ def _pdf_tabla_datos_estudiante(pdf: Any, nombre: str, institucion: str, semestr
         ("Semestre", semestre),
     )
     for etiqueta, valor in filas:
-        v = _latin1_pdf((valor or "").strip() or "-")
+        v = clean_unicode_text((valor or "").strip() or "-", pdf)
         if len(v) > 110:
             v = v[:107] + "..."
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(col_etq, 6, _latin1_pdf(etiqueta + ":"), border=1, fill=1)
-        pdf.set_font("Helvetica", "", 9)
+        _pdf_set_informe_sans(pdf, "B", 9)
+        pdf.cell(col_etq, 6, clean_unicode_text(etiqueta + ":", pdf), border=1, fill=1)
+        _pdf_set_informe_sans(pdf, "", 9)
         pdf.cell(0, 6, v, border=1, ln=1, fill=1)
     pdf.ln(4)
 
@@ -1153,17 +1195,17 @@ def _pdf_bloque_identidad_reporte(pdf: Any) -> None:
     if not isinstance(pdf, FPDF):
         return
     if not auth_estudiantes.sesion_activa():
-        pdf.set_font("Helvetica", "BI", 10)
+        _pdf_set_informe_sans(pdf, "BI", 10)
         pdf.set_text_color(71, 85, 105)
-        pdf.cell(0, 7, _latin1_pdf("Reporte de Práctica Libre"), ln=1, align="C")
+        pdf.cell(0, 7, clean_unicode_text("Reporte de Práctica Libre", pdf), ln=1, align="C")
         pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
         return
     nombre = (st.session_state.get("auth_estudiante_nombre") or "").strip()
     if nombre.lower() == "invitado":
-        pdf.set_font("Helvetica", "BI", 10)
+        _pdf_set_informe_sans(pdf, "BI", 10)
         pdf.set_text_color(71, 85, 105)
-        pdf.cell(0, 7, _latin1_pdf("Reporte de Práctica Libre"), ln=1, align="C")
+        pdf.cell(0, 7, clean_unicode_text("Reporte de Práctica Libre", pdf), ln=1, align="C")
         pdf.set_text_color(0, 0, 0)
         pdf.ln(3)
         return
@@ -1188,11 +1230,11 @@ def generar_pdf_informe_quiz(
     if auth_estudiantes.sesion_activa():
         nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
         if nom.lower() == "invitado":
-            nombre_hdr = _latin1_pdf("Invitado (practica libre)")
+            nombre_hdr = "Invitado (practica libre)"
         else:
-            nombre_hdr = _latin1_pdf(nom)
+            nombre_hdr = nom
     else:
-        nombre_hdr = _latin1_pdf("Participante (sin sesion)")
+        nombre_hdr = "Participante (sin sesion)"
 
     pdf = SigmaPDF(
         "Sigma — Informe de simulacro",
@@ -1201,69 +1243,73 @@ def generar_pdf_informe_quiz(
         fecha_informe=fecha_inf,
         tipo_actividad=tipo_act,
         nota_final=nota_final,
-        aprobado_texto=_latin1_pdf(aprob_txt),
+        aprobado_texto=aprob_txt,
     )
-    pdf.add_page()
+    tok_pdf = _PDF_USE_UNICODE_FONT.set(pdf._uses_dejavu)
+    try:
+        pdf.add_page()
 
-    if auth_estudiantes.sesion_activa():
-        nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
-        if nom and nom.lower() != "invitado":
-            inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
-            sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
-            if inst or sem:
-                pdf.set_font("Helvetica", "", 9)
-                pdf.set_text_color(70, 70, 70)
-                if inst:
-                    pdf.cell(0, 5, _latin1_pdf(f"Institucion: {inst}"), ln=1)
-                if sem:
-                    pdf.cell(0, 5, _latin1_pdf(f"Semestre: {sem}"), ln=1)
-                pdf.set_text_color(0, 0, 0)
-                pdf.ln(2)
+        if auth_estudiantes.sesion_activa():
+            nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+            if nom and nom.lower() != "invitado":
+                inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+                sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+                if inst or sem:
+                    _pdf_set_informe_sans(pdf, "", 9)
+                    pdf.set_text_color(70, 70, 70)
+                    if inst:
+                        pdf.cell(0, 5, clean_unicode_text(f"Institucion: {inst}", pdf), ln=1)
+                    if sem:
+                        pdf.cell(0, 5, clean_unicode_text(f"Semestre: {sem}", pdf), ln=1)
+                    pdf.set_text_color(0, 0, 0)
+                    pdf.ln(2)
 
-    pdf.set_font("Helvetica", "I", 9)
-    pdf.set_text_color(90, 90, 90)
-    pdf.cell(0, 5, _latin1_pdf("Detalle de respuestas (simulacro)."), ln=1)
-    pdf.set_text_color(0, 0, 0)
-    pdf.ln(3)
+        _pdf_set_informe_sans(pdf, "I", 9)
+        pdf.set_text_color(90, 90, 90)
+        pdf.cell(0, 5, clean_unicode_text("Detalle de respuestas (simulacro).", pdf), ln=1)
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
 
-    for i, r in enumerate(respuestas_usuario, 1):
-        pdf.set_font("Helvetica", "B", size=10)
-        pts = r.get("puntos", 0)
-        pdf.cell(0, 6, f"Pregunta {i} ({pts} pts)", ln=True)
-        pdf.ln(1)
-        _pdf_render_enunciado_caja_sombreada(pdf, r.get("pregunta", ""))
-        _pdf_bloque_celda_sombreada(
-            pdf,
-            "Tu respuesta",
-            _sanitizar_para_pdf(r.get("elegida", "")),
-            fill_rgb=(248, 248, 248),
-        )
-        if not r.get("es_correcta", True):
+        for i, r in enumerate(respuestas_usuario, 1):
+            _pdf_set_informe_sans(pdf, "B", 10)
+            pts = r.get("puntos", 0)
+            pdf.cell(0, 6, f"Pregunta {i} ({pts} pts)", ln=True)
+            pdf.ln(1)
+            _pdf_render_enunciado_caja_sombreada(pdf, r.get("pregunta", ""))
             _pdf_bloque_celda_sombreada(
                 pdf,
-                "Respuesta correcta (referencia)",
-                _sanitizar_para_pdf(r.get("correcta", "")),
+                "Tu respuesta",
+                str(r.get("elegida", "") or ""),
                 fill_rgb=(248, 248, 248),
             )
-        pdf.set_font("Helvetica", "B", 10)
-        if r.get("es_correcta", True):
-            pdf.set_text_color(22, 138, 78)
-            pdf.cell(0, 6, _latin1_pdf("Juicio: CORRECTO"), ln=1)
-        else:
-            pdf.set_text_color(200, 48, 48)
-            pdf.cell(0, 6, _latin1_pdf("Juicio: INCORRECTO"), ln=1)
-        pdf.set_text_color(0, 0, 0)
-        pdf.ln(5)
-        _pdf_bloque_celda_sombreada(
-            pdf,
-            "Sugerencias / comentario",
-            _sanitizar_para_pdf(r.get("explicacion", "")),
-            fill_rgb=(250, 250, 250),
-        )
-        pdf.ln(3)
-    raw = pdf.output(dest="S")
+            if not r.get("es_correcta", True):
+                _pdf_bloque_celda_sombreada(
+                    pdf,
+                    "Respuesta correcta (referencia)",
+                    str(r.get("correcta", "") or ""),
+                    fill_rgb=(248, 248, 248),
+                )
+            _pdf_set_informe_sans(pdf, "B", 10)
+            if r.get("es_correcta", True):
+                pdf.set_text_color(22, 138, 78)
+                pdf.cell(0, 6, clean_unicode_text("Juicio: CORRECTO", pdf), ln=1)
+            else:
+                pdf.set_text_color(200, 48, 48)
+                pdf.cell(0, 6, clean_unicode_text("Juicio: INCORRECTO", pdf), ln=1)
+            pdf.set_text_color(0, 0, 0)
+            pdf.ln(5)
+            _pdf_bloque_celda_sombreada(
+                pdf,
+                "Sugerencias / comentario",
+                str(r.get("explicacion", "") or ""),
+                fill_rgb=(250, 250, 250),
+            )
+            pdf.ln(3)
+        raw = pdf.output(dest="S")
+    finally:
+        _PDF_USE_UNICODE_FONT.reset(tok_pdf)
     if isinstance(raw, str):
-        return raw.encode("latin1")
+        return raw.encode("latin-1", errors="replace")
     if isinstance(raw, (bytes, bytearray)):
         return bytes(raw)
     return b""

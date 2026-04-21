@@ -50,6 +50,60 @@ def _resolver_fuente_sistema_sans() -> Optional[str]:
     return None
 
 
+def _resolver_ttf_unicode_sans() -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
+    """
+    Rutas TTF (regular, bold, italic, bolditalic) para registrar la familia ``DejaVuSans``.
+    Prefiere DejaVu embebido en ``assets/fonts/`` o del sistema; si no hay, Arial/Calibri (uni=True).
+    """
+    bundled = str(_ROOT / "assets" / "fonts" / "DejaVuSans.ttf")
+    if os.path.isfile(bundled):
+        d = os.path.dirname(bundled)
+        b = os.path.join(d, "DejaVuSans-Bold.ttf")
+        i = os.path.join(d, "DejaVuSans-Oblique.ttf")
+        bi = os.path.join(d, "DejaVuSans-BoldOblique.ttf")
+        return (
+            bundled,
+            b if os.path.isfile(b) else bundled,
+            i if os.path.isfile(i) else bundled,
+            bi if os.path.isfile(bi) else (b if os.path.isfile(b) else bundled),
+        )
+    windir = os.environ.get("WINDIR", "")
+    fonts_dir = os.path.join(windir, "Fonts") if windir else ""
+    if fonts_dir:
+        sets: tuple[tuple[str, str, str, str], ...] = (
+            ("DejaVuSans.ttf", "DejaVuSans-Bold.ttf", "DejaVuSans-Oblique.ttf", "DejaVuSans-BoldOblique.ttf"),
+            ("arial.ttf", "arialbd.ttf", "ariali.ttf", "arialbi.ttf"),
+            ("Arial.ttf", "arialbd.ttf", "ariali.ttf", "arialbi.ttf"),
+            ("calibri.ttf", "calibrib.ttf", "calibrii.ttf", "calibriz.ttf"),
+        )
+        for base, b_name, i_name, bi_name in sets:
+            reg = os.path.join(fonts_dir, base)
+            if not os.path.isfile(reg):
+                continue
+
+            def pick(name: str) -> str:
+                p = os.path.join(fonts_dir, name)
+                return p if os.path.isfile(p) else reg
+
+            return reg, pick(b_name), pick(i_name), pick(bi_name)
+    for e in (
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/TTF/DejaVuSans.ttf",
+    ):
+        if os.path.isfile(e):
+            d = os.path.dirname(e)
+            b = os.path.join(d, "DejaVuSans-Bold.ttf")
+            i = os.path.join(d, "DejaVuSans-Oblique.ttf")
+            bi = os.path.join(d, "DejaVuSans-BoldOblique.ttf")
+            return (
+                e,
+                b if os.path.isfile(b) else e,
+                i if os.path.isfile(i) else e,
+                bi if os.path.isfile(bi) else (b if os.path.isfile(b) else e),
+            )
+    return None, None, None, None
+
+
 def _logo_para_cabecera_pdf(ruta: str, max_px: int = 240) -> BytesIO:
     """Escala el logo para cabecera (evita incrustar PNG de varios MB en el PDF)."""
     buf = BytesIO()
@@ -82,7 +136,7 @@ def _bitmap_tagline_pie_sigma() -> BytesIO:
 class SigmaPDF(FPDF):
     """
     FPDF con cabecera: modo «informe quiz» (logo, banner de calificación, datos) o título clásico.
-    El pie usa latin-1; las cadenas de cabecera deben llegar ya seguras para ese encoding.
+    Si existe una TTF del sistema, se registra como ``DejaVuSans`` (uni=True) para Unicode.
     """
 
     _TAGLINE_ASCII = "Sigma: Tu Tutor Inteligente de Calculo"
@@ -104,11 +158,38 @@ class SigmaPDF(FPDF):
 
         self._tmp_logo_header: Optional[str] = None
         self._tmp_tagline_png: Optional[str] = None
+        self._uses_dejavu: bool = False
+        self._registrar_fuente_dejavu_sans()
 
         self.alias_nb_pages()
         self.set_auto_page_break(auto=True, margin=22)
         top_m = self._MARGEN_SUPERIOR_CUERPO_QUIZ if self._cabecera_informe_quiz else 34.0
         self.set_margins(12, top_m, 12)
+
+    def _registrar_fuente_dejavu_sans(self) -> None:
+        reg, bd, it, bi = _resolver_ttf_unicode_sans()
+        if not reg:
+            return
+        try:
+            self.add_font("DejaVuSans", "", reg, uni=True)
+            self.add_font("DejaVuSans", "B", bd or reg, uni=True)
+            self.add_font("DejaVuSans", "I", it or reg, uni=True)
+            self.add_font("DejaVuSans", "BI", bi or bd or reg, uni=True)
+            self._uses_dejavu = True
+        except Exception:
+            self._uses_dejavu = False
+
+    def _set_font_text(self, style: str = "", size: float = 10) -> None:
+        if self._uses_dejavu:
+            self.set_font("DejaVuSans", style, size)
+        else:
+            self.set_font("Helvetica", style, size)
+
+    def _pdf_unicode_clean(self, s: str) -> str:
+        from modules.pdf_text import finalize_pdf_string, latex_raw_preprocess
+
+        u = self._uses_dejavu
+        return finalize_pdf_string(latex_raw_preprocess(s or "", uses_unicode_font=u), uses_unicode_font=u)
 
     def _header_modo_informe_quiz(self) -> None:
         """Logo izquierda, banner central con calificación, bloque derecho (nombre, fecha, actividad)."""
@@ -142,32 +223,32 @@ class SigmaPDF(FPDF):
         self.set_line_width(0.35)
         self.rect(xc, y0, wc, zona_h, "DF")
         self.set_xy(xc, y0 + 2.0)
-        self.set_font("Helvetica", "", 9)
+        self._set_font_text("", 9)
         self.set_text_color(55, 65, 80)
-        self.cell(wc, 4, "Calificación Final", align="C", ln=1)
-        self.set_font("Helvetica", "B", 16)
+        self.cell(wc, 4, self._pdf_unicode_clean("Calificación Final"), align="C", ln=1)
+        self._set_font_text("B", 16)
         self.set_text_color(15, 23, 42)
         if self._quiz_nota is not None:
             self.cell(wc, 9, f"{self._quiz_nota} / 20", align="C", ln=1)
         if self._quiz_aprobado:
-            self.set_font("Helvetica", "B", 8)
+            self._set_font_text("B", 8)
             if "No" in self._quiz_aprobado:
                 self.set_text_color(185, 28, 28)
             else:
                 self.set_text_color(22, 120, 60)
-            self.cell(wc, 5, self._quiz_aprobado, align="C", ln=1)
+            self.cell(wc, 5, self._pdf_unicode_clean(self._quiz_aprobado), align="C", ln=1)
         self.set_text_color(0, 0, 0)
 
         der_txt = "Estudiante:\n"
-        der_txt += self._quiz_nombre.strip() if self._quiz_nombre.strip() else "—"
+        der_txt += self._quiz_nombre.strip() if self._quiz_nombre.strip() else "-"
         if self._quiz_fecha.strip():
             der_txt += "\n\nFecha:\n" + self._quiz_fecha.strip()
         if self._quiz_tipo.strip():
             der_txt += "\n\nActividad:\n" + self._quiz_tipo.strip()
         self.set_xy(xr, y0 + 1.0)
-        self.set_font("Helvetica", "B", 8)
+        self._set_font_text("B", 8)
         self.set_text_color(30, 41, 59)
-        self.multi_cell(wr, 3.8, der_txt, align="L")
+        self.multi_cell(wr, 3.8, self._pdf_unicode_clean(der_txt), align="L")
         self.set_text_color(0, 0, 0)
 
         y_linea = y0 + zona_h + 2.0
@@ -193,9 +274,9 @@ class SigmaPDF(FPDF):
                     self.image(self._logo_path, x=10, y=y_logo, w=ancho_logo)
                 except Exception:
                     pass
-        self.set_font("Helvetica", "B", 14)
+        self._set_font_text("B", 14)
         self.set_xy(0, y_logo + 1.5)
-        self.cell(0, 10, self.titulo_reporte, ln=1, align="C")
+        self.cell(0, 10, self._pdf_unicode_clean(self.titulo_reporte), ln=1, align="C")
         y_linea = 24.0
         self.set_draw_color(*self._COLOR_LINEA_AZUL)
         self.set_line_width(0.55)
@@ -210,7 +291,7 @@ class SigmaPDF(FPDF):
 
     def footer(self) -> None:
         self.set_y(-20)
-        self.set_font("Helvetica", "I", 8)
+        self._set_font_text("I", 8)
         self.set_text_color(*self._COLOR_PIE_GRIS)
         self.cell(0, 5, "Pagina " + str(self.page_no()) + " / {nb}", align="C", ln=1)
         try:
@@ -224,7 +305,7 @@ class SigmaPDF(FPDF):
             x_img = (self.w - w_img) / 2.0
             self.image(self._tmp_tagline_png, x=x_img, y=self.get_y(), w=w_img)
         except Exception:
-            self.set_font("Helvetica", "I", 8)
+            self._set_font_text("I", 8)
             self.set_text_color(*self._COLOR_PIE_GRIS)
             self.cell(0, 5, self._TAGLINE_ASCII, align="C", ln=1)
 
