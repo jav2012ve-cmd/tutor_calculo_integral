@@ -1,0 +1,227 @@
+================================================================================
+  DOCUMENTACIÓN TÉCNICA — Σigma tu Tutor de Cálculo Integral (estado del repo)
+================================================================================
+Fecha de referencia: documento generado a partir del código fuente actual.
+Repositorio: aplicación monolítica Streamlit con lógica en Python bajo modules/.
+
+--------------------------------------------------------------------------------
+1. PROPÓSITO Y ALCANCE
+--------------------------------------------------------------------------------
+- Tutor interactivo de Cálculo Integral (integrales, aplicaciones, EDO) para
+  estudiantes universitarios, con énfasis en Venezuela (mallas, contexto).
+- Incluye práctica guiada, consultas con imagen/texto, simulacro tipo parcial,
+  chat de preguntas abiertas, corrección de manuscritos, panel de continuidad
+  (Seguimos / Ruta Maestra) y planes de estudio oficiales por perfil.
+- IA centralizada con Google Gemini; persistencia opcional con Supabase (REST).
+
+--------------------------------------------------------------------------------
+2. STACK TECNOLÓGICO
+--------------------------------------------------------------------------------
+- UI: Streamlit (>=1.29), layout wide, sidebar oculta por CSS en interfaz.
+- IA: google-generativeai; inicialización en modules/ia_core.py.
+- Imágenes / PDF: Pillow, fpdf.
+- Gráficos (banco con clave grafico): numpy, pandas, plotly, sympy.
+- Cuentas: bcrypt; Supabase vía requests (PostgREST), no supabase-py.
+- Dependencias: requirements.txt en la raíz.
+
+--------------------------------------------------------------------------------
+3. PUNTO DE ENTRADA Y ORQUESTACIÓN (app.py)
+--------------------------------------------------------------------------------
+3.1 Arranque
+- Ajusta sys.path para encontrar modules/ aunque el cwd no sea la raíz.
+- Importa módulos: ia_core, interfaz, temario, perfil_curso, banco_preguntas,
+  banco_muestras, uso_stats, registro_interacciones, graficos_entrenamiento,
+  seguimos, seguimos_curso, auth_estudiantes, planes_estudio,
+  planes_estudio_oficiales, contexto_universitario, demo_sigma, footer_sigma.
+- interfaz.configurar_pagina(), inyectar_estilo_matematico(),
+  inyectar_estilo_universitario().
+- Compatibilidad Secrets: _inyectar_supabase_desde_connections() lee
+  [connections.supabase] y exporta SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY.
+- Diagnóstico JWT anon (advertencia si la clave parece anon).
+- ia_core.configurar_gemini(); si falla, st.stop().
+
+3.2 Constantes de negocio (ejemplos)
+- NUM_EJERCICIOS_ENTRENAMIENTO = 5, NUM_PREGUNTAS_QUIZ = 5.
+- INTENTOS_MAX_IA, MULTIPLICADOR_ESPERA_429 ante 429.
+- MAX_MENSAJES_HISTORIAL_TUTOR, AVISO_HISTORIAL_LARGO.
+
+3.3 Funciones centrales en app.py
+- generar_contenido_seguro(): llamada a Gemini con reintentos; registro en
+  registro_interacciones; cupo demo vía demo_sigma (demo_consumo_clave).
+  Mensaje amigable al usuario si agota reintentos; detalle técnico en log.
+- limpiar_json(): parseo tolerante de JSON con LaTeX; extracción entre { } o
+  [ ]; reparación de barras; logging a stderr en fallos.
+- preparar_latex_para_streamlit, renderizado LaTeX, generación PDF del quiz,
+  flujos por modo (ver sección 5).
+
+3.4 Navegación principal
+- st.session_state.modo_actual define la “página” activa.
+- Si no hay modo: portada (interfaz.mostrar_portada_cero); si hay sesión o
+  demo: info cuenta, banner demo, interfaz.mostrar_portada_selector_modos(),
+  interfaz.mostrar_bienvenida(); expander admin.
+- Si hay modo: columnas imagen+título APP_DISPLAY_NAME; barra sesión (salvo
+  modo Seguimos); interfaz.mostrar_cabecera_pagina_modo().
+- Luego ramas if/elif por ruta (modo) y al final footer_sigma.render_footer_sigma().
+- Panel admin: st.session_state modo_administrador_manual; ?admin=1;
+  admin_dashboard.render_admin_panel(); st.stop().
+
+--------------------------------------------------------------------------------
+4. MÓDULOS (modules/)
+--------------------------------------------------------------------------------
+4.1 interfaz.py
+- APP_DISPLAY_NAME, configurar_pagina(), estilos matemáticos y universitarios.
+- MATRIZ_MODOS_2X3: ids internos, etiquetas de botón, tooltips.
+- Imágenes por modo (_imagen_por_modo, ruta_imagen_modo); recorte superior
+  para previews (fracción configurable; portada de modos a 0.15).
+- mostrar_portada_cero(): título, imagen HUD, botones Ruta Maestra / Registro
+  (imagen recorte 15% + st.button) y Demo; consumo ?portada_action= legacy.
+- mostrar_portada_selector_modos(): cuadrícula si demo_sigma.acceso_modos_sin_login().
+- mostrar_cabecera_pagina_modo(): volver inicio, título modo, temario en
+  selectbox solo en entrenamiento.
+- mostrar_planes_estudio_oficiales(), mostrar_bienvenida().
+- _aplicar_iniciar_modo / _limpiar_estado_volver_inicio (limpia demo al volver).
+
+4.2 demo_sigma.py
+- Modo demo sin login: sigma_demo_activo, sigma_demo_usos (dict por clave).
+- DEMO_MAX_CONSULTAS_POR_FUNCION = 3 por clave (entrenamiento, guiada, quiz,
+  tutor, manuscrito).
+- acceso_modos_sin_login(): sesión auth_estudiante_id o demo activo.
+- desactivar_demo_al_volver_portada(), mostrar_banner_usos_demo().
+- ruta_imagen_portada_bienvenida() (assets/portada_sigma_hud.png, env SIGMA_PORTADA_IMAGEN).
+
+4.3 auth_estudiantes.py
+- Registro/login contra app_estudiante (Supabase REST).
+- registrar_estudiante(): email, password hash bcrypt, nombre, cédula,
+  institución, fecha_nacimiento, fecha_inicio_curso, carrera, semestre.
+  Fallback si faltan columnas de perfil en la base.
+- autenticar(): carga session_state auth_estudiante_* incl. fecha_inicio_curso.
+- cerrar_sesion(): limpia claves de sesión.
+- Formularios registro/login (portal y home); matriz universidades HTML;
+  barra compacta de sesión.
+
+4.4 seguimos.py
+- Flujo SEGUIMOS_PASO_ENTRADA | PORTAL | PANEL.
+- Panel: métricas perfil, acceso rápido a modos (imagen + botón Entrar),
+  tabs Ruta Maestra / Mi récord.
+- _render_panel_tab_continuidad(): ruta_maestra.render_panel_ruta_maestra,
+  expander seguimiento 5+5 (seguimos_curso), expander vista extendida
+  (métricas temas, _render_debilidades_y_mapa, prioridades, dataframe).
+- _render_debilidades_y_mapa(): heatmap Plotly + botones a entrenamiento con
+  tema prefijado (vía session_state entrenamiento_config_temas + app.py).
+- Query params reg_univ, abrir_modo (con guardia demo/sesión).
+
+4.5 seguimos_curso.py
+- Meta 5 prácticas (EVENTO_PRACTICA_OK) + 5 aciertos quiz (EVENTO_QUIZ_OK) por
+  tema canónico desde eventos Supabase.
+
+4.6 ruta_maestra.py
+- Catálogo minicurso v2 (data/minicurso_*.json); selectbox malla; línea de
+  tiempo por hitos; dominio de átomos vs eventos.
+
+4.7 minicurso_catalogo.py
+- Lista entradas schema_version=2 desde data/.
+
+4.8 temario.py, perfil_curso.py
+- Temario canónico y lista activa según institución/carrera (perfil sesión).
+
+4.9 banco_preguntas.py, banco_muestras.py
+- Preguntas fijas y ejemplos de estilo para prompts.
+
+4.10 uso_stats.py
+- Contadores app_module_usage; eventos app_usage_event; topic_usage;
+  comparativas; eventos por estudiante; debilidades por tema.
+
+4.11 registro_interacciones.py
+- Extrae texto de respuesta Gemini; inserta ia_logs si Supabase.
+
+4.12 ia_core.py
+- Configuración API Gemini y modelo.
+
+4.13 planes_estudio.py, planes_estudio_oficiales.py, contexto_universitario.py
+- Texto de contexto para prompts y planes por institución.
+
+4.14 graficos_entrenamiento.py
+- Plotly en paso intermedio si el ítem del banco lo define.
+
+4.15 footer_sigma.py
+- Pie HUD: dudas resueltas (suma módulos de tutoría/práctica), bloque sesión,
+  enlace soporte; caption legal.
+
+4.16 admin_dashboard.py, admin.py
+- Paneles operativos (métricas, logs) según implementación actual.
+
+4.17 modules/__init__.py
+- Paquete Python; sin lógica de negocio centralizada ahí.
+
+--------------------------------------------------------------------------------
+5. MODOS DE LA APP (IDs internos y comportamiento resumido)
+--------------------------------------------------------------------------------
+- 0) Seguimos (continuidad): panel Ruta Maestra, portal registro/login, acceso
+  rápido a otros modos.
+- a) Entrenamiento (Temario): multiselect temas, serie 5 ejercicios, pasos 1-3
+  con IA; gráficos si aplica; preselección desde Seguimos (entrenamiento_config_temas).
+- b) Respuesta Guiada: foto/texto, análisis IA, pasos 1-3.
+- c) Autoevaluación (Quiz): parcial 1/2 o personalizado; PDF al final.
+- d) Tutor Preguntas Abiertas: chat con historial acotado.
+- e) Corrección de Manuscritos: foto, evaluación IA JSON.
+- f) Planes de Estudio Oficiales: guía por institución de sesión.
+
+--------------------------------------------------------------------------------
+6. DATOS Y SQL (raíz del repo)
+--------------------------------------------------------------------------------
+- supabase_schema.sql, supabase_usage_events.sql, supabase_usage_events_estudiante.sql
+- supabase_topic_usage.sql, supabase_topic_usage_seed.sql
+- supabase_estudiantes.sql: tabla app_estudiante; columnas carrera, semestre,
+  fecha_inicio_curso (en versión actual del script), constraints.
+- supabase_estudiantes_add_carrera_semestre.sql: migración carrera/semestre.
+- supabase_estudiantes_add_inicio_curso.sql: migración fecha_inicio_curso.
+- supabase_estudiantes_migrate_participante.sql (legado / migraciones).
+- supabase_ia_logs*.sql, supabase_admin_metricas_ia_logs.sql, supabase_grants.sql
+- data/minicurso_*.json: itinerarios por universidad/programa (schema 2).
+- data/uso_stats.json, topic_usage.json, usage_events.jsonl (fallback local).
+
+--------------------------------------------------------------------------------
+7. ASSETS Y RECURSOS GRÁFICOS (relevantes)
+--------------------------------------------------------------------------------
+- assets/portada_sigma_hud.png: imagen principal de bienvenida.
+- BotonRutaMaestra.jpg, BotonRegistro.jpg: portada (recorte 15% + botones).
+- LogoSigma.*, imágenes por modo (botonApracticar, BotonSimulacro, etc.).
+- ImagenesUniversidades.png, UDO.jpg: en el working tree pueden estar sin
+  commitear según el último estado de git del desarrollador.
+
+--------------------------------------------------------------------------------
+8. SEGURIDAD Y SECRETOS
+--------------------------------------------------------------------------------
+- GOOGLE_API_KEY / variantes en secrets o entorno (Gemini).
+- SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY (registro, eventos, logs).
+- ADMIN_PORTADA_PASSWORD para panel desde portada (?admin=1).
+- No versionar .streamlit/secrets.toml (gitignore).
+
+--------------------------------------------------------------------------------
+9. FLUJOS DE SESIÓN (session_state — no exhaustivo)
+--------------------------------------------------------------------------------
+- modo_actual, seguimos_paso, seguimos_portal_tab.
+- auth_estudiante_id, email, nombre, institucion, carrera, semestre,
+  fecha_nacimiento, fecha_inicio_curso, cedula, codigo opcional.
+- sigma_demo_activo, sigma_demo_usos.
+- Estado por modo: entrenamiento_*, consulta_*, quiz_*, historial_tutor_abierto,
+  manuscrito_correccion, entrenamiento_config_temas, entrenamiento_temas_ms, etc.
+
+--------------------------------------------------------------------------------
+10. DESPLIEGUE Y EJECUCIÓN LOCAL
+--------------------------------------------------------------------------------
+- pip install -r requirements.txt
+- streamlit run app.py
+- README.md: orden sugerido de scripts SQL en Supabase y configuración Secrets.
+
+--------------------------------------------------------------------------------
+11. NOTAS DE MANTENIMIENTO
+--------------------------------------------------------------------------------
+- Tras cambios en SQL en Supabase, reiniciar la app en Streamlit Cloud.
+- Si PostgREST cachea esquema, puede hacer falta refrescar o esperar propagación.
+- Los límites demo se aplican en generar_contenido_seguro con claves por función;
+  la clasificación de tema para estadísticas no descuenta demo en el diseño actual.
+
+================================================================================
+  FIN DEL DOCUMENTO
+================================================================================

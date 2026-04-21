@@ -872,16 +872,142 @@ def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     t = re.sub(r"\s+", " ", t).strip()
     return t[:500] if len(t) > 500 else t
 
+
+def _latin1_pdf(texto: Optional[str]) -> str:
+    """Texto seguro para celdas fpdf (latin-1)."""
+    s = (texto or "").replace("\r\n", "\n")
+    try:
+        s.encode("latin-1")
+        return s
+    except UnicodeEncodeError:
+        return s.encode("latin-1", errors="replace").decode("latin-1")
+
+
+def _fragmentos_bloques_dolar(texto: Optional[str]) -> list[tuple[str, bool]]:
+    """
+    Divide el enunciado en fragmentos narrativos y bloques ``$...$`` o ``$$...$$`` (fórmulas).
+    Cada tupla es (fragmento, es_formula).
+    """
+    if not texto:
+        return [("", False)]
+    s = str(texto)
+    partes: list[tuple[str, bool]] = []
+    pos = 0
+    rx = re.compile(r"\$\$([^$]+)\$\$|\$([^$]+)\$")
+    for m in rx.finditer(s):
+        if m.start() > pos:
+            partes.append((s[pos : m.start()], False))
+        inner = (m.group(1) or m.group(2) or "").strip()
+        partes.append((inner, True))
+        pos = m.end()
+    if pos < len(s):
+        partes.append((s[pos:], False))
+    if not partes:
+        partes = [(s, False)]
+    return partes
+
+
+def _pdf_render_enunciado_caja_sombreada(pdf: Any, texto_raw: Optional[str]) -> None:
+    """Enunciado con fondo suave; fórmulas en ``$...$`` con Courier cursiva."""
+    from fpdf import FPDF
+
+    if not isinstance(pdf, FPDF):
+        return
+    fill_rgb = (236, 244, 252)
+    borde_rgb = (186, 206, 228)
+    x0 = float(pdf.l_margin)
+    w0 = float(pdf.w - pdf.l_margin - pdf.r_margin)
+    inner = max(30.0, w0 - 2.0)
+    y_top = float(pdf.get_y())
+    pdf.set_fill_color(*fill_rgb)
+    pdf.set_text_color(15, 23, 42)
+    for frag, es_formula in _fragmentos_bloques_dolar(texto_raw):
+        if not (frag or "").strip() and not es_formula:
+            continue
+        t = _sanitizar_para_pdf(frag) if frag.strip() else " "
+        if not (t or "").strip():
+            continue
+        t = _latin1_pdf(t)
+        if es_formula:
+            pdf.set_font("Courier", "I", 9)
+        else:
+            pdf.set_font("Helvetica", "", 9)
+        pdf.set_x(x0 + 1.0)
+        pdf.multi_cell(inner, 4.5, t, border=0, align="L", fill=1)
+    y_bot = float(pdf.get_y())
+    if y_bot <= y_top + 0.5:
+        y_bot = y_top + 6.0
+    pdf.set_draw_color(*borde_rgb)
+    pdf.set_line_width(0.25)
+    pdf.rect(x0, y_top - 0.5, w0, y_bot - y_top + 1.0, style="D")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(3)
+
+
+def _pdf_tabla_datos_estudiante(pdf: Any, nombre: str, institucion: str, semestre: str) -> None:
+    from fpdf import FPDF
+
+    if not isinstance(pdf, FPDF):
+        return
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, _latin1_pdf("Datos del participante"), ln=1)
+    pdf.ln(1)
+    col_etq = 44.0
+    pdf.set_draw_color(200, 210, 222)
+    pdf.set_fill_color(248, 250, 252)
+    filas = (
+        ("Nombre", nombre),
+        ("Institucion", institucion),
+        ("Semestre", semestre),
+    )
+    for etiqueta, valor in filas:
+        v = _latin1_pdf((valor or "").strip() or "-")
+        if len(v) > 110:
+            v = v[:107] + "..."
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(col_etq, 6, _latin1_pdf(etiqueta + ":"), border=1, fill=1)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.cell(0, 6, v, border=1, ln=1, fill=1)
+    pdf.ln(4)
+
+
+def _pdf_bloque_identidad_reporte(pdf: Any) -> None:
+    """Cabecera contextual: tabla de perfil o etiqueta de práctica libre / invitado."""
+    from fpdf import FPDF
+
+    if not isinstance(pdf, FPDF):
+        return
+    if not auth_estudiantes.sesion_activa():
+        pdf.set_font("Helvetica", "BI", 10)
+        pdf.set_text_color(71, 85, 105)
+        pdf.cell(0, 7, _latin1_pdf("Reporte de Práctica Libre"), ln=1, align="C")
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+        return
+    nombre = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+    if nombre.lower() == "invitado":
+        pdf.set_font("Helvetica", "BI", 10)
+        pdf.set_text_color(71, 85, 105)
+        pdf.cell(0, 7, _latin1_pdf("Reporte de Práctica Libre"), ln=1, align="C")
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+        return
+    inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+    sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+    _pdf_tabla_datos_estudiante(pdf, nombre, inst, sem)
+
+
 def generar_pdf_informe_quiz(
     respuestas_usuario: List[dict],
     nota_final: float,
 ) -> Union[bytes, bytearray]:
     """Genera bytes del PDF con calificación y detalle del examen."""
-    from fpdf import FPDF
-    pdf = FPDF()
+    from modules.sigma_pdf import SigmaPDF
+
+    pdf = SigmaPDF("Informe de evaluacion - Sigma tu Tutor de Calculo Integral")
     pdf.add_page()
-    pdf.set_font("Helvetica", size=14)
-    pdf.cell(0, 10, "Informe de evaluacion - Sigma tu Tutor de Calculo Integral", ln=True)
+    _pdf_bloque_identidad_reporte(pdf)
+
     pdf.set_font("Helvetica", size=11)
     pdf.cell(0, 8, f"Calificacion final: {nota_final} / 20 pts", ln=True)
     pdf.cell(0, 8, "Aprobado." if nota_final >= 10 else "No aprobado.", ln=True)
@@ -890,15 +1016,27 @@ def generar_pdf_informe_quiz(
         pdf.set_font("Helvetica", "B", size=10)
         pts = r.get("puntos", 0)
         pdf.cell(0, 6, f"Pregunta {i} ({pts} pts)", ln=True)
-        pdf.set_font("Helvetica", size=9)
-        pdf.multi_cell(0, 5, _sanitizar_para_pdf(r.get("pregunta", "")))
-        pdf.cell(0, 4, "Tu respuesta: " + _sanitizar_para_pdf(r.get("elegida", "")), ln=True)
+        pdf.ln(1)
+        _pdf_render_enunciado_caja_sombreada(pdf, r.get("pregunta", ""))
+        pdf.set_font("Helvetica", "", 9)
+        pdf.cell(0, 4, "Tu respuesta: " + _latin1_pdf(_sanitizar_para_pdf(r.get("elegida", ""))), ln=True)
         if not r.get("es_correcta", True):
-            pdf.cell(0, 4, "Correcta: " + _sanitizar_para_pdf(r.get("correcta", "")), ln=True)
-        pdf.cell(0, 4, "Comentario: " + _sanitizar_para_pdf(r.get("explicacion", "")), ln=True)
-        pdf.ln(2)
-    out = pdf.output()
-    return bytes(out) if not isinstance(out, bytes) else out
+            pdf.cell(0, 4, "Correcta: " + _latin1_pdf(_sanitizar_para_pdf(r.get("correcta", ""))), ln=True)
+        pdf.set_font("Helvetica", "B", 9)
+        juicio = "Juicio: CORRECTO" if r.get("es_correcta", True) else "Juicio: INCORRECTO"
+        pdf.cell(0, 5, _latin1_pdf(juicio), ln=True)
+        pdf.ln(5)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.cell(0, 4, _latin1_pdf("Sugerencias / comentario:"), ln=True)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.multi_cell(0, 4.5, _latin1_pdf(_sanitizar_para_pdf(r.get("explicacion", ""))))
+        pdf.ln(4)
+    raw = pdf.output(dest="S")
+    if isinstance(raw, str):
+        return raw.encode("latin1")
+    if isinstance(raw, (bytes, bytearray)):
+        return bytes(raw)
+    return b""
 
 # --- 2. GESTIÓN DE ESTADO ---
 if "quiz_activo" not in st.session_state: st.session_state.quiz_activo = False

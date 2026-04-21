@@ -242,6 +242,7 @@ _LOGO_PNG_ASSETS = os.path.join(_ROOT, "assets", "LogoSigma.png")
 # Botones gráficos de la portada (raíz o ``assets/``).
 _BOTON_RUTA_MAESTRA = "BotonRutaMaestra.jpg"
 _BOTON_REGISTRO = "BotonRegistro.jpg"
+_BOTON_DEMO = "BotonDemo.jpg"
 
 
 def _ruta_boton_portada(nombre_archivo: str) -> Optional[str]:
@@ -622,7 +623,16 @@ def mostrar_portada_cero() -> None:
             st.session_state.seguimos_portal_tab = "registro"
             st.rerun()
     with c3:
-        if st.button("Demo", use_container_width=True):
+        img_demo = _ruta_boton_portada(_BOTON_DEMO)
+        if img_demo:
+            franja_demo = _recorte_vertical_superior(img_demo, fraccion_altura=0.15)
+            if franja_demo is not None:
+                st.image(franja_demo, use_container_width=True)
+        if st.button(
+            "Demo",
+            use_container_width=True,
+            key="portada_btn_demo",
+        ):
             demo_sigma.activar_demo()
             st.rerun()
 

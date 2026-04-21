@@ -105,6 +105,42 @@ def tema_admite_grafico_plotly_entrenamiento(tema: Any) -> bool:
     return n is not None and n in TEMAS_ENTRENAMIENTO_GRAFICO_PLOTLY_OPCIONAL
 
 
+def clasificar_tema_hito_ruta(tema: str, *, orden_curricular: Optional[list[str]] = None) -> str:
+    """
+    Clasifica un tema para la vista «Hitos de Ruta» en tres tramos:
+    **Base** (primer parcial canónico), **Intermedio** / **Avanzado** (segundo parcial y EDO).
+
+    Si el texto no coincide con el temario UCAB canónico (p. ej. átomos de otra malla),
+    se usan tercios del orden de ``orden_curricular`` (por defecto ``LISTA_TEMAS``).
+    """
+    t = (tema or "").strip()
+    if not t:
+        return "Intermedio"
+    if t in TEMAS_PARCIAL_1:
+        return "Base"
+    if t in TEMAS_PARCIAL_2:
+        mitad = (len(TEMAS_PARCIAL_2) + 1) // 2
+        try:
+            idx = TEMAS_PARCIAL_2.index(t)
+        except ValueError:
+            return "Avanzado"
+        return "Intermedio" if idx < mitad else "Avanzado"
+    oc = orden_curricular or list(LISTA_TEMAS)
+    if t not in oc:
+        return "Intermedio"
+    n = len(oc)
+    if n <= 1:
+        return "Intermedio"
+    i = oc.index(t)
+    a = max(1, n // 3)
+    b = max(a + 1, (2 * n) // 3)
+    if i < a:
+        return "Base"
+    if i < b:
+        return "Intermedio"
+    return "Avanzado"
+
+
 # --- CONTENIDO TEÓRICO (Resumido para el ejemplo) ---
 CONTENIDO_TEORICO = {
     "1.1.1 Integrales Indefinidas Directas": {

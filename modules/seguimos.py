@@ -13,10 +13,22 @@ import base64
 import hashlib
 import html
 import io
+import random
+from typing import Any
+
 import streamlit as st
 from PIL import Image
 
-from modules import auth_estudiantes, demo_sigma, perfil_curso, ruta_maestra, seguimos_curso, temario, uso_stats
+from modules import (
+    auth_estudiantes,
+    banco_preguntas,
+    demo_sigma,
+    perfil_curso,
+    ruta_maestra,
+    seguimos_curso,
+    temario,
+    uso_stats,
+)
 
 MODO_ID = "0) Seguimos (continuidad)"
 # Mismo id que en ``app.py`` / ``interfaz.MATRIZ_MODOS_2X3`` para abrir A practicar con tema precargado.
@@ -28,6 +40,9 @@ SEGUIMOS_PASO_PANEL = "panel"
 
 # Mismo id que en ``interfaz.MODO_PLANES_ESTUDIO_OFICIALES`` (evitar import circular).
 MODO_PLANES_OFICIALES_ID = "f) Planes de Estudio Oficiales"
+
+# Misma serie que ``NUM_EJERCICIOS_ENTRENAMIENTO`` en ``app.py`` (evita importar app).
+_NUM_EJERCICIOS_SERIE_ENTRENAMIENTO = 5
 
 _ACCESO_RAPIDO_MODOS: tuple[tuple[str, str], ...] = (
     ("a) Entrenamiento (Temario)", "A practicar"),
@@ -107,6 +122,214 @@ def _navegar_entrenamiento_prefijar_tema(tema_raw: str) -> None:
     st.session_state.entrenamiento_config_temas = [t_norm]
     st.session_state.entrenamiento_activo = False
     st.rerun()
+
+
+def _pregunta_fingerprint(p: dict[str, Any]) -> str:
+    return str((p.get("pregunta") or "")[:400])
+
+
+def _construir_lista_banco_reto(tema: str, num: int) -> list[dict[str, Any]]:
+    """
+    Arma una serie de ejercicios del banco para el tema; el primero es el «reto» destacado
+    (aleatorio entre ítems del banco compatibles con el tema).
+    """
+    t_norm = temario.normalizar_tema_curso(tema) or (tema or "").strip()
+    pool = [
+        p
+        for p in banco_preguntas.BANCO_FIXED
+        if p.get("tema") == t_norm or (t_norm and t_norm in (p.get("tema") or ""))
+    ]
+    if not pool:
+        pool = list(banco_preguntas.BANCO_FIXED)
+    random.shuffle(pool)
+    out: list[dict[str, Any]] = []
+    seen: set[str] = set()
+
+    def _push(p: dict[str, Any]) -> bool:
+        fp = _pregunta_fingerprint(p)
+        if fp in seen:
+            return False
+        seen.add(fp)
+        out.append(p)
+        return True
+
+    if pool:
+        _push(random.choice(pool))
+    for p in pool:
+        if len(out) >= num:
+            break
+        _push(p)
+    if len(out) < num:
+        extra = banco_preguntas.obtener_preguntas_fijas([t_norm], max(num * 3, num))
+        random.shuffle(extra)
+        for p in extra:
+            if len(out) >= num:
+                break
+            _push(p)
+    while len(out) < num and banco_preguntas.BANCO_FIXED:
+        _push(random.choice(banco_preguntas.BANCO_FIXED))
+    return out[:num]
+
+
+def _elegir_tema_menor_puntaje_reto(
+    lista: list[str],
+    ordenados: list[dict[str, Any]],
+    eventos: list[dict[str, Any]],
+    metricas: dict[str, dict[str, Any]],
+) -> tuple[str, str]:
+    """
+    Tema con **menor indicador de dominio** (menor puntaje sintético = prioridad de refuerzo).
+    Combina prácticas/simulacro del minicurso y penaliza la intensidad de debilidad (quiz/tutor).
+    """
+    if not lista:
+        return "", "No hay temas en el temario activo."
+    n_by = {x["tema"]: int(x["n"]) for x in ordenados}
+    conteos = seguimos_curso.conteos_minicurso_por_tema(eventos) if eventos else {}
+    tiene_senales = bool(metricas) or bool(eventos)
+
+    def _puntaje(t: str) -> float:
+        slot = conteos.get(t) or {}
+        p_ok = int(slot.get("practica_ok", 0))
+        q_ok = int(slot.get("quiz_ok", 0))
+        deb = float((metricas.get(t) or {}).get("score", 0.0))
+        return 4.0 * p_ok + 6.0 * q_ok - deb
+
+    ranked = sorted(lista, key=lambda t: (_puntaje(t), n_by.get(t, 0), t))
+    best_t = ranked[0]
+    if not tiene_senales:
+        best_t = min(lista, key=lambda t: (n_by.get(t, 0), t))
+        return (
+            best_t,
+            "Sin eventos personales recientes: el reto usa el tema con **menor práctica agregada** "
+            "en el producto (misma lógica que antes).",
+        )
+    return (
+        best_t,
+        "Priorizado con tu historial: **más práctica/simulacro** y **menos señales de debilidad** "
+        "suben el indicador; el reto va al tema con el valor más bajo.",
+    )
+
+
+def _navegar_entrenamiento_reto_del_dia(tema_raw: str) -> None:
+    """Abre A practicar con serie ya armada desde el banco (primer ítem = reto del día)."""
+    from modules import interfaz as _ix
+
+    t = (tema_raw or "").strip()
+    t_norm = temario.normalizar_tema_curso(t) or t
+    lista = _construir_lista_banco_reto(t_norm, _NUM_EJERCICIOS_SERIE_ENTRENAMIENTO)
+    if not lista:
+        return
+    _ix._aplicar_iniciar_modo(MODO_ENTRENAMIENTO_APP)
+    st.session_state.entrenamiento_lista = lista
+    st.session_state.entrenamiento_idx = 0
+    st.session_state.entrenamiento_step = 1
+    st.session_state.entrenamiento_data_ia = None
+    st.session_state.entrenamiento_validado = False
+    st.session_state.entrenamiento_activo = True
+    st.session_state["entrenamiento_temas_ms"] = [t_norm]
+    try:
+        uso_stats.registrar_uso(
+            "Entrenamiento",
+            detalle={"temas": [t_norm], "tipo_evento": "reto_del_dia"},
+        )
+    except Exception:
+        pass
+    st.rerun()
+
+
+def _emoji_anillo_practica(n: int, n_max: int) -> str:
+    if n_max <= 0:
+        return "○"
+    r = min(1.0, n / float(max(n_max, 1)))
+    if r <= 0.0:
+        return "○"
+    if r < 0.34:
+        return "◔"
+    if r < 0.67:
+        return "◕"
+    return "●"
+
+
+def _render_hitos_ruta_prioridades(
+    lista: list[str],
+    _por_tema: dict[str, int],
+    ordenados: list[dict[str, Any]],
+    eventos_estudiante: list[dict[str, Any]],
+    metricas_debilidad: dict[str, dict[str, Any]],
+) -> None:
+    """Sustituye el listado lineal de prioridades por columnas Base / Intermedio / Avanzado + Reto del día."""
+    n_by = {x["tema"]: int(x["n"]) for x in ordenados}
+    n_max = max((n_by.get(t, 0) for t in lista), default=1)
+
+    buckets: dict[str, list[str]] = {"Base": [], "Intermedio": [], "Avanzado": []}
+    for t in lista:
+        nivel = temario.clasificar_tema_hito_ruta(t, orden_curricular=lista)
+        buckets.setdefault(nivel, []).append(t)
+    for key in buckets:
+        buckets[key].sort(key=lambda t: (n_by.get(t, 0), t))
+
+    st.markdown("##### Hitos de Ruta (tramos del programa)")
+    st.caption(
+        "Cada tema va a un tramo según la malla canónica o, en otras malllas, según su posición en tu temario activo. "
+        "La barra refleja **conteo agregado de uso** por tema en el producto (referencia de cobertura)."
+    )
+
+    meta = (
+        ("Base", "🧱", "Fundamentos", "1.ª parte del curso típico"),
+        ("Intermedio", "⚙️", "Consolidación", "Aplicaciones y tramo central"),
+        ("Avanzado", "🚀", "Te retamos", "EDO y cierre de programa"),
+    )
+    c1, c2, c3 = st.columns(3)
+    for col, (nivel, icono, titulo, subtitulo) in zip((c1, c2, c3), meta):
+        with col:
+            st.markdown(f"**{icono} {nivel}**")
+            st.caption(f"{titulo} · _{subtitulo}_")
+            temas_nivel = buckets.get(nivel, [])[:10]
+            extra = len(buckets.get(nivel, [])) - len(temas_nivel)
+            for t in temas_nivel:
+                n = int(n_by.get(t, 0) or 0)
+                ring = _emoji_anillo_practica(n, n_max)
+                pct = min(1.0, n / float(max(n_max, 1)))
+                c_tx, c_go = st.columns([1, 4], vertical_alignment="center")
+                with c_tx:
+                    st.markdown(f"<div style='font-size:1.35rem;text-align:center'>{ring}</div>", unsafe_allow_html=True)
+                with c_go:
+                    lbl = seguimos_curso.etiqueta_tema_corta(t)
+                    if len(lbl) > 44:
+                        lbl = lbl[:41].rstrip() + "…"
+                    try:
+                        st.progress(pct, text=f"{lbl} · {n}")
+                    except TypeError:
+                        st.progress(pct)
+                        st.caption(f"{lbl} · {n}")
+                    if st.button(
+                        "Ir",
+                        key=_streamlit_key_tema(f"hito_go_{nivel}", t),
+                        help=f"Abrir A practicar con: {t}",
+                    ):
+                        _navegar_entrenamiento_prefijar_tema(t)
+            if extra > 0:
+                st.caption(f"… y **{extra}** tema(s) más en este tramo (ver tabla inferior).")
+
+    tema_reto, msg_reto = _elegir_tema_menor_puntaje_reto(
+        lista, ordenados, eventos_estudiante, metricas_debilidad
+    )
+    st.divider()
+    st.markdown("##### Reto del día")
+    st.caption(msg_reto)
+    c_r1, c_r2 = st.columns([3, 1])
+    with c_r1:
+        if tema_reto:
+            st.info(f"**Tema priorizado:** `{seguimos_curso.etiqueta_tema_corta(tema_reto)}`")
+    with c_r2:
+        if tema_reto and st.button(
+            "🎯 Reto del día",
+            type="primary",
+            use_container_width=True,
+            key="seguimos_btn_reto_del_dia",
+            help="Abre A practicar con una serie del banco; el primer ejercicio es el reto elegido.",
+        ):
+            _navegar_entrenamiento_reto_del_dia(tema_reto)
 
 
 def _limpiar_estado_al_salir_de_seguimos() -> None:
@@ -275,22 +498,12 @@ def _render_panel_tab_continuidad() -> None:
             [{"tema": t, "n": int(por_tema.get(t, 0) or 0)} for t in lista],
             key=lambda x: (x["n"], x["tema"]),
         )
-        prioridad = [x["tema"] for x in ordenados if x["n"] == 0][:12]
-        if not prioridad:
-            prioridad = [x["tema"] for x in ordenados[:8]]
-
-        st.markdown("##### Próximas prioridades (menos práctica registrada)")
-        for i, t in enumerate(prioridad[:8], 1):
-            c_pri_txt, c_pri_btn = st.columns([5, 1])
-            with c_pri_txt:
-                st.caption(f"{i}. **{t}**")
-            with c_pri_btn:
-                if st.button(
-                    "🚀 Iniciar",
-                    key=_streamlit_key_tema("btn_prioridad", t),
-                    help=f"Ir a A practicar con: {t}",
-                ):
-                    _navegar_entrenamiento_prefijar_tema(t)
+        metricas_reto: dict[str, dict[str, Any]] = {}
+        if eventos_mc:
+            metricas_reto = uso_stats.calcular_metricas_debilidad_por_tema(eventos_mc)
+        _render_hitos_ruta_prioridades(
+            lista, por_tema, ordenados, eventos_mc, metricas_reto
+        )
 
         st.markdown("##### Otras rutas de estudio (independientes del minicurso)")
         st.markdown(

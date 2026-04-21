@@ -910,17 +910,8 @@ def render_portal_participante(
         )
 
 
-def _navegar_a_portal_seguimos(portal_tab: str) -> None:
-    """Abre el modo Seguimos en el portal (evita import circular al cargar el módulo)."""
-    from modules import seguimos as _seg
-
-    st.session_state.modo_actual = _seg.MODO_ID
-    st.session_state.seguimos_paso = _seg.SEGUIMOS_PASO_PORTAL
-    st.session_state.seguimos_portal_tab = portal_tab
-
-
 def render_barra_sesion_compacta() -> None:
-    """En una vista de modo: sesión o acceso visible a registro / login en Seguimos."""
+    """En una vista de modo: sesión o acceso en sitio (expander) sin cambiar ``modo_actual``."""
     if not _supabase_ok():
         st.info(
             "💡 **Cuenta de participante:** en **Secrets** (TOML), define `SUPABASE_URL` y "
@@ -948,15 +939,23 @@ def render_barra_sesion_compacta() -> None:
                 st.rerun()
     else:
         st.warning("No has iniciado sesión: tu progreso no queda vinculado a un perfil en la nube.")
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("Registrarme", type="primary", use_container_width=True, key="auth_compact_reg"):
-                _navegar_a_portal_seguimos("registro")
-                st.rerun()
-        with c2:
-            if st.button("Iniciar sesión", use_container_width=True, key="auth_compact_login"):
-                _navegar_a_portal_seguimos("login")
-                st.rerun()
+        with st.expander("Iniciar sesión o registrarte (sin salir de esta vista)", expanded=False):
+            st.caption(
+                "Al entrar o crear cuenta la página se actualiza y **sigues en el mismo modo** "
+                "(entrenamiento, quiz, etc.) para no perder lo que estabas haciendo."
+            )
+            tab_login, tab_reg = st.tabs(["Iniciar sesión", "Crear cuenta"])
+            with tab_login:
+                render_formulario_login(key_prefix="barra_compacta_log")
+            with tab_reg:
+                st.caption(
+                    "Mismos datos que en el portal principal. Para la matriz visual de universidades, "
+                    "abre **Tu Ruta Maestra Σigma** desde el inicio."
+                )
+                render_formulario_registro(
+                    key_prefix="barra_compacta_reg",
+                    redirigir_a_login=False,
+                )
 
 
 def render_panel_auth() -> None:
