@@ -10,6 +10,7 @@ Sin Supabase: panel con identificación solo de sesión (sin trazado en nube).
 from __future__ import annotations
 
 import base64
+import hashlib
 import html
 import io
 import streamlit as st
@@ -18,6 +19,8 @@ from PIL import Image
 from modules import auth_estudiantes, demo_sigma, perfil_curso, ruta_maestra, seguimos_curso, temario, uso_stats
 
 MODO_ID = "0) Seguimos (continuidad)"
+# Mismo id que en ``app.py`` / ``interfaz.MATRIZ_MODOS_2X3`` para abrir A practicar con tema precargado.
+MODO_ENTRENAMIENTO_APP = "a) Entrenamiento (Temario)"
 
 SEGUIMOS_PASO_ENTRADA = "entrada"
 SEGUIMOS_PASO_PORTAL = "portal"
@@ -86,6 +89,24 @@ def _tile_acceso_rapido_data_uri(mid: str) -> str | None:
     buf = io.BytesIO()
     pil.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")
+
+
+def _streamlit_key_tema(prefijo: str, tema: str) -> str:
+    """Clave estable y corta para widgets (evita caracteres problemáticos en el texto del tema)."""
+    h = hashlib.sha256((tema or "").encode("utf-8")).hexdigest()[:20]
+    return f"{prefijo}_{h}"
+
+
+def _navegar_entrenamiento_prefijar_tema(tema_raw: str) -> None:
+    """Abre A practicar con un solo tema preseleccionado (desde diagnóstico en Seguimos)."""
+    from modules import interfaz as _ix
+
+    t = (tema_raw or "").strip()
+    t_norm = temario.normalizar_tema_curso(t) or t
+    _ix._aplicar_iniciar_modo(MODO_ENTRENAMIENTO_APP)
+    st.session_state.entrenamiento_config_temas = [t_norm]
+    st.session_state.entrenamiento_activo = False
+    st.rerun()
 
 
 def _limpiar_estado_al_salir_de_seguimos() -> None:
@@ -260,7 +281,16 @@ def _render_panel_tab_continuidad() -> None:
 
         st.markdown("##### Próximas prioridades (menos práctica registrada)")
         for i, t in enumerate(prioridad[:8], 1):
-            st.caption(f"{i}. **{t}**")
+            c_pri_txt, c_pri_btn = st.columns([5, 1])
+            with c_pri_txt:
+                st.caption(f"{i}. **{t}**")
+            with c_pri_btn:
+                if st.button(
+                    "🚀 Iniciar",
+                    key=_streamlit_key_tema("btn_prioridad", t),
+                    help=f"Ir a A practicar con: {t}",
+                ):
+                    _navegar_entrenamiento_prefijar_tema(t)
 
         st.markdown("##### Otras rutas de estudio (independientes del minicurso)")
         st.markdown(
@@ -322,11 +352,20 @@ def _render_debilidades_y_mapa() -> None:
     st.markdown("##### Temas críticos (prioridad)")
     for i, t in enumerate(orden_critico[:12], 1):
         row = metricas[t]
-        st.markdown(
-            f"{i}. **{t}** — intensidad **{row['score']:.1f}** "
-            f"· errores simulacro: **{row['errores_quiz']}** "
-            f"· dudas en tutor: **{row['consultas_tutor']}**"
-        )
+        c_crit_txt, c_crit_btn = st.columns([5, 1])
+        with c_crit_txt:
+            st.markdown(
+                f"{i}. **{t}** — intensidad **{row['score']:.1f}** "
+                f"· errores simulacro: **{row['errores_quiz']}** "
+                f"· dudas en tutor: **{row['consultas_tutor']}**"
+            )
+        with c_crit_btn:
+            if st.button(
+                "🎯 Practicar",
+                key=_streamlit_key_tema("btn_critico", t),
+                help=f"Abrir A practicar solo con: {t}",
+            ):
+                _navegar_entrenamiento_prefijar_tema(t)
 
     try:
         import plotly.graph_objects as go
@@ -582,7 +621,8 @@ def _render_panel_seguimos() -> None:
         em = (st.session_state.get("auth_estudiante_email") or "").strip()
         inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
         fn = (st.session_state.get("auth_estudiante_fecha_nacimiento") or "").strip()
-        c_em, c_inst, c_fn = st.columns(3)
+        fi = (st.session_state.get("auth_estudiante_fecha_inicio_curso") or "").strip()
+        c_em, c_inst, c_fn, c_fi = st.columns(4)
         with c_em:
             st.caption("Correo")
             st.markdown(f"`{em}`" if em else "—")
@@ -592,6 +632,9 @@ def _render_panel_seguimos() -> None:
         with c_fn:
             st.caption("Fecha de nacimiento")
             st.markdown(f"`{fn}`" if fn else "—")
+        with c_fi:
+            st.caption("Inicio del curso")
+            st.markdown(f"`{fi}`" if fi else "—")
 
         car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
         if car:

@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import base64
-import html as html_module
 import os
 from typing import Optional, TypedDict
 
 import streamlit as st
-import streamlit.components.v1 as components
 from PIL import Image
 from modules import perfil_curso, temario
 from modules import uso_stats
@@ -252,38 +249,6 @@ def _ruta_boton_portada(nombre_archivo: str) -> Optional[str]:
         if os.path.isfile(p):
             return p
     return None
-
-
-def _mime_imagen_portada(ruta: str) -> str:
-    low = ruta.lower()
-    if low.endswith(".png"):
-        return "image/png"
-    if low.endswith(".webp"):
-        return "image/webp"
-    return "image/jpeg"
-
-
-def _altura_componente_boton_portada(ruta: str, ancho_referencia_px: int = 400) -> int:
-    try:
-        with Image.open(ruta) as im:
-            w, h = im.size
-            if w <= 0:
-                return 220
-            escala = min(ancho_referencia_px, w) / w
-            return max(96, int(h * escala) + 12)
-    except Exception:
-        return 220
-
-
-def _html_boton_portada_imagen(ruta: str, query_value: str, alt: str) -> str:
-    with open(ruta, "rb") as f:
-        b64 = base64.b64encode(f.read()).decode("ascii")
-    mime = _mime_imagen_portada(ruta)
-    alt_esc = html_module.escape(alt, quote=True)
-    q_esc = html_module.escape(query_value, quote=True)
-    return f"""<a href="?portada_action={q_esc}" target="_self" style="display:block;text-decoration:none;">
-  <img src="data:{mime};base64,{b64}" alt="{alt_esc}" style="width:100%;height:auto;border-radius:0.35rem;cursor:pointer;display:block;" />
-</a>"""
 
 
 def _consumir_portada_action_query_param() -> None:
@@ -630,27 +595,32 @@ def mostrar_portada_cero() -> None:
     with c1:
         img_ruta = _ruta_boton_portada(_BOTON_RUTA_MAESTRA)
         if img_ruta:
-            components.html(
-                _html_boton_portada_imagen(img_ruta, "ruta", "Ruta Maestra"),
-                height=_altura_componente_boton_portada(img_ruta),
-            )
-        else:
-            if st.button("Ruta Maestra", use_container_width=True, type="primary"):
-                _aplicar_iniciar_modo(seguimos.MODO_ID)
-                st.rerun()
+            franja_r = _recorte_vertical_superior(img_ruta, fraccion_altura=0.15)
+            if franja_r is not None:
+                st.image(franja_r, use_container_width=True)
+        if st.button(
+            "Ruta Maestra",
+            use_container_width=True,
+            type="primary",
+            key="portada_btn_ruta_maestra",
+        ):
+            _aplicar_iniciar_modo(seguimos.MODO_ID)
+            st.rerun()
     with c2:
         img_reg = _ruta_boton_portada(_BOTON_REGISTRO)
         if img_reg:
-            components.html(
-                _html_boton_portada_imagen(img_reg, "registro", "Registro"),
-                height=_altura_componente_boton_portada(img_reg),
-            )
-        else:
-            if st.button("Registro", use_container_width=True):
-                _aplicar_iniciar_modo(seguimos.MODO_ID)
-                st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_PORTAL
-                st.session_state.seguimos_portal_tab = "registro"
-                st.rerun()
+            franja_reg = _recorte_vertical_superior(img_reg, fraccion_altura=0.15)
+            if franja_reg is not None:
+                st.image(franja_reg, use_container_width=True)
+        if st.button(
+            "Registro",
+            use_container_width=True,
+            key="portada_btn_registro",
+        ):
+            _aplicar_iniciar_modo(seguimos.MODO_ID)
+            st.session_state.seguimos_paso = seguimos.SEGUIMOS_PASO_PORTAL
+            st.session_state.seguimos_portal_tab = "registro"
+            st.rerun()
     with c3:
         if st.button("Demo", use_container_width=True):
             demo_sigma.activar_demo()
@@ -684,7 +654,9 @@ def mostrar_portada_selector_modos() -> None:
                     st.rerun()
                 img_modo = _imagen_por_modo(modo_id)
                 if img_modo:
-                    img_crop = _recorte_vertical_superior(img_modo)
+                    img_crop = _recorte_vertical_superior(
+                        img_modo, fraccion_altura=0.15
+                    )
                     if img_crop is not None:
                         st.image(img_crop, use_container_width=True)
                     else:
@@ -815,7 +787,7 @@ def mostrar_planes_estudio_oficiales() -> None:
 
 
 def mostrar_dudas_resueltas() -> None:
-    """Al pie del panel central: cintillo Σigma (marca, impacto, enlaces, copyright)."""
+    """Delegación al pie HUD; la app llama a ``footer_sigma.render_footer_sigma`` directamente."""
     from modules.footer_sigma import render_footer_sigma
 
     render_footer_sigma()

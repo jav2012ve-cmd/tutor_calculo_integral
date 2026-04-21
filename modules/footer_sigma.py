@@ -1,8 +1,8 @@
 """
-Pie de página (footer) del tutor Σigma — diseño tipo SaaS académico premium.
+Pie de página Σigma: HUD cyber / universitario, métrica de uso y sesión.
 
-Llamar ``render_footer_sigma()`` al final del panel central o en cualquier vista.
-El bloque principal va dentro de ``st.container()`` con estilos inyectados (HTML/CSS).
+Llamar ``render_footer_sigma()`` al final del flujo principal de la app para que sea
+visible en todas las vistas.
 """
 
 from __future__ import annotations
@@ -13,154 +13,197 @@ from typing import Optional
 
 import streamlit as st
 
-from modules import uso_stats
+from modules import auth_estudiantes, uso_stats
 
 _ENV_BASE = (os.environ.get("SIGMA_PUBLIC_URL") or "").strip().rstrip("/")
 
+# Módulos que cuentan como actividad de tutoría / práctica (excluye heartbeats y panel Seguimos).
+_MODULOS_DUDAS_RESUELTAS: tuple[str, ...] = (
+    "Entrenamiento",
+    "Respuesta Guiada",
+    "Quiz",
+    "Tutor Preguntas Abiertas",
+    "Corrección de Manuscritos",
+    "Planes de Estudio Oficiales",
+)
 
-def _url(path: str, fallback: str) -> str:
-    if _ENV_BASE:
-        return f"{_ENV_BASE}{path}" if path.startswith("/") else f"{_ENV_BASE}/{path}"
-    return fallback
+
+def _url_soporte() -> str:
+    base = _ENV_BASE
+    path = "/soporte"
+    if base:
+        return f"{base}{path}" if path.startswith("/") else f"{base}/{path}"
+    return "https://github.com/jav2012ve-cmd/tutor_calculo_integral/issues"
 
 
-GUIAS_URL = _url("/guias", "https://docs.streamlit.io")
-SOPORTE_URL = _url("/soporte", "https://github.com/jav2012ve-cmd/tutor_calculo_integral/issues")
-PRIVACIDAD_URL = _url("/privacidad", "https://example.com/politica-privacidad-sigma")
-
-
-def _total_interacciones() -> int:
+def _contador_dudas_resueltas() -> int:
     stats = uso_stats.obtener_estadisticas()
-    return sum(int(stats.get(m, 0) or 0) for m in uso_stats.MODULOS)
+    return sum(int(stats.get(m, 0) or 0) for m in _MODULOS_DUDAS_RESUELTAS)
 
 
-def _build_footer_html(
-    total: int,
-    u_guias: str,
-    u_soporte: str,
-    u_priv: str,
-) -> str:
-    total_s = f"{total:,}".replace(",", " ")
-    ag = html_lib.escape(u_guias, quote=True)
-    aso = html_lib.escape(u_soporte, quote=True)
-    ap = html_lib.escape(u_priv, quote=True)
+def _bloque_sesion_estudiante() -> str:
+    if not auth_estudiantes.sesion_activa():
+        return (
+            '<span class="sigma-footer-hud-muted">Inicia sesión en <strong>Tu Ruta Maestra Σigma</strong> '
+            "para vincular tu progreso.</span>"
+        )
+    nombre = (st.session_state.get("auth_estudiante_nombre") or "").strip() or "Estudiante"
+    email = (st.session_state.get("auth_estudiante_email") or "").strip()
+    nom_e = html_lib.escape(nombre)
+    if email:
+        em_e = html_lib.escape(email)
+        return (
+            f'<span class="sigma-footer-hud-label">Participante</span>'
+            f'<span class="sigma-footer-hud-name">{nom_e}</span>'
+            f'<span class="sigma-footer-hud-email">{em_e}</span>'
+        )
+    return (
+        f'<span class="sigma-footer-hud-label">Participante</span>'
+        f'<span class="sigma-footer-hud-name">{nom_e}</span>'
+    )
+
+
+def _build_footer_hud_html(total_dudas: int, url_soporte: str) -> str:
+    total_s = f"{total_dudas:,}".replace(",", "\u202f")
+    total_e = html_lib.escape(total_s)
+    soporte_e = html_lib.escape(url_soporte, quote=True)
+    sesion_html = _bloque_sesion_estudiante()
 
     return f"""
 <style>
-.sigma-footer-premium {{
-  background: linear-gradient(90deg, #0e1117 0%, #1c2b4b 100%);
-  border-top: 2px solid #00ccff;
-  padding: 2rem;
-  border-radius: 15px 15px 0 0;
-  color: #e0e0e0;
-  box-sizing: border-box;
-  margin-top: 0.25rem;
+.sigma-footer-hud {{
+  margin-top: 1.25rem;
+  padding: 1.1rem 1.25rem 1.15rem;
+  border-radius: 2px 14px 2px 14px;
+  background: linear-gradient(
+    125deg,
+    rgba(14, 17, 23, 0.97) 0%,
+    rgba(28, 43, 75, 0.92) 42%,
+    rgba(15, 23, 42, 0.96) 100%
+  );
+  border: 1px solid rgba(0, 204, 255, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(0, 204, 255, 0.12),
+    0 8px 28px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
 }}
-.sigma-footer-premium * {{
-  box-sizing: border-box;
+.sigma-footer-hud-inner {{
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.5rem;
 }}
-.sigma-footer-grid {{
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr;
-  gap: 1.75rem 1.5rem;
-  align-items: start;
-}}
-@media (max-width: 900px) {{
-  .sigma-footer-grid {{ grid-template-columns: 1fr; }}
-}}
-.sigma-footer-brand-title {{
-  font-size: 1.12rem;
-  font-weight: 700;
-  color: #ffffff;
-  letter-spacing: -0.02em;
-  margin: 0 0 0.45rem 0;
-  line-height: 1.3;
-}}
-.sigma-footer-brand-body {{
-  font-size: 0.95rem;
-  line-height: 1.55;
-  color: #e0e0e0;
-  margin: 0;
-}}
-.sigma-footer-brand-body strong {{
-  color: #f1f5f9;
-  font-weight: 600;
-}}
-.sigma-footer-section-title {{
-  font-size: 0.98rem;
-  font-weight: 700;
-  color: #f5e6c8;
-  margin: 0 0 0.65rem 0;
-  letter-spacing: 0.02em;
-}}
-.sigma-footer-metric-value {{
-  font-size: 2.1rem;
-  font-weight: 700;
-  color: #ffffff;
-  line-height: 1.1;
-  margin: 0 0 0.2rem 0;
-}}
-.sigma-footer-metric-label {{
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #cbd5e1;
-  margin: 0 0 0.5rem 0;
-}}
-.sigma-footer-metric-hint {{
-  font-size: 0.78rem;
-  color: #94a3b8;
-  margin: 0;
-  line-height: 1.4;
-}}
-.sigma-footer-links {{
+.sigma-footer-hud-brand {{
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.2rem;
+  min-width: 8rem;
 }}
-.sigma-footer-outline-link {{
+.sigma-footer-hud-brand span:first-child {{
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #38bdf8;
+  font-weight: 600;
+}}
+.sigma-footer-hud-brand span:last-child {{
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #f8fafc;
+}}
+.sigma-footer-hud-metric {{
+  text-align: center;
+  min-width: 10rem;
+  padding: 0.35rem 0.85rem;
+  border-left: 1px solid rgba(148, 163, 184, 0.35);
+  border-right: 1px solid rgba(148, 163, 184, 0.35);
+}}
+.sigma-footer-hud-metric-val {{
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.1;
+  text-shadow: 0 0 18px rgba(0, 204, 255, 0.35);
+}}
+.sigma-footer-hud-metric-lbl {{
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin-top: 0.15rem;
+}}
+.sigma-footer-hud-user {{
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  max-width: 22rem;
+}}
+.sigma-footer-hud-label {{
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7dd3fc;
+}}
+.sigma-footer-hud-name {{
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f1f5f9;
+}}
+.sigma-footer-hud-email {{
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  word-break: break-all;
+}}
+.sigma-footer-hud-muted {{
+  font-size: 0.85rem;
+  color: #94a3b8;
+  line-height: 1.45;
+}}
+.sigma-footer-hud-soporte a {{
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.85rem;
-  border: 1px solid rgba(0, 204, 255, 0.5);
-  border-radius: 8px;
+  gap: 0.45rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(0, 204, 255, 0.65);
+  border-radius: 6px;
   color: #e0f7ff !important;
   text-decoration: none !important;
+  font-weight: 600;
   font-size: 0.88rem;
-  font-weight: 500;
-  background: transparent;
-  transition: border-color 0.15s ease, background 0.15s ease;
-  width: fit-content;
-  max-width: 100%;
-}}
-.sigma-footer-outline-link:hover {{
-  border-color: #00ccff;
   background: rgba(0, 204, 255, 0.08);
-  color: #ffffff !important;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}}
+.sigma-footer-hud-soporte a:hover {{
+  background: rgba(0, 204, 255, 0.18);
+  border-color: #22d3ee;
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.35);
+}}
+@media (max-width: 720px) {{
+  .sigma-footer-hud-metric {{
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid rgba(148, 163, 184, 0.25);
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+    width: 100%;
+  }}
 }}
 </style>
-<div class="sigma-footer-premium" role="contentinfo">
-  <div class="sigma-footer-grid">
-    <div>
-      <p class="sigma-footer-brand-title">🎓 &nbsp;Σigma: Ecosistema de Aprendizaje Adaptativo</p>
-      <p class="sigma-footer-brand-body">
-        Proyecto de soporte académico especializado en <strong>Cálculo Integral</strong> y
-        <strong>Ecuaciones Diferenciales</strong> para Facultades de Ingeniería y Ciencias Económicas en Venezuela.
-      </p>
+<div class="sigma-footer-hud" role="contentinfo">
+  <div class="sigma-footer-hud-inner">
+    <div class="sigma-footer-hud-brand">
+      <span>Tutor integral</span>
+      <span>Σigma</span>
     </div>
-    <div>
-      <p class="sigma-footer-section-title">Impacto Σigma</p>
-      <p class="sigma-footer-metric-value">{html_lib.escape(total_s)}</p>
-      <p class="sigma-footer-metric-label">Dudas Resueltas</p>
-      <p class="sigma-footer-metric-hint">Interacciones procesadas en tiempo real.</p>
+    <div class="sigma-footer-hud-metric">
+      <div class="sigma-footer-hud-metric-val">{total_e}</div>
+      <div class="sigma-footer-hud-metric-lbl">Dudas resueltas · uso acumulado</div>
     </div>
-    <div>
-      <p class="sigma-footer-section-title">Recursos</p>
-      <div class="sigma-footer-links">
-        <a class="sigma-footer-outline-link" href="{ag}" target="_blank" rel="noopener noreferrer">📘&nbsp;Guías de Estudio</a>
-        <a class="sigma-footer-outline-link" href="{aso}" target="_blank" rel="noopener noreferrer">⚙️&nbsp;Soporte Técnico</a>
-        <a class="sigma-footer-outline-link" href="{ap}" target="_blank" rel="noopener noreferrer">🔒&nbsp;Política de Privacidad</a>
-      </div>
+    <div class="sigma-footer-hud-user">{sesion_html}</div>
+    <div class="sigma-footer-hud-soporte">
+      <a href="{soporte_e}" target="_blank" rel="noopener noreferrer">💬 Soporte</a>
     </div>
   </div>
 </div>
@@ -170,15 +213,11 @@ def _build_footer_html(
 def render_footer_sigma(
     *,
     mostrar_advertencia_uso: bool = True,
-    enlaces_guias: Optional[str] = None,
-    enlaces_soporte: Optional[str] = None,
-    enlaces_privacidad: Optional[str] = None,
+    url_soporte: Optional[str] = None,
 ) -> None:
     """
-    Cintillo final premium: ``st.container`` + gradiente, grid 2-1-1, métrica, enlaces tipo outline e iconos.
-
-    El copyright final usa ``st.caption`` (gris legible sobre el fondo claro de Streamlit), debajo del panel oscuro.
-    ``enlaces_*``: si se pasan, sustituyen las URLs por defecto.
+    Pie global: contador de dudas resueltas (``uso_stats``), bloque de participante si hay sesión,
+    enlace de soporte, estética HUD.
     """
     st.divider()
 
@@ -187,16 +226,14 @@ def render_footer_sigma(
         if warn:
             st.caption(warn)
 
-    total = _total_interacciones()
-    u_guias = enlaces_guias or GUIAS_URL
-    u_soporte = enlaces_soporte or SOPORTE_URL
-    u_priv = enlaces_privacidad or PRIVACIDAD_URL
-
-    bloque = _build_footer_html(total, u_guias, u_soporte, u_priv)
+    total = _contador_dudas_resueltas()
+    soporte = (url_soporte or "").strip() or _url_soporte()
+    html_bloque = _build_footer_hud_html(total, soporte)
 
     with st.container():
-        st.markdown(bloque, unsafe_allow_html=True)
+        st.markdown(html_bloque, unsafe_allow_html=True)
+
     st.caption(
-        "© 2026 Σigma Tutor Inteligente. Desarrollado con tecnología de IA de última generación "
-        "para el éxito académico nacional."
+        "© 2026 Σigma Tutor de Cálculo Integral · "
+        "Métrica agregada por módulos de práctica y tutoría (sin contar heartbeats ni el panel Seguimos)."
     )

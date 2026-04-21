@@ -1,6 +1,7 @@
 """
 Registro e inicio de sesión de participantes contra Supabase (tabla app_estudiante).
-Campos: nombre, cédula, correo, institución, carrera, semestre, fecha de nacimiento y contraseña (hash bcrypt).
+Campos: nombre, cédula, correo, institución, carrera, semestre, fecha de nacimiento,
+fecha de inicio de curso y contraseña (hash bcrypt).
 Requiere SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY en secrets o entorno.
 """
 
@@ -135,6 +136,15 @@ def validar_fecha_nacimiento(d: date) -> tuple[bool, str]:
     return True, ""
 
 
+def validar_fecha_inicio_curso(d: date) -> tuple[bool, str]:
+    hoy = date.today()
+    if d > hoy:
+        return False, "La fecha de inicio del curso no puede ser futura."
+    if d < hoy - timedelta(days=365 * 8):
+        return False, "Revisa la fecha de inicio del curso (parece demasiado antigua)."
+    return True, ""
+
+
 def registrar_estudiante(
     email: str,
     password: str,
@@ -142,6 +152,7 @@ def registrar_estudiante(
     cedula: str,
     institucion: str,
     fecha_nacimiento: date,
+    fecha_inicio_curso: date,
     carrera: str,
     semestre: str,
 ) -> tuple[bool, str]:
@@ -190,6 +201,9 @@ def registrar_estudiante(
     ok_f, msg_f = validar_fecha_nacimiento(fecha_nacimiento)
     if not ok_f:
         return False, msg_f
+    ok_i, msg_i = validar_fecha_inicio_curso(fecha_inicio_curso)
+    if not ok_i:
+        return False, msg_i
 
     if buscar_por_email(em):
         return False, "Ya existe una cuenta con ese correo."
@@ -203,13 +217,14 @@ def registrar_estudiante(
         "cedula": ced_norm,
         "institucion": inst,
         "fecha_nacimiento": fecha_nacimiento.isoformat(),
+        "fecha_inicio_curso": fecha_inicio_curso.isoformat(),
         "carrera": car,
         "semestre": sem,
     }
     insert_url = f"{_base_url()}/rest/v1/{_TABLE}"
     headers_ins = {**_headers(), "Prefer": "return=minimal"}
 
-    def _resp_sin_columnas_carrera_semestre(resp: requests.Response) -> bool:
+    def _resp_sin_columnas_perfil(resp: requests.Response) -> bool:
         try:
             body_j: dict[str, Any] = resp.json() if resp.text else {}
         except (ValueError, TypeError):
@@ -222,15 +237,27 @@ def registrar_estudiante(
             or (
                 resp.status_code == 400
                 and (
-                    ("schema cache" in low_all and ("carrera" in low_all or "semestre" in low_all))
+                    (
+                        "schema cache" in low_all
+                        and (
+                            "carrera" in low_all
+                            or "semestre" in low_all
+                            or "fecha_inicio_curso" in low_all
+                        )
+                    )
                     or ("could not find" in low_all and "carrera" in low_all)
                     or ("could not find" in low_all and "semestre" in low_all)
+                    or ("could not find" in low_all and "fecha_inicio_curso" in low_all)
                 )
             )
             or (
                 resp.status_code == 400
                 and "schema cache" in low_msg
-                and ("carrera" in low_msg or "semestre" in low_msg)
+                and (
+                    "carrera" in low_msg
+                    or "semestre" in low_msg
+                    or "fecha_inicio_curso" in low_msg
+                )
             )
         )
 
@@ -243,20 +270,26 @@ def registrar_estudiante(
                 return False, "Ese correo o cédula ya está registrado."
             return False, "Ya existe una cuenta con esos datos."
 
-        if _resp_sin_columnas_carrera_semestre(r):
-            payload_min = {k: v for k, v in payload.items() if k not in ("carrera", "semestre")}
+        if _resp_sin_columnas_perfil(r):
+            payload_min = {
+                k: v
+                for k, v in payload.items()
+                if k not in ("carrera", "semestre", "fecha_inicio_curso")
+            }
             r2 = requests.post(
                 insert_url, headers=headers_ins, json=payload_min, timeout=_TIMEOUT
             )
             if r2.status_code in (200, 201):
                 return (
                     True,
-                    "Cuenta creada. Tu base aún no tiene las columnas carrera/semestre: "
-                    "ejecuta en Supabase **`supabase_estudiantes_add_carrera_semestre.sql`** cuando puedas "
+                    "Cuenta creada. Tu base aún no tiene las columnas de perfil ampliado "
+                    "(carrera/semestre/fecha_inicio_curso): ejecuta en Supabase los scripts "
+                    "**`supabase_estudiantes_add_carrera_semestre.sql`** y "
+                    "**`supabase_estudiantes_add_inicio_curso.sql`** cuando puedas "
                     "para guardar ese dato en el perfil.",
                 )
             err2 = (r2.text or "")[:400]
-            print(f"[auth] POST estudiante (sin carrera/sem) {r2.status_code}: {err2}")
+            print(f"[auth] POST estudiante (fallback perfil) {r2.status_code}: {err2}")
 
         err = (r.text or "")[:400]
         print(f"[auth] POST estudiante {r.status_code}: {err}")
@@ -297,6 +330,13 @@ def autenticar(email: str, password: str) -> tuple[bool, str]:
     st.session_state.auth_estudiante_institucion = (row.get("institucion") or "").strip() or None
     st.session_state.auth_estudiante_carrera = (row.get("carrera") or "").strip() or None
     st.session_state.auth_estudiante_semestre = (row.get("semestre") or "").strip() or None
+    fic = row.get("fecha_inicio_curso")
+    if isinstance(fic, str):
+        st.session_state.auth_estudiante_fecha_inicio_curso = fic[:10]
+    elif hasattr(fic, "isoformat"):
+        st.session_state.auth_estudiante_fecha_inicio_curso = fic.isoformat()[:10]
+    else:
+        st.session_state.auth_estudiante_fecha_inicio_curso = None
     fn = row.get("fecha_nacimiento")
     if isinstance(fn, str):
         st.session_state.auth_estudiante_fecha_nacimiento = fn[:10]
@@ -329,6 +369,7 @@ def cerrar_sesion() -> None:
         "auth_estudiante_institucion",
         "auth_estudiante_carrera",
         "auth_estudiante_semestre",
+        "auth_estudiante_fecha_inicio_curso",
         "auth_estudiante_fecha_nacimiento",
         "_seguimos_uso_registrado_sesion",
         "_estilo_univ_sig_inyectado",
@@ -436,6 +477,14 @@ def render_formulario_registro(
                 placeholder="Ej. 4 · 2025-1",
             )
             hoy = date.today()
+            fi = st.date_input(
+                "Fecha de inicio del curso",
+                value=hoy - timedelta(days=45),
+                min_value=hoy - timedelta(days=365 * 8),
+                max_value=hoy,
+                key=f"{key_prefix}_reg_inicio_curso",
+                help="La usamos para ajustar el ritmo del minicurso al calendario oficial de tu materia.",
+            )
             fn = st.date_input(
                 "Fecha de nacimiento",
                 value=hoy - timedelta(days=365 * 18),
@@ -457,7 +506,9 @@ def render_formulario_registro(
             if p2 != p2b:
                 st.error("Las contraseñas no coinciden.")
             else:
-                ok, msg = registrar_estudiante(e2, p2, nom, ced, inst, fn, carrera, semestre)
+                ok, msg = registrar_estudiante(
+                    e2, p2, nom, ced, inst, fn, fi, carrera, semestre
+                )
                 if ok:
                     if redirigir_a_login:
                         st.session_state["seguimos_portal_tab"] = "login"
@@ -884,9 +935,12 @@ def render_barra_sesion_compacta() -> None:
             em = st.session_state.get("auth_estudiante_email", "")
             car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
             sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+            fic = (st.session_state.get("auth_estudiante_fecha_inicio_curso") or "").strip()
             extra = ""
             if car or sem:
                 extra = f" · {car}" + (f" · sem. {sem}" if sem else "")
+            if fic:
+                extra += f" · inicio: {fic}"
             st.success(f"Sesión: **{nom}** · `{em}`{extra}")
         with c2:
             if st.button("Cerrar sesión", key="auth_compact_logout"):
@@ -922,11 +976,14 @@ def render_panel_auth() -> None:
             inst = st.session_state.get("auth_estudiante_institucion")
             car = (st.session_state.get("auth_estudiante_carrera") or "").strip()
             sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+            fic = (st.session_state.get("auth_estudiante_fecha_inicio_curso") or "").strip()
             suf = f" · {inst}" if inst else ""
             if car:
                 suf += f" · {car}"
             if sem:
                 suf += f" · sem. {sem}"
+            if fic:
+                suf += f" · inicio {fic}"
             st.success(f"Sesión: **{nom}**{suf} (`{em}`)")
         with c2:
             if st.button("Cerrar sesión", use_container_width=True, key="auth_home_logout"):

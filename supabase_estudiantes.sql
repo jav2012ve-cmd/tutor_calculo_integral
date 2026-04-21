@@ -1,7 +1,9 @@
 -- Registro de participantes (estudiantes universitarios).
 -- Ejecutar en Supabase → SQL Editor (proyecto nuevo o tras respaldar datos).
 -- Si ya tenías la tabla antigua, ejecuta antes `supabase_estudiantes_migrate_participante.sql`.
--- Incluye al final las columnas carrera/semestre (antes en `supabase_estudiantes_add_carrera_semestre.sql`).
+-- Incluye al final las columnas carrera/semestre e inicio de curso
+-- (scripts antiguos: `supabase_estudiantes_add_carrera_semestre.sql` y
+-- `supabase_estudiantes_add_inicio_curso.sql`).
 
 CREATE TABLE IF NOT EXISTS public.app_estudiante (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -39,10 +41,12 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.app_estudiante TO service_r
 -- Perfil académico (la app envía carrera y semestre al registrarse). Idempotente si ya existían.
 ALTER TABLE public.app_estudiante
   ADD COLUMN IF NOT EXISTS carrera text,
-  ADD COLUMN IF NOT EXISTS semestre text;
+  ADD COLUMN IF NOT EXISTS semestre text,
+  ADD COLUMN IF NOT EXISTS fecha_inicio_curso date;
 
 COMMENT ON COLUMN public.app_estudiante.carrera IS 'Carrera o programa que cursa el participante.';
 COMMENT ON COLUMN public.app_estudiante.semestre IS 'Semestre u orden académico (texto libre, ej. 4, 2025-1).';
+COMMENT ON COLUMN public.app_estudiante.fecha_inicio_curso IS 'Fecha de inicio oficial del curso que está cursando el participante.';
 
 ALTER TABLE public.app_estudiante DROP CONSTRAINT IF EXISTS app_estudiante_carrera_len_chk;
 ALTER TABLE public.app_estudiante
@@ -54,4 +58,10 @@ ALTER TABLE public.app_estudiante DROP CONSTRAINT IF EXISTS app_estudiante_semes
 ALTER TABLE public.app_estudiante
   ADD CONSTRAINT app_estudiante_semestre_len_chk CHECK (
     semestre IS NULL OR char_length(btrim(semestre)) BETWEEN 1 AND 40
+  );
+
+ALTER TABLE public.app_estudiante DROP CONSTRAINT IF EXISTS app_estudiante_inicio_curso_chk;
+ALTER TABLE public.app_estudiante
+  ADD CONSTRAINT app_estudiante_inicio_curso_chk CHECK (
+    fecha_inicio_curso IS NULL OR fecha_inicio_curso <= CURRENT_DATE
   );

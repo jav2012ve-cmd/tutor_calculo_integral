@@ -1,10 +1,11 @@
 from __future__ import annotations
+import base64
 import json
+import logging
 import os
 import re
 import sys
 import time
-import base64
 from typing import Any, List, Optional, Union
 
 import streamlit as st
@@ -41,6 +42,7 @@ from modules import (
     planes_estudio_oficiales,
     contexto_universitario,
     demo_sigma,
+    footer_sigma,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -154,6 +156,9 @@ if not ia_core.configurar_gemini():
 
 model, nombre_modelo = ia_core.iniciar_modelo()
 
+_LOG_JSON = logging.getLogger("sigma.limpiar_json")
+_LOG_IA = logging.getLogger("sigma.generar_contenido_seguro")
+
 # =======================================================
 # FUNCIONES DE SEGURIDAD Y UTILIDADES
 # =======================================================
@@ -200,7 +205,15 @@ def generar_contenido_seguro(
             else:
                 time.sleep(1)
 
-    st.error(f"❌ Error de conexión: {errores_recientes}")
+    st.warning(
+        "**No pudimos completar la consulta al tutor ahora.** "
+        "Revisa tu conexión, espera unos segundos y vuelve a intentarlo. "
+        "Si sigue fallando, prueba con un enunciado más corto o sin tantas fórmulas pegadas."
+    )
+    _LOG_IA.error(
+        "generar_contenido_seguro: sin respuesta tras reintentos | último_error=%s",
+        errores_recientes,
+    )
     registro_interacciones.registrar_interaccion(
         texto_pregunta,
         f"(sin respuesta tras reintentos) {errores_recientes}",
@@ -364,31 +377,115 @@ def mostrar_como_formula_si_corresponde(texto: Optional[str]) -> str:
     return t
 
 
+def _sospecha_latex_escapes_en_json_crudo(s: str) -> bool:
+    """
+    Heurística: barras invertidas sueltas típicas de LaTeX (\\int, \\frac, \\nabla)
+    que a menudo rompen JSON si la IA no las duplicó correctamente.
+    """
+    if not s:
+        return False
+    # Secuencias \X donde X no es un carácter de escape JSON estándar.
+    return bool(re.search(r'\\(?![\\"/bfnrtu])', s))
+
+
+def _extraer_bloque_llaves_json(s: str) -> Optional[str]:
+    """Delimita por la primera ``{`` y la última ``}`` (respuestas con preámbulo o colas)."""
+    if not s:
+        return None
+    i = s.find("{")
+    j = s.rfind("}")
+    if i < 0 or j <= i:
+        return None
+    return s[i : j + 1]
+
+
+def _extraer_bloque_corchetes_json(s: str) -> Optional[str]:
+    """Para respuestas que son un array JSON en bruto."""
+    if not s:
+        return None
+    i = s.find("[")
+    j = s.rfind("]")
+    if i < 0 or j <= i:
+        return None
+    return s[i : j + 1]
+
+
+def _log_json_parseo_fallo(
+    etapa: str,
+    exc: Optional[BaseException],
+    muestra: str,
+    *,
+    final: bool = False,
+) -> None:
+    sospecha = _sospecha_latex_escapes_en_json_crudo(muestra)
+    pos_info = ""
+    if isinstance(exc, json.JSONDecodeError):
+        pos_info = (
+            f" pos={exc.pos} lineno={exc.lineno} colno={exc.colno} msg={exc.msg!r} "
+            f"(revisa si cerca hay \\frac, \\int, etc. sin escapar como JSON)"
+        )
+    linea = (
+        f"[limpiar_json] etapa={etapa!r}{pos_info} | len={len(muestra)} | "
+        f"sospecha_latex_escapes={sospecha} | fragmento_inicio={muestra[:1500]!r}"
+    )
+    print(linea, file=sys.stderr)
+    if final:
+        _LOG_JSON.warning("limpiar_json: todas las reparaciones fallaron (ver stderr arriba).")
+
+
 def limpiar_json(texto: Optional[str]) -> Optional[Any]:
     """
-    Limpieza quirúrgica para respuestas con LaTeX.
-    Devuelve dict o list si parsea correctamente; None en caso contrario.
+    Limpieza y reparación para respuestas con LaTeX mezclado en JSON.
+    Devuelve dict o list si parsea; None si no se pudo recuperar.
     """
-    if not texto: return None
-    texto = texto.replace("```json", "").replace("```", "").strip()
-    
-    # Intento 1: Directo
-    try:
-        return json.loads(texto)
-    except json.JSONDecodeError:
-        pass
+    if not texto:
+        return None
+    base = texto.replace("```json", "").replace("```", "").strip()
+    if not base:
+        return None
 
-    # Intento 2: Reparación Regex para LaTeX
-    try:
-        # Escapa barras invertidas que no sean de control JSON
-        texto_reparado = re.sub(r'\\(?!["\\/bfnrtu])', r'\\\\', texto)
-        return json.loads(texto_reparado)
-    except Exception:
-        # Intento 3: Fuerza bruta si falla regex
+    candidatos: list[tuple[str, str]] = [("directo", base)]
+
+    bloque_llaves = _extraer_bloque_llaves_json(base)
+    if bloque_llaves and bloque_llaves != base:
+        candidatos.append(("entre_llaves", bloque_llaves))
+
+    bloque_arr = _extraer_bloque_corchetes_json(base)
+    if bloque_arr and bloque_arr not in {base, bloque_llaves}:
+        candidatos.append(("entre_corchetes", bloque_arr))
+
+    vistos: set[str] = set()
+    for etiqueta, trozo in candidatos:
+        if trozo in vistos:
+            continue
+        vistos.add(trozo)
+
+        # Intento A: literal
         try:
-            return json.loads(texto.replace("\\", "\\\\"))
-        except Exception:
-            return None
+            return json.loads(trozo)
+        except json.JSONDecodeError as e:
+            _log_json_parseo_fallo(f"{etiqueta}_literal", e, trozo)
+
+        # Intento B: duplicar barras que no sean escapes JSON (común con LaTeX)
+        try:
+            reparado = re.sub(r"\\(?![\"\\/bfnrtu])", r"\\\\", trozo)
+            return json.loads(reparado)
+        except json.JSONDecodeError as e:
+            _log_json_parseo_fallo(f"{etiqueta}_reparar_backslash", e, trozo)
+
+        # Intento C: fuerza bruta (útil cuando hay mezcla inconsistente)
+        try:
+            return json.loads(trozo.replace("\\", "\\\\"))
+        except json.JSONDecodeError as e:
+            _log_json_parseo_fallo(f"{etiqueta}_doble_backslash_global", e, trozo)
+
+    _log_json_parseo_fallo(
+        "rendicion",
+        None,
+        base,
+        final=True,
+    )
+    return None
 
 
 def _bloque_lista_temas_oficial() -> str:
@@ -900,10 +997,17 @@ elif ruta == "a) Entrenamiento (Temario)":
     # --- PANTALLA 0: CONFIGURACIÓN ---
     if not st.session_state.entrenamiento_activo:
         _opts_train = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+        if "entrenamiento_config_temas" in st.session_state:
+            _conf_t = st.session_state.pop("entrenamiento_config_temas")
+            if isinstance(_conf_t, list) and _conf_t:
+                _pre_sel = [x for x in _conf_t if x in _opts_train]
+                if _pre_sel:
+                    st.session_state["entrenamiento_temas_ms"] = _pre_sel
         temas_entrenamiento = st.multiselect(
             "🎯 Selecciona los temas a practicar:",
             options=_opts_train,
-            placeholder="Ej. Ecuaciones Diferenciales Lineales..."
+            placeholder="Ej. Ecuaciones Diferenciales Lineales...",
+            key="entrenamiento_temas_ms",
         )
 
         if st.button(f"⚡ Iniciar Sesión ({NUM_EJERCICIOS_ENTRENAMIENTO} Ejercicios)", type="primary", use_container_width=True):
@@ -1625,5 +1729,5 @@ elif ruta == "e) Corrección de Manuscritos":
 elif ruta == interfaz.MODO_PLANES_ESTUDIO_OFICIALES:
     interfaz.mostrar_planes_estudio_oficiales()
 
-# --- Pie del panel central: total de interacciones ---
-interfaz.mostrar_dudas_resueltas()
+# --- Pie del panel central (todas las vistas) ---
+footer_sigma.render_footer_sigma()
