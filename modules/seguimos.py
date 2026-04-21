@@ -91,7 +91,9 @@ def aplicar_apertura_modo_desde_query_param() -> None:
 def _tile_acceso_rapido_data_uri(mid: str) -> str | None:
     from modules import interfaz as _ix
 
-    pil = _ix.preview_imagen_modo_recorte_superior(mid, fraccion_altura=0.15)
+    pil = _ix.preview_imagen_modo_recorte_superior(
+        mid, fraccion_altura=_ix.FRACCION_ALTURA_PREVIEW_PORTADA
+    )
     if pil is None:
         pth = _ix.ruta_imagen_modo(mid)
         if not pth:
@@ -100,7 +102,9 @@ def _tile_acceso_rapido_data_uri(mid: str) -> str | None:
             pil = im.copy()
         w, h = pil.size
         if h > 2:
-            pil = pil.crop((0, 0, w, max(1, int(h * 0.15))))
+            pil = pil.crop(
+                (0, 0, w, max(1, int(h * _ix.FRACCION_ALTURA_PREVIEW_PORTADA)))
+            )
     buf = io.BytesIO()
     pil.save(buf, format="PNG")
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode("ascii")

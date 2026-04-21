@@ -244,6 +244,9 @@ _BOTON_RUTA_MAESTRA = "BotonRutaMaestra.jpg"
 _BOTON_REGISTRO = "BotonRegistro.jpg"
 _BOTON_DEMO = "BotonDemo.jpg"
 
+# Franja vertical de vista previa (portada, selector de modos, teselas Seguimos): 15% + 10% ≈ 16.5%.
+FRACCION_ALTURA_PREVIEW_PORTADA = 0.15 * 1.1
+
 
 def _ruta_boton_portada(nombre_archivo: str) -> Optional[str]:
     for p in (os.path.join(_ROOT, nombre_archivo), os.path.join(_ROOT, "assets", nombre_archivo)):
@@ -352,9 +355,9 @@ def ruta_imagen_modo(modo_id: str) -> Optional[str]:
 def preview_imagen_modo_recorte_superior(
     modo_id: str,
     *,
-    fraccion_altura: float = 0.15,
+    fraccion_altura: float = FRACCION_ALTURA_PREVIEW_PORTADA,
 ) -> Optional[Image.Image]:
-    """Franja superior del arte del modo (misma fuente que la portada), p. ej. 15% del alto."""
+    """Franja superior del arte del modo (misma fuente que la portada), p. ej. ~16.5% del alto."""
     path = _imagen_por_modo(modo_id)
     if not path:
         return None
@@ -377,6 +380,27 @@ def _recorte_vertical_superior(
             return im.crop((0, 0, w, bottom)).copy()
     except Exception:
         return None
+
+
+def _recorte_vertical_centro(
+    path_img: str, fraccion_altura: float = FRACCION_ALTURA_PREVIEW_PORTADA
+) -> Optional[Image.Image]:
+    """
+    Recorta una franja horizontal centrada en el alto (misma fracción que la portada superior,
+    pero tomada del **medio** vertical de la imagen).
+    """
+    try:
+        with Image.open(path_img) as im:
+            w, h = im.size
+            if h <= 2:
+                return im.copy()
+            fh = max(1, min(h, int(round(h * float(fraccion_altura)))))
+            y0 = max(0, (h - fh) // 2)
+            y1 = min(h, y0 + fh)
+            return im.crop((0, y0, w, y1)).copy()
+    except Exception:
+        return None
+
 
 # Matriz 2×3: (id interno, etiqueta en el botón, texto del tooltip al pasar el ratón)
 MATRIZ_MODOS_2X3: tuple[tuple[tuple[str, str, str], ...], ...] = (
@@ -596,7 +620,9 @@ def mostrar_portada_cero() -> None:
     with c1:
         img_ruta = _ruta_boton_portada(_BOTON_RUTA_MAESTRA)
         if img_ruta:
-            franja_r = _recorte_vertical_superior(img_ruta, fraccion_altura=0.15)
+            franja_r = _recorte_vertical_superior(
+                img_ruta, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
+            )
             if franja_r is not None:
                 st.image(franja_r, use_container_width=True)
         if st.button(
@@ -610,7 +636,9 @@ def mostrar_portada_cero() -> None:
     with c2:
         img_reg = _ruta_boton_portada(_BOTON_REGISTRO)
         if img_reg:
-            franja_reg = _recorte_vertical_superior(img_reg, fraccion_altura=0.15)
+            franja_reg = _recorte_vertical_superior(
+                img_reg, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
+            )
             if franja_reg is not None:
                 st.image(franja_reg, use_container_width=True)
         if st.button(
@@ -625,7 +653,9 @@ def mostrar_portada_cero() -> None:
     with c3:
         img_demo = _ruta_boton_portada(_BOTON_DEMO)
         if img_demo:
-            franja_demo = _recorte_vertical_superior(img_demo, fraccion_altura=0.15)
+            franja_demo = _recorte_vertical_centro(
+                img_demo, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
+            )
             if franja_demo is not None:
                 st.image(franja_demo, use_container_width=True)
         if st.button(
@@ -665,7 +695,7 @@ def mostrar_portada_selector_modos() -> None:
                 img_modo = _imagen_por_modo(modo_id)
                 if img_modo:
                     img_crop = _recorte_vertical_superior(
-                        img_modo, fraccion_altura=0.15
+                        img_modo, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
                     )
                     if img_crop is not None:
                         st.image(img_crop, use_container_width=True)
