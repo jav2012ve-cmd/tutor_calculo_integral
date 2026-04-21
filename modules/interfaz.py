@@ -4,7 +4,7 @@ import os
 from typing import Optional, TypedDict
 
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageOps
 from modules import perfil_curso, temario
 from modules import uso_stats
 from modules import seguimos
@@ -246,6 +246,31 @@ _BOTON_DEMO = "BotonDemo.jpg"
 
 # Franja vertical de vista previa (portada, selector de modos, teselas Seguimos): 15% + 10% ≈ 16.5%.
 FRACCION_ALTURA_PREVIEW_PORTADA = 0.15 * 1.1
+# Botón Demo (recorte centrado en portada): +15% de alto respecto a esa franja estándar.
+FRACCION_ALTURA_DEMO_PORTADA = FRACCION_ALTURA_PREVIEW_PORTADA * 1.15
+
+# Las tres vistas previas de la portada comparten estas dimensiones en píxeles (ImageOps.fit / cover).
+_PORTADA_BOTON_PREVIEW_ANCHO_PX = 480
+_PORTADA_BOTON_PREVIEW_ALTO_PX = 96
+
+
+def _normalizar_dimensiones_vista_previa_portada(im: Optional[Image.Image]) -> Optional[Image.Image]:
+    """Escala y recorta al mismo tamaño (cover) para alinear Ruta / Registro / Demo en la portada."""
+    if im is None:
+        return None
+    try:
+        im_rgba = im.convert("RGBA")
+        try:
+            resample = Image.Resampling.LANCZOS
+        except AttributeError:
+            resample = Image.LANCZOS
+        return ImageOps.fit(
+            im_rgba,
+            (_PORTADA_BOTON_PREVIEW_ANCHO_PX, _PORTADA_BOTON_PREVIEW_ALTO_PX),
+            method=resample,
+        )
+    except Exception:
+        return im
 
 
 def _ruta_boton_portada(nombre_archivo: str) -> Optional[str]:
@@ -623,6 +648,7 @@ def mostrar_portada_cero() -> None:
             franja_r = _recorte_vertical_superior(
                 img_ruta, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
             )
+            franja_r = _normalizar_dimensiones_vista_previa_portada(franja_r)
             if franja_r is not None:
                 st.image(franja_r, use_container_width=True)
         if st.button(
@@ -639,6 +665,7 @@ def mostrar_portada_cero() -> None:
             franja_reg = _recorte_vertical_superior(
                 img_reg, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
             )
+            franja_reg = _normalizar_dimensiones_vista_previa_portada(franja_reg)
             if franja_reg is not None:
                 st.image(franja_reg, use_container_width=True)
         if st.button(
@@ -654,8 +681,9 @@ def mostrar_portada_cero() -> None:
         img_demo = _ruta_boton_portada(_BOTON_DEMO)
         if img_demo:
             franja_demo = _recorte_vertical_centro(
-                img_demo, fraccion_altura=FRACCION_ALTURA_PREVIEW_PORTADA
+                img_demo, fraccion_altura=FRACCION_ALTURA_DEMO_PORTADA
             )
+            franja_demo = _normalizar_dimensiones_vista_previa_portada(franja_demo)
             if franja_demo is not None:
                 st.image(franja_demo, use_container_width=True)
         if st.button(
