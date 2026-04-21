@@ -8,7 +8,7 @@ import os
 import tempfile
 from io import BytesIO
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from fpdf import FPDF
 from PIL import Image, ImageDraw, ImageFont
@@ -81,29 +81,102 @@ def _bitmap_tagline_pie_sigma() -> BytesIO:
 
 class SigmaPDF(FPDF):
     """
-    FPDF con cabecera corporativa (logo, título, línea azul) y pie (página + leyenda Σigma).
-
-    El pie usa Helvetica para la paginación (compatible con ``latin1`` del motor fpdf clásico)
-    y una imagen PNG muy pequeña para la leyenda con el carácter griego **Σ**.
+    FPDF con cabecera: modo «informe quiz» (logo, banner de calificación, datos) o título clásico.
+    El pie usa latin-1; las cadenas de cabecera deben llegar ya seguras para ese encoding.
     """
 
     _TAGLINE_ASCII = "Sigma: Tu Tutor Inteligente de Calculo"
     _COLOR_LINEA_AZUL = (41, 128, 185)
     _COLOR_PIE_GRIS = (158, 165, 175)
+    _HEADER_QUIZ_ALTO = 32.0
+    _MARGEN_SUPERIOR_CUERPO_QUIZ = 40.0
 
-    def __init__(self, titulo_reporte: str) -> None:
+    def __init__(self, titulo_reporte: str, **kwargs: Any) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
         self.titulo_reporte = titulo_reporte
         self._logo_path = _resolver_ruta_logo_sigma()
-        # fpdf clásico incrusta mal imágenes desde BytesIO; usamos rutas temporales y las borramos en ``output``.
+        self._cabecera_informe_quiz: bool = bool(kwargs.get("cabecera_informe_quiz"))
+        self._quiz_nombre: str = str(kwargs.get("nombre_estudiante") or "")
+        self._quiz_fecha: str = str(kwargs.get("fecha_informe") or "")
+        self._quiz_tipo: str = str(kwargs.get("tipo_actividad") or "Simulacro")
+        self._quiz_nota: Optional[float] = kwargs.get("nota_final")
+        self._quiz_aprobado: str = str(kwargs.get("aprobado_texto") or "")
+
         self._tmp_logo_header: Optional[str] = None
         self._tmp_tagline_png: Optional[str] = None
 
         self.alias_nb_pages()
         self.set_auto_page_break(auto=True, margin=22)
-        self.set_margins(12, 34, 12)
+        top_m = self._MARGEN_SUPERIOR_CUERPO_QUIZ if self._cabecera_informe_quiz else 34.0
+        self.set_margins(12, top_m, 12)
 
-    def header(self) -> None:
+    def _header_modo_informe_quiz(self) -> None:
+        """Logo izquierda, banner central con calificación, bloque derecho (nombre, fecha, actividad)."""
+        y0 = 4.0
+        xl = 10.0
+        wl_logo = 28.0
+        ancho_logo_mm = 22.0
+        xc = xl + wl_logo + 2.0
+        wc = 72.0
+        xr = xc + wc + 3.0
+        wr = max(22.0, self.w - 10.0 - xr)
+        zona_h = self._HEADER_QUIZ_ALTO
+
+        if self._logo_path:
+            try:
+                if not self._tmp_logo_header:
+                    mini = _logo_para_cabecera_pdf(self._logo_path)
+                    tf = tempfile.NamedTemporaryFile(suffix="_sigma_logo.png", delete=False)
+                    tf.write(mini.getvalue())
+                    tf.close()
+                    self._tmp_logo_header = tf.name
+                self.image(self._tmp_logo_header, x=xl, y=y0 + 1.0, w=ancho_logo_mm)
+            except Exception:
+                try:
+                    self.image(self._logo_path, x=xl, y=y0 + 1.0, w=ancho_logo_mm)
+                except Exception:
+                    pass
+
+        self.set_fill_color(235, 244, 255)
+        self.set_draw_color(*self._COLOR_LINEA_AZUL)
+        self.set_line_width(0.35)
+        self.rect(xc, y0, wc, zona_h, "DF")
+        self.set_xy(xc, y0 + 2.0)
+        self.set_font("Helvetica", "", 9)
+        self.set_text_color(55, 65, 80)
+        self.cell(wc, 4, "Calificación Final", align="C", ln=1)
+        self.set_font("Helvetica", "B", 16)
+        self.set_text_color(15, 23, 42)
+        if self._quiz_nota is not None:
+            self.cell(wc, 9, f"{self._quiz_nota} / 20", align="C", ln=1)
+        if self._quiz_aprobado:
+            self.set_font("Helvetica", "B", 8)
+            if "No" in self._quiz_aprobado:
+                self.set_text_color(185, 28, 28)
+            else:
+                self.set_text_color(22, 120, 60)
+            self.cell(wc, 5, self._quiz_aprobado, align="C", ln=1)
+        self.set_text_color(0, 0, 0)
+
+        der_txt = "Estudiante:\n"
+        der_txt += self._quiz_nombre.strip() if self._quiz_nombre.strip() else "—"
+        if self._quiz_fecha.strip():
+            der_txt += "\n\nFecha:\n" + self._quiz_fecha.strip()
+        if self._quiz_tipo.strip():
+            der_txt += "\n\nActividad:\n" + self._quiz_tipo.strip()
+        self.set_xy(xr, y0 + 1.0)
+        self.set_font("Helvetica", "B", 8)
+        self.set_text_color(30, 41, 59)
+        self.multi_cell(wr, 3.8, der_txt, align="L")
+        self.set_text_color(0, 0, 0)
+
+        y_linea = y0 + zona_h + 2.0
+        self.set_draw_color(*self._COLOR_LINEA_AZUL)
+        self.set_line_width(0.45)
+        self.line(10.0, y_linea, self.w - 10.0, y_linea)
+        self.set_y(y_linea + 3.0)
+
+    def _header_modo_clasico(self) -> None:
         y_logo = 5.0
         ancho_logo = 20.0
         if self._logo_path:
@@ -120,16 +193,20 @@ class SigmaPDF(FPDF):
                     self.image(self._logo_path, x=10, y=y_logo, w=ancho_logo)
                 except Exception:
                     pass
-
         self.set_font("Helvetica", "B", 14)
         self.set_xy(0, y_logo + 1.5)
         self.cell(0, 10, self.titulo_reporte, ln=1, align="C")
-
         y_linea = 24.0
         self.set_draw_color(*self._COLOR_LINEA_AZUL)
         self.set_line_width(0.55)
         self.line(10, y_linea, self.w - 10, y_linea)
         self.set_y(y_linea + 4.5)
+
+    def header(self) -> None:
+        if self._cabecera_informe_quiz:
+            self._header_modo_informe_quiz()
+        else:
+            self._header_modo_clasico()
 
     def footer(self) -> None:
         self.set_y(-20)

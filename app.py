@@ -786,15 +786,164 @@ def generar_respuesta_tutor_abierto(
         return response.text
     return "Lo siento, tuve un problema pensando la respuesta."
 
+
+def _limpiar_latex_comunes_para_pdf(texto: Optional[str]) -> str:
+    """
+    Primera pasada antes de fpdf: sustituye comandos LaTeX habituales por texto plano legible
+    (fuentes core sin símbolos matemáticos). No sustituye ``\\frac`` ni ``\\sqrt``; eso lo
+    resuelve ``_sanitizar_para_pdf``.
+    """
+    if not texto:
+        return ""
+    t = str(texto)
+
+    # \dfrac → \frac (misma sintaxis de llaves para el siguiente paso)
+    t = re.sub(r"\\dfrac\b", r"\\frac", t)
+
+    # Mínimo lógico en exponentes: ^{\wedge} → ^
+    t = re.sub(r"\^\{\s*\\?\s*wedge\s*\}", "^", t, flags=re.IGNORECASE)
+    t = re.sub(r"\^\\wedge\b", "^", t)
+
+    # Cuerpos \text / \mathrm / \mathbf (una llave, sin anidar)
+    t = re.sub(r"\\text\s*\{([^{}]*)\}", r"\1", t)
+    t = re.sub(r"\\mathrm\s*\{([^{}]*)\}", r"\1", t)
+    t = re.sub(r"\\mathbf\s*\{([^{}]*)\}", r"\1", t)
+    t = re.sub(r"\\mathit\s*\{([^{}]*)\}", r"\1", t)
+
+    # \mathbb{X} simple (una letra o nombre corto)
+    t = re.sub(r"\\mathbb\s*\{([^{}]{1,12})\}", r" \1 ", t)
+
+    # Vector \vec{x}
+    t = re.sub(r"\\vec\s*\{([^{}]+)\}", r" vector(\1) ", t)
+
+    # Patrones frecuentes → palabras (orden: más largos antes que subcadenas ambiguas)
+    _patrones = (
+        (r"\\iiint\b", " integral triple de "),
+        (r"\\iint\b", " integral doble de "),
+        (r"\\oint\b", " integral de contorno de "),
+        (r"\\int\b", " Integral de "),
+        (r"\\sum\b", " suma de "),
+        (r"\\prod\b", " producto de "),
+        (r"\\lim\b", " limite de "),
+        (r"\\infty\b", " infinito "),
+        (r"\\partial\b", " d parcial "),
+        (r"\\nabla\b", " nabla "),
+        (r"\\forall\b", " para todo "),
+        (r"\\exists\b", " existe "),
+        (r"\\in\b", " en "),
+        (r"\\notin\b", " no en "),
+        (r"\\subseteq\b", " subconjunto-igual-de "),
+        (r"\\subset\b", " subconjunto-de "),
+        (r"\\cup\b", " union "),
+        (r"\\cap\b", " interseccion "),
+        (r"\\wedge\b", " y "),
+        (r"\\vee\b", " o "),
+        (r"\\neg\b", " no "),
+        (r"\\Rightarrow\b", " entonces "),
+        (r"\\rightarrow\b", " -> "),
+        (r"\\to\b", " tiende a "),
+        (r"\\leq\b", " <= "),
+        (r"\\geq\b", " >= "),
+        (r"\\neq\b", " distinto de "),
+        (r"\\approx\b", " aprox. "),
+        (r"\\equiv\b", " equivale a "),
+        (r"\\times\b", " por "),
+        (r"\\div\b", " entre "),
+        (r"\\pm\b", " mas-menos "),
+        (r"\\mp\b", " menos-mas "),
+        (r"\\cdot\b", " por "),
+        (r"\\cdots\b", " ... "),
+        (r"\\dots\b", " ... "),
+        (r"\\vdots\b", " (puntos verticales) "),
+        (r"\\ldots\b", " ... "),
+        (r"\\sinh\b", " senh "),
+        (r"\\cosh\b", " cosh "),
+        (r"\\tanh\b", " tanh "),
+        (r"\\sin\b", " sen "),
+        (r"\\cos\b", " cos "),
+        (r"\\tan\b", " tan "),
+        (r"\\cot\b", " cot "),
+        (r"\\sec\b", " sec "),
+        (r"\\csc\b", " csc "),
+        (r"\\arcsin\b", " arcsen "),
+        (r"\\arccos\b", " arccos "),
+        (r"\\arctan\b", " arctan "),
+        (r"\\ln\b", " ln "),
+        (r"\\log\b", " log "),
+        (r"\\exp\b", " exp "),
+        (r"\\deg\b", " grados "),
+        (r"\\pi\b", " pi "),
+        (r"\\varphi\b", " phi "),
+        (r"\\phi\b", " phi "),
+        (r"\\theta\b", " theta "),
+        (r"\\Theta\b", " Theta "),
+        (r"\\alpha\b", " alpha "),
+        (r"\\beta\b", " beta "),
+        (r"\\gamma\b", " gamma "),
+        (r"\\Gamma\b", " Gamma "),
+        (r"\\delta\b", " delta "),
+        (r"\\Delta\b", " Delta "),
+        (r"\\epsilon\b", " epsilon "),
+        (r"\\varepsilon\b", " epsilon "),
+        (r"\\lambda\b", " lambda "),
+        (r"\\Lambda\b", " Lambda "),
+        (r"\\mu\b", " mu "),
+        (r"\\sigma\b", " sigma "),
+        (r"\\Sigma\b", " Sigma "),
+        (r"\\omega\b", " omega "),
+        (r"\\Omega\b", " Omega "),
+        (r"\\rho\b", " rho "),
+        (r"\\tau\b", " tau "),
+        (r"\\eta\b", " eta "),
+        (r"\\xi\b", " xi "),
+        (r"\\zeta\b", " zeta "),
+        (r"\\psi\b", " psi "),
+        (r"\\Psi\b", " Psi "),
+        (r"\\chi\b", " chi "),
+    )
+    for pat, rep in _patrones:
+        t = re.sub(pat, rep, t)
+
+    # Espaciado LaTeX
+    t = re.sub(r"\\qquad\b", "    ", t)
+    t = re.sub(r"\\quad\b", "   ", t)
+    t = re.sub(r"\\[,;:!]\b", " ", t)
+    t = re.sub(r"\\,", " ", t)
+    t = re.sub(r"\\;", " ", t)
+    t = re.sub(r"\\!", "", t)
+    t = re.sub(r"\\hspace\s*\{[^}]*\}", " ", t)
+    t = re.sub(r"\\vspace\s*\{[^}]*\}", " ", t)
+
+    # Subíndices y superíndices simples restantes (sin llaves anidadas)
+    t = re.sub(r"_\{([^{}]+)\}", r"_(\1)", t)
+    t = re.sub(r"\^\{([^{}]+)\}", r"^(\1)", t)
+
+    # Llaves de agrupación escapadas
+    t = t.replace("\\{", "{").replace("\\}", "}")
+
+    # Restos típicos de entornos o espacios
+    t = re.sub(r"\\begin\s*\{[^{}]+\}", " ", t)
+    t = re.sub(r"\\end\s*\{[^{}]+\}", " ", t)
+    t = re.sub(r"\\displaystyle\b", " ", t)
+    t = re.sub(r"\\textstyle\b", " ", t)
+    t = re.sub(r"\\scriptstyle\b", " ", t)
+    t = re.sub(r"\\binom\b", " binomio ", t)
+
+    return t
+
+
 def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     """
     Convierte LaTeX a texto legible en el PDF: fracciones como (num/den),
     raíces como sqrt(...), integrales, exponentes, etc., sin código LaTeX crudo.
+
+    Aplica antes ``_limpiar_latex_comunes_para_pdf`` para reemplazar comandos frecuentes.
     """
     if not texto:
         return ""
 
-    t = texto.replace("$$", "").replace("$", "").strip()
+    t = _limpiar_latex_comunes_para_pdf(texto)
+    t = t.replace("$$", "").replace("$", "").strip()
 
     # \frac con contenido posiblemente anidado (ej. \frac{x^3}{3})
     def _reemplazar_frac(s: str) -> str:
@@ -823,7 +972,9 @@ def _sanitizar_para_pdf(texto: Optional[str]) -> str:
                             depth -= 1
                         j += 1
                     den = s[start_den : j - 1]
-                    out.append(f" ({_sanitizar_para_pdf(num)}/{_sanitizar_para_pdf(den)}) ")
+                    out.append(
+                        f" ({_sanitizar_para_pdf(num)})/({_sanitizar_para_pdf(den)}) "
+                    )
                     i = j
                 else:
                     out.append(s[i:j])
@@ -860,10 +1011,7 @@ def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     t = re.sub(r"\s*\\right\s*\)\s*", " ) ", t)
     t = re.sub(r"\\left\s*\[\s*", " [ ", t)
     t = re.sub(r"\s*\\right\s*\]\s*", " ] ", t)
-    # Comandos LaTeX -> texto
-    t = t.replace("\\int", " integral ")
-    t = t.replace("\\ln", " ln ")
-    t = t.replace("\\cdot", " ")
+    # Comandos LaTeX -> texto (\\int, \\ln, \\cdot ya tratados en _limpiar_latex_comunes_para_pdf)
     t = t.replace("\\left", " ")
     t = t.replace("\\right", " ")
     # Raíz simple por si quedó algo
@@ -913,8 +1061,8 @@ def _pdf_render_enunciado_caja_sombreada(pdf: Any, texto_raw: Optional[str]) -> 
 
     if not isinstance(pdf, FPDF):
         return
-    fill_rgb = (236, 244, 252)
-    borde_rgb = (186, 206, 228)
+    fill_rgb = (240, 240, 240)
+    borde_rgb = (200, 200, 200)
     x0 = float(pdf.l_margin)
     w0 = float(pdf.w - pdf.l_margin - pdf.r_margin)
     inner = max(30.0, w0 - 2.0)
@@ -942,6 +1090,33 @@ def _pdf_render_enunciado_caja_sombreada(pdf: Any, texto_raw: Optional[str]) -> 
     pdf.rect(x0, y_top - 0.5, w0, y_bot - y_top + 1.0, style="D")
     pdf.set_text_color(0, 0, 0)
     pdf.ln(3)
+
+
+def _pdf_bloque_celda_sombreada(
+    pdf: Any,
+    etiqueta: str,
+    contenido: str,
+    *,
+    fill_rgb: tuple[int, int, int] = (248, 248, 248),
+) -> None:
+    """Bloque con etiqueta y texto en fondo gris claro (informe tipo celda)."""
+    from fpdf import FPDF
+
+    if not isinstance(pdf, FPDF):
+        return
+    x0 = float(pdf.l_margin)
+    w0 = float(pdf.w - pdf.l_margin - pdf.r_margin)
+    pdf.set_fill_color(*fill_rgb)
+    pdf.set_draw_color(210, 210, 210)
+    pdf.set_font("Helvetica", "B", 9)
+    pdf.set_text_color(40, 40, 40)
+    pdf.set_x(x0)
+    pdf.cell(w0, 4.5, _latin1_pdf(etiqueta), border="LRT", ln=1, fill=1)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_x(x0)
+    pdf.multi_cell(w0, 4.5, _latin1_pdf(contenido), border="LRB", align="L", fill=1)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(2)
 
 
 def _pdf_tabla_datos_estudiante(pdf: Any, nombre: str, institucion: str, semestre: str) -> None:
@@ -1002,35 +1177,90 @@ def generar_pdf_informe_quiz(
     nota_final: float,
 ) -> Union[bytes, bytearray]:
     """Genera bytes del PDF con calificación y detalle del examen."""
+    from datetime import date
+
     from modules.sigma_pdf import SigmaPDF
 
-    pdf = SigmaPDF("Informe de evaluacion - Sigma tu Tutor de Calculo Integral")
-    pdf.add_page()
-    _pdf_bloque_identidad_reporte(pdf)
+    aprob_txt = "Aprobado." if nota_final >= 10 else "No aprobado."
+    fecha_inf = date.today().strftime("%d/%m/%Y")
+    nombre_hdr = ""
+    tipo_act = "Simulacro"
+    if auth_estudiantes.sesion_activa():
+        nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+        if nom.lower() == "invitado":
+            nombre_hdr = _latin1_pdf("Invitado (practica libre)")
+        else:
+            nombre_hdr = _latin1_pdf(nom)
+    else:
+        nombre_hdr = _latin1_pdf("Participante (sin sesion)")
 
-    pdf.set_font("Helvetica", size=11)
-    pdf.cell(0, 8, f"Calificacion final: {nota_final} / 20 pts", ln=True)
-    pdf.cell(0, 8, "Aprobado." if nota_final >= 10 else "No aprobado.", ln=True)
-    pdf.ln(4)
+    pdf = SigmaPDF(
+        "Sigma — Informe de simulacro",
+        cabecera_informe_quiz=True,
+        nombre_estudiante=nombre_hdr,
+        fecha_informe=fecha_inf,
+        tipo_actividad=tipo_act,
+        nota_final=nota_final,
+        aprobado_texto=_latin1_pdf(aprob_txt),
+    )
+    pdf.add_page()
+
+    if auth_estudiantes.sesion_activa():
+        nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+        if nom and nom.lower() != "invitado":
+            inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+            sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+            if inst or sem:
+                pdf.set_font("Helvetica", "", 9)
+                pdf.set_text_color(70, 70, 70)
+                if inst:
+                    pdf.cell(0, 5, _latin1_pdf(f"Institucion: {inst}"), ln=1)
+                if sem:
+                    pdf.cell(0, 5, _latin1_pdf(f"Semestre: {sem}"), ln=1)
+                pdf.set_text_color(0, 0, 0)
+                pdf.ln(2)
+
+    pdf.set_font("Helvetica", "I", 9)
+    pdf.set_text_color(90, 90, 90)
+    pdf.cell(0, 5, _latin1_pdf("Detalle de respuestas (simulacro)."), ln=1)
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(3)
+
     for i, r in enumerate(respuestas_usuario, 1):
         pdf.set_font("Helvetica", "B", size=10)
         pts = r.get("puntos", 0)
         pdf.cell(0, 6, f"Pregunta {i} ({pts} pts)", ln=True)
         pdf.ln(1)
         _pdf_render_enunciado_caja_sombreada(pdf, r.get("pregunta", ""))
-        pdf.set_font("Helvetica", "", 9)
-        pdf.cell(0, 4, "Tu respuesta: " + _latin1_pdf(_sanitizar_para_pdf(r.get("elegida", ""))), ln=True)
+        _pdf_bloque_celda_sombreada(
+            pdf,
+            "Tu respuesta",
+            _sanitizar_para_pdf(r.get("elegida", "")),
+            fill_rgb=(248, 248, 248),
+        )
         if not r.get("es_correcta", True):
-            pdf.cell(0, 4, "Correcta: " + _latin1_pdf(_sanitizar_para_pdf(r.get("correcta", ""))), ln=True)
-        pdf.set_font("Helvetica", "B", 9)
-        juicio = "Juicio: CORRECTO" if r.get("es_correcta", True) else "Juicio: INCORRECTO"
-        pdf.cell(0, 5, _latin1_pdf(juicio), ln=True)
+            _pdf_bloque_celda_sombreada(
+                pdf,
+                "Respuesta correcta (referencia)",
+                _sanitizar_para_pdf(r.get("correcta", "")),
+                fill_rgb=(248, 248, 248),
+            )
+        pdf.set_font("Helvetica", "B", 10)
+        if r.get("es_correcta", True):
+            pdf.set_text_color(22, 138, 78)
+            pdf.cell(0, 6, _latin1_pdf("Juicio: CORRECTO"), ln=1)
+        else:
+            pdf.set_text_color(200, 48, 48)
+            pdf.cell(0, 6, _latin1_pdf("Juicio: INCORRECTO"), ln=1)
+        pdf.set_text_color(0, 0, 0)
         pdf.ln(5)
-        pdf.set_font("Helvetica", "B", 9)
-        pdf.cell(0, 4, _latin1_pdf("Sugerencias / comentario:"), ln=True)
-        pdf.set_font("Helvetica", "", 9)
-        pdf.multi_cell(0, 4.5, _latin1_pdf(_sanitizar_para_pdf(r.get("explicacion", ""))))
-        pdf.ln(4)
+        _pdf_bloque_celda_sombreada(
+            pdf,
+            "Sugerencias / comentario",
+            _sanitizar_para_pdf(r.get("explicacion", "")),
+            fill_rgb=(250, 250, 250),
+        )
+        pdf.ln(3)
     raw = pdf.output(dest="S")
     if isinstance(raw, str):
         return raw.encode("latin1")
