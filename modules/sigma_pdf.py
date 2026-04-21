@@ -155,6 +155,8 @@ class SigmaPDF(FPDF):
         self._quiz_tipo: str = str(kwargs.get("tipo_actividad") or "Simulacro")
         self._quiz_nota: Optional[float] = kwargs.get("nota_final")
         self._quiz_aprobado: str = str(kwargs.get("aprobado_texto") or "")
+        self._quiz_banner_alt: str = str(kwargs.get("texto_banner_central") or "")
+        self._banner_titulo_centro: str = str(kwargs.get("banner_titulo_centro") or "Calificación Final")
 
         self._tmp_logo_header: Optional[str] = None
         self._tmp_tagline_png: Optional[str] = None
@@ -225,11 +227,15 @@ class SigmaPDF(FPDF):
         self.set_xy(xc, y0 + 2.0)
         self._set_font_text("", 9)
         self.set_text_color(55, 65, 80)
-        self.cell(wc, 4, self._pdf_unicode_clean("Calificación Final"), align="C", ln=1)
+        self.cell(wc, 4, self._pdf_unicode_clean(self._banner_titulo_centro), align="C", ln=1)
         self._set_font_text("B", 16)
         self.set_text_color(15, 23, 42)
         if self._quiz_nota is not None:
             self.cell(wc, 9, f"{self._quiz_nota} / 20", align="C", ln=1)
+        else:
+            alt = (self._quiz_banner_alt or "").strip() or "Registro de actividad"
+            self._set_font_text("B", 11)
+            self.cell(wc, 9, self._pdf_unicode_clean(alt[:120]), align="C", ln=1)
         if self._quiz_aprobado:
             self._set_font_text("B", 8)
             if "No" in self._quiz_aprobado:

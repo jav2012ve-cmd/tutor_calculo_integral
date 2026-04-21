@@ -7,7 +7,7 @@ import re
 import sys
 import time
 from contextvars import ContextVar
-from typing import Any, List, Optional, Union
+from typing import Any, Callable, List, Optional, Tuple, Union
 
 import streamlit as st
 from PIL import Image
@@ -936,6 +936,8 @@ def _limpiar_latex_comunes_para_pdf(texto: Optional[str]) -> str:
 
 # True cuando ``_sanitizar_para_pdf`` se usa para el informe PDF con fuente TTF (uni=True).
 _PDF_USE_UNICODE_FONT: ContextVar[bool] = ContextVar("_PDF_USE_UNICODE_FONT", default=False)
+# Longitud máxima del texto ya sanitizado (informes largos vs. celdas cortas).
+_PDF_SANITIZE_MAX_OUT: ContextVar[int] = ContextVar("_PDF_SANITIZE_MAX_OUT", default=500)
 
 
 def _sanitizar_para_pdf(texto: Optional[str]) -> str:
@@ -1026,7 +1028,8 @@ def _sanitizar_para_pdf(texto: Optional[str]) -> str:
     t = re.sub(r"\\sqrt\{([^{}]+)\}", r" sqrt(\1) ", t)
     # Espacios múltiples y recorte
     t = re.sub(r"\s+", " ", t).strip()
-    t = t[:500] if len(t) > 500 else t
+    mx = _PDF_SANITIZE_MAX_OUT.get()
+    t = t[:mx] if len(t) > mx else t
     return pdf_text.finalize_pdf_string(t, uses_unicode_font=u)
 
 
@@ -1188,6 +1191,282 @@ def _pdf_tabla_datos_estudiante(pdf: Any, nombre: str, institucion: str, semestr
     pdf.ln(4)
 
 
+def _nombre_y_fecha_informe_pdf() -> tuple[str, str]:
+    """Nombre para cabecera PDF y fecha local (dd/mm/aaaa)."""
+    from datetime import date
+
+    fecha_inf = date.today().strftime("%d/%m/%Y")
+    if auth_estudiantes.sesion_activa():
+        nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+        if nom.lower() == "invitado":
+            return "Invitado (practica libre)", fecha_inf
+        return (nom or "Participante"), fecha_inf
+    return "Participante (sin sesion)", fecha_inf
+
+
+def generar_pdf_informe_actividad(
+    *,
+    titulo_documento: str,
+    tipo_actividad: str,
+    texto_banner_central: str,
+    secciones: List[Tuple[str, str]],
+) -> Union[bytes, bytearray]:
+    """PDF con la misma cabecera corporativa que el simulacro, sin nota numérica (otras actividades)."""
+    from modules.sigma_pdf import SigmaPDF
+
+    nombre_hdr, fecha_inf = _nombre_y_fecha_informe_pdf()
+    pdf = SigmaPDF(
+        titulo_documento,
+        cabecera_informe_quiz=True,
+        nombre_estudiante=nombre_hdr,
+        fecha_informe=fecha_inf,
+        tipo_actividad=tipo_actividad,
+        nota_final=None,
+        aprobado_texto="",
+        texto_banner_central=texto_banner_central[:200],
+        banner_titulo_centro="Informe de actividad",
+    )
+    tok_u = _PDF_USE_UNICODE_FONT.set(pdf._uses_dejavu)
+    tok_m = _PDF_SANITIZE_MAX_OUT.set(12000)
+    try:
+        pdf.add_page()
+        if auth_estudiantes.sesion_activa():
+            nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+            if nom and nom.lower() != "invitado":
+                inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+                sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+                if inst or sem:
+                    _pdf_set_informe_sans(pdf, "", 9)
+                    pdf.set_text_color(70, 70, 70)
+                    if inst:
+                        pdf.cell(0, 5, clean_unicode_text(f"Institucion: {inst}", pdf), ln=1)
+                    if sem:
+                        pdf.cell(0, 5, clean_unicode_text(f"Semestre: {sem}", pdf), ln=1)
+                    pdf.set_text_color(0, 0, 0)
+                    pdf.ln(2)
+        _pdf_set_informe_sans(pdf, "I", 9)
+        pdf.set_text_color(90, 90, 90)
+        pdf.cell(0, 5, clean_unicode_text("Resumen exportado desde Sigma Tutor (texto plano).", pdf), ln=1)
+        pdf.set_text_color(0, 0, 0)
+        pdf.ln(3)
+        for titulo, cuerpo in secciones:
+            tit = (titulo or "").strip() or "Seccion"
+            cue = str(cuerpo or "").strip() or "(sin contenido)"
+            _pdf_bloque_celda_sombreada(pdf, tit[:90], cue, fill_rgb=(248, 248, 248))
+            pdf.ln(2)
+        raw = pdf.output(dest="S")
+    finally:
+        _PDF_SANITIZE_MAX_OUT.reset(tok_m)
+        _PDF_USE_UNICODE_FONT.reset(tok_u)
+    if isinstance(raw, str):
+        return raw.encode("latin-1", errors="replace")
+    if isinstance(raw, (bytes, bytearray)):
+        return bytes(raw)
+    return b""
+
+
+def _expand_descarga_informe_actividad(
+    *,
+    tipo_actividad: str,
+    texto_banner: str,
+    secciones_fn: Callable[[], List[Tuple[str, str]]],
+    titulo_doc: str,
+    file_slug: str,
+    key: str,
+) -> None:
+    with st.expander("Descargar informe PDF", expanded=False):
+        st.caption(
+            "Exporta un resumen legible de lo que tienes en pantalla. "
+            "Las imagenes no se incluyen; el texto matematico se simplifica para el PDF."
+        )
+        try:
+            secc = secciones_fn()
+        except Exception as ex:
+            st.warning(f"No se pudo preparar el informe: {ex}")
+            return
+        pdf_bytes = generar_pdf_informe_actividad(
+            titulo_documento=titulo_doc,
+            tipo_actividad=tipo_actividad,
+            texto_banner_central=texto_banner,
+            secciones=secc,
+        )
+        pdf_bytes = bytes(pdf_bytes) if isinstance(pdf_bytes, bytearray) else pdf_bytes
+        st.download_button(
+            "Descargar informe (PDF)",
+            data=pdf_bytes,
+            file_name=f"Sigma_{file_slug}.pdf",
+            mime="application/pdf",
+            use_container_width=True,
+            key=key,
+        )
+
+
+def _secciones_pdf_entrenamiento() -> List[Tuple[str, str]]:
+    out: List[Tuple[str, str]] = []
+    if not st.session_state.get("entrenamiento_activo"):
+        temas = st.session_state.get("entrenamiento_temas_ms") or []
+        out.append(
+            (
+                "Estado",
+                "Sesion no iniciada. Temas seleccionados en el panel: "
+                + (", ".join(str(t) for t in temas) if temas else "(ninguno aun)"),
+            )
+        )
+        return out
+    lista = st.session_state.get("entrenamiento_lista") or []
+    idx = int(st.session_state.get("entrenamiento_idx") or 0)
+    step = int(st.session_state.get("entrenamiento_step") or 1)
+    out.append(
+        (
+            "Resumen de sesion",
+            f"Ejercicios en la serie: {len(lista)}. Indice actual (1-based): {idx + 1}. Paso guiado: {step}.",
+        )
+    )
+    if lista:
+        bloques: list[str] = []
+        for i, ej in enumerate(lista):
+            if i < idx:
+                estado = "[completado]"
+            elif i == idx:
+                estado = "[en curso]"
+            else:
+                estado = "[pendiente]"
+            p = (ej.get("pregunta") or "")[:400]
+            tm = (ej.get("tema") or "")[:80]
+            bloques.append(f"{i + 1} {estado} (tema: {tm})\n{p}\n")
+        out.append(("Enunciados de la serie", "\n".join(bloques)))
+    tut = st.session_state.get("entrenamiento_data_ia")
+    if isinstance(tut, dict) and idx < len(lista):
+        est = tut.get("estrategias") or []
+        estr = "\n".join(f"- {e}" for e in est[:12]) if est else "(sin lista)"
+        out.append(("Tutor: estrategias", estr[:8000]))
+        out.append(("Tutor: paso intermedio", str(tut.get("paso_intermedio", ""))[:8000]))
+        out.append(("Tutor: resultado final", str(tut.get("resultado_final", ""))[:8000]))
+        if idx < len(lista):
+            expl = (lista[idx].get("explicacion") or "") if isinstance(lista[idx], dict) else ""
+            if expl:
+                out.append(("Explicacion del ejercicio (referencia)", str(expl)[:8000]))
+    return out
+
+
+def _secciones_pdf_consulta_guiada() -> List[Tuple[str, str]]:
+    d = st.session_state.get("consulta_data")
+    if not isinstance(d, dict):
+        return [("Estado", "No hay consulta en curso. Carga un ejercicio para incluir detalle en el informe.")]
+    step = int(st.session_state.get("consulta_step") or 0)
+    secc: List[Tuple[str, str]] = [
+        ("Tema detectado", str(d.get("tema_detectado", ""))[:2000]),
+        (
+            "Enunciado / planteamiento",
+            str(d.get("enunciado_latex") or d.get("enunciado") or "")[:8000],
+        ),
+        (
+            "Estrategias",
+            "\n".join(f"- {x}" for x in (d.get("estrategias") or [])[:20]) or "(sin datos)",
+        ),
+        ("Paso intermedio", str(d.get("paso_intermedio", ""))[:8000]),
+        ("Resultado final", str(d.get("resultado_final", ""))[:8000]),
+        ("Feedback (estrategia)", str(d.get("feedback_estrategia", ""))[:4000]),
+        ("Paso en la interfaz", f"Paso actual (0=inicio): {step}"),
+    ]
+    return secc
+
+
+def _secciones_pdf_tutor_abierto() -> List[Tuple[str, str]]:
+    h = st.session_state.get("historial_tutor_abierto") or []
+    if not h:
+        return [("Estado", "Aun no hay mensajes en esta conversacion.")]
+    bloques: list[str] = []
+    for m in h[-45:]:
+        role = str(m.get("role", "?"))
+        content = str(m.get("content", ""))[:3500]
+        bloques.append(f"--- {role.upper()} ---\n{content}\n")
+    return [("Conversacion (ultimos mensajes)", "\n".join(bloques))]
+
+
+def _secciones_pdf_manuscrito() -> List[Tuple[str, str]]:
+    d = st.session_state.get("manuscrito_correccion")
+    if not isinstance(d, dict):
+        return [("Estado", "Aun no hay una correccion guardada. Evalua un manuscrito primero.")]
+    secc: List[Tuple[str, str]] = [
+        ("Tema (temario)", str(d.get("tema_catedra", ""))[:500]),
+        ("Enunciado identificado", str(d.get("enunciado", ""))[:8000]),
+        ("Juicio", str(d.get("juicio", ""))[:200]),
+        ("Resumen valoracion", str(d.get("resumen_valoracion", ""))[:8000]),
+    ]
+    err = d.get("errores_detectados") or []
+    if err:
+        secc.append(("Errores detectados", "\n".join(f"- {e}" for e in err[:30])[:8000]))
+    pas = d.get("pasos_omitidos") or []
+    if pas:
+        secc.append(("Pasos omitidos o importantes", "\n".join(f"- {p}" for p in pas[:30])[:8000]))
+    sug = d.get("sugerencias") or []
+    if sug:
+        secc.append(("Sugerencias", "\n".join(f"- {s}" for s in sug[:30])[:8000]))
+    return secc
+
+
+def _secciones_pdf_seguimos() -> List[Tuple[str, str]]:
+    p: List[Tuple[str, str]] = [
+        ("Vista", "Panel Tu Ruta Maestra Sigma (Seguimos): continuidad y accesos rapidos."),
+    ]
+    if auth_estudiantes.sesion_activa():
+        nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
+        inst = (st.session_state.get("auth_estudiante_institucion") or "").strip()
+        sem = (st.session_state.get("auth_estudiante_semestre") or "").strip()
+        p.append(("Participante", f"Nombre: {nom}\nInstitucion: {inst}\nSemestre: {sem}"))
+    else:
+        p.append(("Sesion", "Sin sesion de participante o modo demo."))
+    p.append(
+        (
+            "Nota",
+            "Para un detalle completo de ejercicios o simulacros, descarga el informe desde cada modo "
+            "(Entrenamiento, Quiz, etc.). Este PDF acredita uso del panel Seguimos.",
+        )
+    )
+    return p
+
+
+def _secciones_pdf_planes_oficiales() -> List[Tuple[str, str]]:
+    return [
+        (
+            "Planes de estudio oficiales",
+            "Resumen de la vista en la aplicacion: matriz de universidades y enlaces a planes publicos. "
+            "Si necesitas adjuntar tablas concretas, complementa con captura de pantalla del plan elegido.",
+        )
+    ]
+
+
+def _secciones_pdf_quiz_resumen() -> List[Tuple[str, str]]:
+    if not st.session_state.get("quiz_activo"):
+        mod = st.session_state.get("quiz_modalidad", "")
+        return [("Estado", f"No hay simulacro en curso. Modalidad en selector: {mod or '—'}.")]
+    total = len(st.session_state.get("preguntas_quiz") or [])
+    act = int(st.session_state.get("indice_pregunta") or 0)
+    resp = st.session_state.get("respuestas_usuario") or []
+    lineas = [
+        f"Total preguntas: {total}. Siguiente indice (0-based): {act}. Respondidas: {len(resp)}."
+    ]
+    if act >= total and resp:
+        pts = sum((r or {}).get("puntos", 0) for r in resp)
+        lineas.append(f"Calificacion en esta sesion: {round(pts, 2)} / 20 pts.")
+    secc: List[Tuple[str, str]] = [("Resumen de progreso", "\n".join(lineas))]
+    for i, r in enumerate(resp, 1):
+        ok = "SI" if r.get("es_correcta") else "NO"
+        secc.append(
+            (
+                f"Respuesta {i}",
+                f"Juicio correcto: {ok}. Puntos: {r.get('puntos', 0)}\n"
+                f"Enunciado (extracto): {(r.get('pregunta') or '')[:900]}\n"
+                f"Tu eleccion (extracto): {(r.get('elegida') or '')[:900]}",
+            )
+        )
+    if act < total and st.session_state.get("preguntas_quiz"):
+        pq = st.session_state["preguntas_quiz"][act]
+        secc.append(("Pregunta actual (pendiente)", str(pq.get("pregunta", ""))[:4000]))
+    return secc
+
+
 def _pdf_bloque_identidad_reporte(pdf: Any) -> None:
     """Cabecera contextual: tabla de perfil o etiqueta de práctica libre / invitado."""
     from fpdf import FPDF
@@ -1219,22 +1498,11 @@ def generar_pdf_informe_quiz(
     nota_final: float,
 ) -> Union[bytes, bytearray]:
     """Genera bytes del PDF con calificación y detalle del examen."""
-    from datetime import date
-
     from modules.sigma_pdf import SigmaPDF
 
     aprob_txt = "Aprobado." if nota_final >= 10 else "No aprobado."
-    fecha_inf = date.today().strftime("%d/%m/%Y")
-    nombre_hdr = ""
+    nombre_hdr, fecha_inf = _nombre_y_fecha_informe_pdf()
     tipo_act = "Simulacro"
-    if auth_estudiantes.sesion_activa():
-        nom = (st.session_state.get("auth_estudiante_nombre") or "").strip()
-        if nom.lower() == "invitado":
-            nombre_hdr = "Invitado (practica libre)"
-        else:
-            nombre_hdr = nom
-    else:
-        nombre_hdr = "Participante (sin sesion)"
 
     pdf = SigmaPDF(
         "Sigma — Informe de simulacro",
@@ -1398,6 +1666,14 @@ else:
 # =======================================================
 if ruta == seguimos.MODO_ID:
     seguimos.render_vista_seguimos()
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Seguimos",
+        texto_banner="Panel Seguimos",
+        secciones_fn=_secciones_pdf_seguimos,
+        titulo_doc="Sigma — Seguimos",
+        file_slug="informe_seguimos",
+        key="pdf_informe_seguimos",
+    )
 
 # =======================================================
 # LÓGICA A: MODO ENTRENAMIENTO (Dojo Matemático)
@@ -1596,6 +1872,15 @@ elif ruta == "a) Entrenamiento (Temario)":
                 st.session_state.entrenamiento_idx = 0
                 st.rerun()
 
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Entrenamiento",
+        texto_banner="Entrenamiento temario",
+        secciones_fn=_secciones_pdf_entrenamiento,
+        titulo_doc="Sigma — Entrenamiento",
+        file_slug="informe_entrenamiento",
+        key="pdf_informe_entrenamiento",
+    )
+
 # =======================================================
 # LÓGICA B: RESPUESTA GUIADA (Consultas) - TUTOR PERSONALIZADO
 # =======================================================
@@ -1721,6 +2006,15 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
                 st.session_state.consulta_step = 0
                 st.session_state.consulta_data = None
                 st.rerun()
+
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Consulta guiada",
+        texto_banner="Respuesta guiada",
+        secciones_fn=_secciones_pdf_consulta_guiada,
+        titulo_doc="Sigma — Consulta guiada",
+        file_slug="informe_consulta_guiada",
+        key="pdf_informe_consulta",
+    )
 
 # =======================================================
 # LÓGICA C: AUTOEVALUACIÓN (Quiz)
@@ -1994,7 +2288,8 @@ elif ruta == "c) Autoevaluación (Quiz)":
                     data=pdf_bytes,
                     file_name=f"informe_SigmaTutor_{str(nota_final).replace('.', '_')}.pdf",
                     mime="application/pdf",
-                    use_container_width=True
+                    use_container_width=True,
+                    key="pdf_download_quiz_detallado",
                 )
             with col_nuevo:
                 if st.button("🔄 Comenzar Nuevo Examen", type="primary", use_container_width=True):
@@ -2002,6 +2297,16 @@ elif ruta == "c) Autoevaluación (Quiz)":
                     st.session_state.indice_pregunta = 0
                     st.session_state.respuestas_usuario = []
                     st.rerun()
+
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Simulacro (resumen)",
+        texto_banner="Autoevaluacion Quiz",
+        secciones_fn=_secciones_pdf_quiz_resumen,
+        titulo_doc="Sigma — Simulacro (resumen)",
+        file_slug="informe_quiz_resumen",
+        key="pdf_informe_quiz_resumen",
+    )
+
 # =======================================================
 # LÓGICA D: TUTOR PREGUNTAS ABIERTAS (NUEVO)
 # =======================================================
@@ -2041,6 +2346,15 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
                 st.markdown(respuesta_tutor)
 
         st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Tutor preguntas abiertas",
+        texto_banner="Tutor (preguntas abiertas)",
+        secciones_fn=_secciones_pdf_tutor_abierto,
+        titulo_doc="Sigma — Tutor preguntas abiertas",
+        file_slug="informe_tutor_abierto",
+        key="pdf_informe_tutor_abierto",
+    )
 
 # =======================================================
 # LÓGICA E: CORRECCIÓN DE MANUSCRITOS
@@ -2137,11 +2451,28 @@ elif ruta == "e) Corrección de Manuscritos":
             st.session_state.manuscrito_correccion = None
             st.rerun()
 
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Correccion de manuscritos",
+        texto_banner="Correccion manuscrito",
+        secciones_fn=_secciones_pdf_manuscrito,
+        titulo_doc="Sigma — Correccion de manuscritos",
+        file_slug="informe_manuscrito",
+        key="pdf_informe_manuscrito",
+    )
+
 # =======================================================
 # LÓGICA F: PLANES DE ESTUDIO OFICIALES
 # =======================================================
 elif ruta == interfaz.MODO_PLANES_ESTUDIO_OFICIALES:
     interfaz.mostrar_planes_estudio_oficiales()
+    _expand_descarga_informe_actividad(
+        tipo_actividad="Planes de estudio oficiales",
+        texto_banner="Planes oficiales",
+        secciones_fn=_secciones_pdf_planes_oficiales,
+        titulo_doc="Sigma — Planes de estudio oficiales",
+        file_slug="informe_planes_oficiales",
+        key="pdf_informe_planes",
+    )
 
 # --- Pie del panel central (todas las vistas) ---
 footer_sigma.render_footer_sigma()
