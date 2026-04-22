@@ -33,23 +33,44 @@ _LOGO_CANDIDATES: tuple[str, ...] = (
 )
 
 
-def sanitizar_latex(texto: str) -> str:
-    """
-    Normaliza fragmentos LaTeX frecuentes a texto legible en PDF (Unicode cuando la fuente lo permite).
+def sanitizar_para_pdf(texto):
+    """Motor de limpieza LaTeX → texto legible para PDF (bloque corporativo Σigma)."""
+    if texto is None:
+        texto = ""
+    texto = str(texto)
 
-    - ``\\int`` → ∫, ``\\infty`` → ∞, ``\\Sigma`` → Σ
-    - ``\\wedge`` → ^ (acento lógico de potencia / operador)
-    - Elimina símbolos ``$`` sueltos (incl. ``$$``)
-    """
-    if not texto:
-        return ""
-    t = str(texto)
-    t = re.sub(r"\\int\b", "∫", t)
-    t = re.sub(r"\\infty\b", "∞", t)
-    t = re.sub(r"\\Sigma\b", "Σ", t)
-    t = re.sub(r"\\wedge\b", "^", t, flags=re.IGNORECASE)
-    t = re.sub(r"\$+", "", t)
-    return t
+    # 1. Eliminar delimitadores de LaTeX ($, $$)
+    texto = texto.replace("$$", "").replace("$", "")
+
+    # 2. Corregir el símbolo de potencia basura
+    texto = texto.replace("^{\\wedge}", "^").replace("^", "^")
+
+    # 3. Mapeo de símbolos matemáticos comunes
+    mapeo = {
+        "\\int": "∫",
+        "\\infty": "∞",
+        "\\Sigma": "Σ",
+        "\\pm": "±",
+        "\\approx": "≈",
+        "\\neq": "≠",
+        "\\le": "≤",
+        "\\ge": "≥",
+        "\\rightarrow": "→",
+        "\\ln": "ln",
+        "\\exp": "exp",
+    }
+    for lat, sym in mapeo.items():
+        texto = texto.replace(lat, sym)
+
+    # 4. Limpieza de backslashes sueltos y formatos de Gemini
+    texto = re.sub(r"\\([a-zA-Z]+)", r"\1", texto)  # Quita \ antes de palabras
+    texto = texto.replace("\\", "")  # Limpieza final de barras
+
+    return texto.strip()
+
+
+# Alias histórico (importaciones previas)
+sanitizar_latex = sanitizar_para_pdf
 
 
 def _titulo_marca_sigma_unicode(texto: str) -> str:
@@ -228,7 +249,7 @@ class SigmaPDF(FPDF):
     """
     **fpdf2** (``FPDF``): cabecera modo informe quiz o título clásico.
     Registra la familia Unicode ``DejaVu`` si existe ``DejaVuSans.ttf`` en ``assets/fonts/`` (u otro TTF del sistema).
-    Sin TTF: fuentes núcleo Helvetica; el texto debe pasar por ``sanitizar_latex`` y codificación latin-1 al escribir.
+    Sin TTF: fuentes núcleo Helvetica; el texto debe pasar por ``sanitizar_para_pdf`` y codificación latin-1 al escribir.
     """
 
     _TAGLINE_ASCII = "Sigma: Tu Tutor Inteligente de Calculo"
@@ -297,8 +318,8 @@ class SigmaPDF(FPDF):
             self._pdf_font_family = "Helvetica"
 
     def _texto_celda_seguro(self, txt: str) -> str:
-        """Texto para ``cell``/``multi_cell``: ``sanitizar_latex``; sin TTF, latin-1 seguro."""
-        t = sanitizar_latex(str(txt or ""))
+        """Texto para ``cell``/``multi_cell``: ``sanitizar_para_pdf``; sin TTF, latin-1 seguro."""
+        t = sanitizar_para_pdf(str(txt or ""))
         if not self._uses_dejavu:
             return t.encode("latin-1", errors="replace").decode("latin-1")
         return t
@@ -317,7 +338,7 @@ class SigmaPDF(FPDF):
             latex_raw_preprocess(s or "", uses_unicode_font=u),
             uses_unicode_font=u,
         )
-        return sanitizar_latex(base)
+        return sanitizar_para_pdf(base)
 
     def _header_modo_informe_quiz(self) -> None:
         """Logo izquierda, banner central con calificación, bloque derecho (nombre, fecha, actividad)."""

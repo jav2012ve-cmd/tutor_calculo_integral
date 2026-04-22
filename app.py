@@ -27,7 +27,7 @@ if modules_parent and modules_parent not in sys.path:
     sys.path.insert(0, modules_parent)
 
 from modules import pdf_text
-from modules.sigma_pdf import PDF_FONT_FAMILY, sanitizar_latex
+from modules.sigma_pdf import PDF_FONT_FAMILY, sanitizar_para_pdf
 from modules import (
     ia_core,
     interfaz,
@@ -1039,29 +1039,30 @@ def clean_unicode_text(texto: Optional[str], pdf: Any = None) -> str:
     Texto listo para ``cell`` / ``multi_cell``: preproceso LaTeX crudo y sustitución de
     símbolos que FPDF no admite con Helvetica; con fuente TTF se conserva Unicode seguro.
 
-    Tras el preproceso de ``pdf_text``, aplica ``modules.sigma_pdf.sanitizar_latex`` (∫, ∞, Σ, ``$``, etc.).
+    Tras el preproceso de ``pdf_text``, aplica ``modules.sigma_pdf.sanitizar_para_pdf``.
     """
     u = bool(getattr(pdf, "_uses_dejavu", False))
     s = pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=u)
     s = pdf_text.finalize_pdf_string(s, uses_unicode_font=u)
-    return sanitizar_latex(s)
+    return sanitizar_para_pdf(s)
 
 
 def _pdf_lineas_con_sanitizar_latex(texto: Optional[str]) -> str:
-    """Aplica ``sanitizar_latex`` a cada línea (p. ej. historial del tutor) antes del pipeline PDF."""
+    """Aplica ``sanitizar_para_pdf`` a cada línea (p. ej. historial del tutor) antes del pipeline PDF."""
     s = str(texto or "")
     if not s:
         return ""
-    return "\n".join(sanitizar_latex(line) for line in s.splitlines())
+    return "\n".join(sanitizar_para_pdf(line) for line in s.splitlines())
 
 
 def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
-    """Pipeline completo para contenido matemático del informe (LaTeX → texto → codificación)."""
+    """Pipeline completo para contenido matemático del informe; filtro final con ``sanitizar_para_pdf``."""
     u = bool(getattr(pdf, "_uses_dejavu", False))
     tok = _PDF_USE_UNICODE_FONT.set(u)
     try:
         pre = _pdf_lineas_con_sanitizar_latex(raw)
-        return _sanitizar_para_pdf(pre)
+        out = _sanitizar_para_pdf(pre)
+        return sanitizar_para_pdf(out)
     finally:
         _PDF_USE_UNICODE_FONT.reset(tok)
 
@@ -1177,6 +1178,85 @@ def _pdf_bloque_celda_sombreada(
     pdf.ln(2)
 
 
+def _pdf_bloque_historial_chat_formateado(pdf: Any, mensajes: list) -> None:
+    """
+    Historial para PDF: contenido filtrado con ``sanitizar_para_pdf`` / ``_pdf_texto_cuerpo``,
+    rol ``user`` en negrita y ``pdf.ln(5)`` tras cada pregunta antes de la siguiente respuesta.
+    """
+    from fpdf import FPDF
+
+    if not isinstance(pdf, FPDF):
+        return
+    x0 = float(pdf.l_margin)
+    w0 = float(pdf.w - pdf.l_margin - pdf.r_margin)
+    inner = max(30.0, w0 - 2.0)
+    fill_rgb = (248, 248, 248)
+    pdf.set_fill_color(*fill_rgb)
+    pdf.set_draw_color(210, 210, 210)
+    _pdf_set_informe_sans(pdf, "B", 9)
+    pdf.set_text_color(40, 40, 40)
+    pdf.set_x(x0)
+    etq = "Conversacion (ultimos mensajes)"
+    pdf.cell(w0, 4.5, clean_unicode_text(etq, pdf), border="LRT", ln=1, fill=1)
+
+    y_top = float(pdf.get_y())
+    u = bool(getattr(pdf, "_uses_dejavu", False))
+    tok = _PDF_USE_UNICODE_FONT.set(u)
+    try:
+        if not mensajes:
+            pdf.set_x(x0)
+            _pdf_set_informe_sans(pdf, "", 9)
+            pdf.set_text_color(90, 90, 90)
+            pdf.multi_cell(
+                w0,
+                4.5,
+                sanitizar_para_pdf("(sin contenido)"),
+                border="LRB",
+                align="L",
+                fill=1,
+            )
+            pdf.set_text_color(0, 0, 0)
+            pdf.ln(2)
+            return
+        for m in mensajes[-45:]:
+            role = str(m.get("role", "")).lower().strip()
+            raw_c = str(m.get("content", "") or "")[:3500]
+            content = _pdf_texto_cuerpo(raw_c, pdf)
+            if not (content or "").strip():
+                continue
+            pdf.set_x(x0 + 1.0)
+            pdf.set_fill_color(*fill_rgb)
+            if role == "user":
+                _pdf_set_informe_sans(pdf, "B", 9)
+                pdf.set_text_color(15, 23, 42)
+                pdf.multi_cell(inner, 4.5, content, border=0, align="L", fill=1)
+                pdf.ln(5)
+            else:
+                _pdf_set_informe_sans(pdf, "", 9)
+                pdf.set_text_color(30, 41, 59)
+                pdf.multi_cell(inner, 4.5, content, border=0, align="L", fill=1)
+                pdf.ln(1)
+    finally:
+        _PDF_USE_UNICODE_FONT.reset(tok)
+
+    y_bot = float(pdf.get_y())
+    if y_bot <= y_top + 0.2:
+        y_bot = y_top + 5.0
+    pdf.set_draw_color(210, 210, 210)
+    pdf.set_line_width(0.25)
+    pdf.rect(x0, y_top - 0.5, w0, y_bot - y_top + 1.0, style="D")
+    pdf.set_text_color(0, 0, 0)
+    pdf.ln(2)
+
+
+def _nombre_archivo_sigma_reporte_estudiante() -> str:
+    """Nombre de descarga: ``Sigma_Reporte_[NombreEstudiante].pdf`` (caracteres de ruta seguros)."""
+    nom, _ = _nombre_y_fecha_informe_pdf()
+    safe = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", nom, flags=re.UNICODE)
+    safe = re.sub(r"\s+", "_", safe).strip("._")[:80] or "Participante"
+    return f"Sigma_Reporte_{safe}.pdf"
+
+
 def _pdf_tabla_datos_estudiante(pdf: Any, nombre: str, institucion: str, semestre: str) -> None:
     from fpdf import FPDF
 
@@ -1223,6 +1303,7 @@ def generar_pdf_informe_actividad(
     tipo_actividad: str,
     texto_banner_central: str,
     secciones: List[Tuple[str, str]],
+    historial_chat: Optional[list] = None,
 ) -> Union[bytes, bytearray]:
     """PDF con la misma cabecera corporativa que el simulacro, sin nota numérica (otras actividades)."""
     from modules.sigma_pdf import SigmaPDF
@@ -1265,6 +1346,9 @@ def generar_pdf_informe_actividad(
         for titulo, cuerpo in secciones:
             tit = (titulo or "").strip() or "Seccion"
             cue = str(cuerpo or "").strip() or "(sin contenido)"
+            if historial_chat is not None and "conversacion" in tit.lower():
+                _pdf_bloque_historial_chat_formateado(pdf, historial_chat)
+                continue
             _pdf_bloque_celda_sombreada(pdf, tit[:90], cue, fill_rgb=(248, 248, 248))
             pdf.ln(2)
         raw = pdf.output(dest="S")
@@ -1286,6 +1370,7 @@ def _expand_descarga_informe_actividad(
     titulo_doc: str,
     file_slug: str,
     key: str,
+    historial_chat: Optional[list] = None,
 ) -> None:
     with st.expander("Descargar informe PDF", expanded=False):
         st.caption(
@@ -1302,12 +1387,13 @@ def _expand_descarga_informe_actividad(
             tipo_actividad=tipo_actividad,
             texto_banner_central=texto_banner,
             secciones=secc,
+            historial_chat=historial_chat,
         )
         pdf_bytes = bytes(pdf_bytes) if isinstance(pdf_bytes, bytearray) else pdf_bytes
         st.download_button(
             "Descargar informe (PDF)",
             data=pdf_bytes,
-            file_name=f"Sigma_{file_slug}.pdf",
+            file_name=_nombre_archivo_sigma_reporte_estudiante(),
             mime="application/pdf",
             use_container_width=True,
             key=key,
@@ -2373,6 +2459,7 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         titulo_doc="Sigma — Tutor preguntas abiertas",
         file_slug="informe_tutor_abierto",
         key="pdf_informe_tutor_abierto",
+        historial_chat=list(st.session_state.get("historial_tutor_abierto") or []),
     )
 
 # =======================================================
