@@ -229,8 +229,8 @@ def inyectar_estilo_universitario() -> None:
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 # Nombre de la aplicación (pestaña del navegador, títulos principales)
-# ∑ (U+2211) sustituye la S inicial de «Sigma» en pantalla y en la pestaña del navegador.
-APP_DISPLAY_NAME = "\N{N-ARY SUMMATION}igma tu Tutor de Cálculo Integral"
+# Σ (U+03A3) letra griega mayúscula sigma; evita U+2211 (∑) que en PDF/preview puede verse como «Bigma».
+APP_DISPLAY_NAME = "\u03a3igma tu Tutor de Cálculo Integral"
 
 # Logo de bienvenida (raíz del proyecto o carpeta assets; prioriza .jpg)
 _ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))

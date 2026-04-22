@@ -27,6 +27,7 @@ if modules_parent and modules_parent not in sys.path:
     sys.path.insert(0, modules_parent)
 
 from modules import pdf_text
+from modules.sigma_pdf import PDF_FONT_FAMILY
 from modules import (
     ia_core,
     interfaz,
@@ -1037,6 +1038,8 @@ def clean_unicode_text(texto: Optional[str], pdf: Any = None) -> str:
     """
     Texto listo para ``cell`` / ``multi_cell``: preproceso LaTeX crudo y sustitución de
     símbolos que FPDF no admite con Helvetica; con fuente TTF se conserva Unicode seguro.
+
+    Las reglas estrictas (``\\int`` → ∫, etc.) están en ``modules.pdf_text.limpiar_texto_pdf``.
     """
     u = bool(getattr(pdf, "_uses_dejavu", False))
     s = pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=u)
@@ -1055,14 +1058,14 @@ def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
 
 def _pdf_set_enunciado_font(pdf: Any, es_formula: bool) -> None:
     if getattr(pdf, "_uses_dejavu", False):
-        pdf.set_font("DejaVuSans", "I" if es_formula else "", 9)
+        pdf.set_font(PDF_FONT_FAMILY, "I" if es_formula else "", 9)
     else:
         pdf.set_font("Courier", "I", 9) if es_formula else pdf.set_font("Helvetica", "", 9)
 
 
 def _pdf_set_informe_sans(pdf: Any, style: str, size: float) -> None:
     if getattr(pdf, "_uses_dejavu", False):
-        pdf.set_font("DejaVuSans", style, size)
+        pdf.set_font(PDF_FONT_FAMILY, style, size)
     else:
         pdf.set_font("Helvetica", style, size)
 
@@ -2323,7 +2326,13 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
         with st.chat_message(mensaje["role"]):
             st.markdown(mensaje["content"])
 
-    if prompt := st.chat_input("Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de los ejercicios del curso"):
+    # st.chat_input fuera de un contenedor queda anclado al borde inferior del viewport;
+    # dentro de st.container() se dibuja en flujo, justo debajo del historial y la cabecera del modo.
+    with st.container():
+        prompt = st.chat_input(
+            "Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de los ejercicios del curso"
+        )
+    if prompt:
         with st.spinner("Clasificando tema para estadísticas…"):
             _tema_stats = clasificar_tema_desde_texto(prompt)
         uso_stats.registrar_uso(

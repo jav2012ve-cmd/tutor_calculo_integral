@@ -1,5 +1,5 @@
 """
-PDF corporativo Σigma (fpdf): cabecera con logo, título centrado y pie con paginación.
+PDF corporativo Σigma (**fpdf2**, ``from fpdf import FPDF``): cabecera con logo, título y pie.
 """
 
 from __future__ import annotations
@@ -10,10 +10,18 @@ from io import BytesIO
 from pathlib import Path
 from typing import Any, Optional
 
-from fpdf import FPDF
+from fpdf import FPDF  # paquete PyPI: fpdf2
 from PIL import Image, ImageDraw, ImageFont
 
 _ROOT = Path(__file__).resolve().parents[1]
+
+# Nombre de familia registrado con ``add_font`` (fpdf); usar siempre este identificador en ``set_font``.
+PDF_FONT_FAMILY = "DejaVu"
+
+_DEJAVU_REMOTE_BASE = (
+    "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts@version_2_37/ttf/"
+)
+_DEJAVU_DOWNLOAD_TRIED = False
 
 _LOGO_CANDIDATES: tuple[str, ...] = (
     str(_ROOT / "LogoSigma.jpg"),
@@ -50,11 +58,48 @@ def _resolver_fuente_sistema_sans() -> Optional[str]:
     return None
 
 
+def _ensure_dejavu_font_files() -> None:
+    """
+    Garantiza DejaVu Sans en ``assets/fonts/`` (Streamlit Cloud y otros entornos sin TTF del sistema).
+    Descarga desde jsDelivr (repo dejavu-fonts) solo si faltan archivos.
+    """
+    global _DEJAVU_DOWNLOAD_TRIED
+    d = _ROOT / "assets" / "fonts"
+    d.mkdir(parents=True, exist_ok=True)
+    sans = d / "DejaVuSans.ttf"
+    if sans.is_file():
+        return
+    if _DEJAVU_DOWNLOAD_TRIED:
+        return
+    _DEJAVU_DOWNLOAD_TRIED = True
+    try:
+        import urllib.request
+
+        for fn in (
+            "DejaVuSans.ttf",
+            "DejaVuSans-Bold.ttf",
+            "DejaVuSans-Oblique.ttf",
+            "DejaVuSans-BoldOblique.ttf",
+        ):
+            dest = d / fn
+            if dest.is_file():
+                continue
+            req = urllib.request.Request(
+                _DEJAVU_REMOTE_BASE + fn,
+                headers={"User-Agent": "SigmaTutor-PDF/1.0"},
+            )
+            with urllib.request.urlopen(req, timeout=45) as resp:
+                dest.write_bytes(resp.read())
+    except Exception:
+        pass
+
+
 def _resolver_ttf_unicode_sans() -> tuple[Optional[str], Optional[str], Optional[str], Optional[str]]:
     """
-    Rutas TTF (regular, bold, italic, bolditalic) para registrar la familia ``DejaVuSans``.
-    Prefiere DejaVu embebido en ``assets/fonts/`` o del sistema; si no hay, Arial/Calibri (uni=True).
+    Rutas TTF (regular, bold, italic, bolditalic) para registrar la familia ``DejaVu``.
+    Orden: ``assets/fonts`` (tras intento de descarga), sistema Windows/Linux, FreeSans, Arial.
     """
+    _ensure_dejavu_font_files()
     bundled = str(_ROOT / "assets" / "fonts" / "DejaVuSans.ttf")
     if os.path.isfile(bundled):
         d = os.path.dirname(bundled)
@@ -101,6 +146,18 @@ def _resolver_ttf_unicode_sans() -> tuple[Optional[str], Optional[str], Optional
                 i if os.path.isfile(i) else e,
                 bi if os.path.isfile(bi) else (b if os.path.isfile(b) else e),
             )
+    for e in ("/usr/share/fonts/truetype/freefont/FreeSans.ttf",):
+        if os.path.isfile(e):
+            d = os.path.dirname(e)
+            b = os.path.join(d, "FreeSansBold.ttf")
+            i = os.path.join(d, "FreeSansOblique.ttf")
+            bi = os.path.join(d, "FreeSansBoldOblique.ttf")
+            return (
+                e,
+                b if os.path.isfile(b) else e,
+                i if os.path.isfile(i) else e,
+                bi if os.path.isfile(bi) else (b if os.path.isfile(b) else e),
+            )
     return None, None, None, None
 
 
@@ -119,11 +176,19 @@ def _bitmap_tagline_pie_sigma() -> BytesIO:
     """Línea raster con la leyenda exacta (incluye Σ y acentos) sin fuentes embebidas en el PDF."""
     texto = "\u03a3igma: Tu Tutor Inteligente de C\u00e1lculo"
     rgb = (158, 165, 175)
-    font_path = _resolver_fuente_sistema_sans()
+    font_path = str(_ROOT / "assets" / "fonts" / "DejaVuSans.ttf")
+    if not os.path.isfile(font_path):
+        _ensure_dejavu_font_files()
+    if not os.path.isfile(font_path):
+        reg, _, _, _ = _resolver_ttf_unicode_sans()
+        if reg and os.path.isfile(reg):
+            font_path = reg
+        else:
+            font_path = _resolver_fuente_sistema_sans() or ""
     img = Image.new("RGB", (520, 34), (255, 255, 255))
     d = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype(font_path, 12) if font_path else ImageFont.load_default()
+        font = ImageFont.truetype(font_path, 12) if (font_path and os.path.isfile(font_path)) else ImageFont.load_default()
     except OSError:
         font = ImageFont.load_default()
     d.text((4, 9), texto, fill=rgb, font=font)
@@ -135,11 +200,13 @@ def _bitmap_tagline_pie_sigma() -> BytesIO:
 
 class SigmaPDF(FPDF):
     """
-    FPDF con cabecera: modo «informe quiz» (logo, banner de calificación, datos) o título clásico.
-    Si existe una TTF del sistema, se registra como ``DejaVuSans`` (uni=True) para Unicode.
+    **fpdf2** (``FPDF``): cabecera modo informe quiz o título clásico.
+    Registra la familia Unicode ``DejaVu`` si existe ``assets/fonts/DejaVuSans.ttf`` (u otro TTF).
+    Sin TTF: solo fuentes núcleo; el texto debe pasar por ``limpiar_texto_para_pdf`` + latin-1 al escribir.
     """
 
     _TAGLINE_ASCII = "Sigma: Tu Tutor Inteligente de Calculo"
+    _TAGLINE_PIE_UNICODE = "\u03a3igma: Tu Tutor Inteligente de C\u00e1lculo"
     _COLOR_LINEA_AZUL = (41, 128, 185)
     _COLOR_PIE_GRIS = (158, 165, 175)
     _HEADER_QUIZ_ALTO = 32.0
@@ -161,6 +228,7 @@ class SigmaPDF(FPDF):
         self._tmp_logo_header: Optional[str] = None
         self._tmp_tagline_png: Optional[str] = None
         self._uses_dejavu: bool = False
+        self._pdf_font_family: str = "Helvetica"
         self._registrar_fuente_dejavu_sans()
 
         self.alias_nb_pages()
@@ -169,21 +237,51 @@ class SigmaPDF(FPDF):
         self.set_margins(12, top_m, 12)
 
     def _registrar_fuente_dejavu_sans(self) -> None:
+        """Registra ``DejaVu`` (fpdf2) si hay ``DejaVuSans.ttf`` en assets o en el sistema."""
+        _ensure_dejavu_font_files()
+        assets_sans = _ROOT / "assets" / "fonts" / "DejaVuSans.ttf"
+        if assets_sans.is_file():
+            try:
+                self.add_font(PDF_FONT_FAMILY, "", str(assets_sans))
+                d = str(assets_sans.parent)
+                b = os.path.join(d, "DejaVuSans-Bold.ttf")
+                i = os.path.join(d, "DejaVuSans-Oblique.ttf")
+                bi = os.path.join(d, "DejaVuSans-BoldOblique.ttf")
+                self.add_font(PDF_FONT_FAMILY, "B", b if os.path.isfile(b) else str(assets_sans))
+                self.add_font(PDF_FONT_FAMILY, "I", i if os.path.isfile(i) else str(assets_sans))
+                self.add_font(PDF_FONT_FAMILY, "BI", bi if os.path.isfile(bi) else (b if os.path.isfile(b) else str(assets_sans)))
+                self._uses_dejavu = True
+                self._pdf_font_family = PDF_FONT_FAMILY
+                return
+            except Exception:
+                pass
         reg, bd, it, bi = _resolver_ttf_unicode_sans()
         if not reg:
+            self._pdf_font_family = "Helvetica"
             return
         try:
-            self.add_font("DejaVuSans", "", reg, uni=True)
-            self.add_font("DejaVuSans", "B", bd or reg, uni=True)
-            self.add_font("DejaVuSans", "I", it or reg, uni=True)
-            self.add_font("DejaVuSans", "BI", bi or bd or reg, uni=True)
+            self.add_font(PDF_FONT_FAMILY, "", reg)
+            self.add_font(PDF_FONT_FAMILY, "B", bd or reg)
+            self.add_font(PDF_FONT_FAMILY, "I", it or reg)
+            self.add_font(PDF_FONT_FAMILY, "BI", bi or bd or reg)
             self._uses_dejavu = True
+            self._pdf_font_family = PDF_FONT_FAMILY
         except Exception:
             self._uses_dejavu = False
+            self._pdf_font_family = "Helvetica"
+
+    def _texto_celda_seguro(self, txt: str) -> str:
+        """Texto para ``cell``/``multi_cell``: prioriza ``limpiar_texto_para_pdf``; sin TTF, latin-1."""
+        from modules.pdf_text import limpiar_texto_para_pdf
+
+        t = limpiar_texto_para_pdf(txt)
+        if not self._uses_dejavu:
+            return t.encode("latin-1", errors="replace").decode("latin-1")
+        return t
 
     def _set_font_text(self, style: str = "", size: float = 10) -> None:
         if self._uses_dejavu:
-            self.set_font("DejaVuSans", style, size)
+            self.set_font(self._pdf_font_family, style, size)
         else:
             self.set_font("Helvetica", style, size)
 
@@ -313,11 +411,16 @@ class SigmaPDF(FPDF):
         except Exception:
             self._set_font_text("I", 8)
             self.set_text_color(*self._COLOR_PIE_GRIS)
-            self.cell(0, 5, self._TAGLINE_ASCII, align="C", ln=1)
+            self.cell(0, 5, self._texto_celda_seguro(self._TAGLINE_PIE_UNICODE), align="C", ln=1)
 
-    def output(self, name: str = "", dest: str = "") -> str | bytes:
+    def output(self, name: str = "", dest: str = "") -> str | bytes | bytearray:
         try:
-            return super().output(name, dest)
+            # Compat PyFPDF ``dest='S'``; fpdf2 devuelve ``bytearray`` con ``output()`` sin ruta.
+            if dest == "S" or name == "S":
+                return super().output()
+            if name:
+                return super().output(name)
+            return super().output()
         finally:
             for p in (self._tmp_logo_header, self._tmp_tagline_png):
                 if p and os.path.isfile(p):
