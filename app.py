@@ -1063,19 +1063,54 @@ def _limpiar_markdown_gemini_para_pdf(texto: Optional[str]) -> str:
     s = str(texto or "")
     if not s:
         return ""
+    s = s.replace("\r\n", "\n").replace("\r", "\n")
     s = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", s)
     s = s.replace("**", "").replace("__", "").replace("```", "").replace("`", "")
 
-    # Convierte patrones tipo frac{a}{b} (sin backslash) en (a)/(b).
-    for _ in range(5):
-        nxt = re.sub(r"frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", r"(\1)/(\2)", s)
-        if nxt == s:
-            break
-        s = nxt
+    # Convertir artefactos LaTeX/LLM frecuentes que suelen quedar tras quitar "\".
+    s = re.sub(r"\b[dt]?frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", r"(\1)/(\2)", s)
+    s = re.sub(r"\bpartial\b", "∂", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bquad\b|\bqquad\b", " ", s, flags=re.IGNORECASE)
+    s = re.sub(r"\b(left|right|mathrm|mathbf|mathit|textstyle|displaystyle)\b", " ", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bcdot\b", "·", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bto\b", "→", s)
 
+    # Limpieza conservando párrafos.
     s = re.sub(r"\{([^{}]+)\}", r"\1", s)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    s = re.sub(r"[ \t]+", " ", s)
+    s = re.sub(r"\n{3,}", "\n\n", s)
+    lineas = [ln.strip() for ln in s.split("\n")]
+    return "\n".join(ln for ln in lineas if ln).strip()
+
+
+def _partir_parrafos_legibles(texto: str) -> list[str]:
+    """Parte respuestas largas en párrafos legibles para evitar muros de texto en PDF."""
+    base = (texto or "").strip()
+    if not base:
+        return []
+    bloques = [b.strip() for b in re.split(r"\n{2,}", base) if b.strip()]
+    out: list[str] = []
+    for bloque in bloques:
+        # Respeta bullets existentes.
+        if re.match(r"^[-*•]\s+", bloque):
+            out.append(bloque)
+            continue
+        frases = re.split(r"(?<=[\.\!\?:;])\s+", bloque)
+        acc = ""
+        for f in frases:
+            f = f.strip()
+            if not f:
+                continue
+            candidato = f if not acc else f"{acc} {f}"
+            if len(candidato) <= 260:
+                acc = candidato
+            else:
+                if acc:
+                    out.append(acc)
+                acc = f
+        if acc:
+            out.append(acc)
+    return out
 
 
 def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
@@ -1258,7 +1293,12 @@ def _pdf_bloque_historial_chat_formateado(pdf: Any, mensajes: list) -> None:
             else:
                 _pdf_set_informe_sans(pdf, "", 9)
                 pdf.set_text_color(30, 41, 59)
-                pdf.multi_cell(inner, 4.5, content, border=0, align="L", fill=1)
+                parrafos = _partir_parrafos_legibles(content)
+                if not parrafos:
+                    continue
+                for p in parrafos:
+                    pdf.multi_cell(inner, 4.5, p, border=0, align="L", fill=1)
+                    pdf.ln(1)
                 pdf.ln(1)
     finally:
         _PDF_USE_UNICODE_FONT.reset(tok)
