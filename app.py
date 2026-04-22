@@ -27,7 +27,7 @@ if modules_parent and modules_parent not in sys.path:
     sys.path.insert(0, modules_parent)
 
 from modules import pdf_text
-from modules.sigma_pdf import PDF_FONT_FAMILY
+from modules.sigma_pdf import PDF_FONT_FAMILY, sanitizar_latex
 from modules import (
     ia_core,
     interfaz,
@@ -1039,11 +1039,20 @@ def clean_unicode_text(texto: Optional[str], pdf: Any = None) -> str:
     Texto listo para ``cell`` / ``multi_cell``: preproceso LaTeX crudo y sustitución de
     símbolos que FPDF no admite con Helvetica; con fuente TTF se conserva Unicode seguro.
 
-    Las reglas estrictas (``\\int`` → ∫, etc.) están en ``modules.pdf_text.limpiar_texto_pdf``.
+    Tras el preproceso de ``pdf_text``, aplica ``modules.sigma_pdf.sanitizar_latex`` (∫, ∞, Σ, ``$``, etc.).
     """
     u = bool(getattr(pdf, "_uses_dejavu", False))
     s = pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=u)
-    return pdf_text.finalize_pdf_string(s, uses_unicode_font=u)
+    s = pdf_text.finalize_pdf_string(s, uses_unicode_font=u)
+    return sanitizar_latex(s)
+
+
+def _pdf_lineas_con_sanitizar_latex(texto: Optional[str]) -> str:
+    """Aplica ``sanitizar_latex`` a cada línea (p. ej. historial del tutor) antes del pipeline PDF."""
+    s = str(texto or "")
+    if not s:
+        return ""
+    return "\n".join(sanitizar_latex(line) for line in s.splitlines())
 
 
 def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
@@ -1051,7 +1060,8 @@ def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
     u = bool(getattr(pdf, "_uses_dejavu", False))
     tok = _PDF_USE_UNICODE_FONT.set(u)
     try:
-        return _sanitizar_para_pdf(raw)
+        pre = _pdf_lineas_con_sanitizar_latex(raw)
+        return _sanitizar_para_pdf(pre)
     finally:
         _PDF_USE_UNICODE_FONT.reset(tok)
 
@@ -1122,7 +1132,7 @@ def _pdf_render_enunciado_caja_sombreada(pdf: Any, texto_raw: Optional[str]) -> 
         for frag, es_formula in _fragmentos_bloques_dolar(texto_raw):
             if not (frag or "").strip() and not es_formula:
                 continue
-            t = _sanitizar_para_pdf(frag) if frag.strip() else " "
+            t = _pdf_texto_cuerpo(frag, pdf) if frag.strip() else " "
             if not (t or "").strip():
                 continue
             _pdf_set_enunciado_font(pdf, es_formula)

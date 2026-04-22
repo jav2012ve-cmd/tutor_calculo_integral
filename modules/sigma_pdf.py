@@ -1,10 +1,12 @@
 """
-PDF corporativo Σigma (**fpdf2**, ``from fpdf import FPDF``): cabecera con logo, título y pie.
+PDF corporativo Σigma con **fpdf2** (``from fpdf import FPDF``): cabecera con logo, título y pie.
+Registro opcional de DejaVu Sans (TTF) para Unicode; sin TTF, el texto debe limitarse a latin-1.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 from io import BytesIO
 from pathlib import Path
@@ -29,6 +31,30 @@ _LOGO_CANDIDATES: tuple[str, ...] = (
     str(_ROOT / "LogoSigma.png"),
     str(_ROOT / "assets" / "LogoSigma.png"),
 )
+
+
+def sanitizar_latex(texto: str) -> str:
+    """
+    Normaliza fragmentos LaTeX frecuentes a texto legible en PDF (Unicode cuando la fuente lo permite).
+
+    - ``\\int`` → ∫, ``\\infty`` → ∞, ``\\Sigma`` → Σ
+    - ``\\wedge`` → ^ (acento lógico de potencia / operador)
+    - Elimina símbolos ``$`` sueltos (incl. ``$$``)
+    """
+    if not texto:
+        return ""
+    t = str(texto)
+    t = re.sub(r"\\int\b", "∫", t)
+    t = re.sub(r"\\infty\b", "∞", t)
+    t = re.sub(r"\\Sigma\b", "Σ", t)
+    t = re.sub(r"\\wedge\b", "^", t, flags=re.IGNORECASE)
+    t = re.sub(r"\$+", "", t)
+    return t
+
+
+def _titulo_marca_sigma_unicode(texto: str) -> str:
+    """Marca «Sigma» del producto como «Σigma» en cabeceras PDF."""
+    return re.sub(r"\bSigma\b", "\u03a3igma", texto or "")
 
 
 def _resolver_ruta_logo_sigma() -> Optional[str]:
@@ -201,8 +227,8 @@ def _bitmap_tagline_pie_sigma() -> BytesIO:
 class SigmaPDF(FPDF):
     """
     **fpdf2** (``FPDF``): cabecera modo informe quiz o título clásico.
-    Registra la familia Unicode ``DejaVu`` si existe ``assets/fonts/DejaVuSans.ttf`` (u otro TTF).
-    Sin TTF: solo fuentes núcleo; el texto debe pasar por ``limpiar_texto_para_pdf`` + latin-1 al escribir.
+    Registra la familia Unicode ``DejaVu`` si existe ``DejaVuSans.ttf`` en ``assets/fonts/`` (u otro TTF del sistema).
+    Sin TTF: fuentes núcleo Helvetica; el texto debe pasar por ``sanitizar_latex`` y codificación latin-1 al escribir.
     """
 
     _TAGLINE_ASCII = "Sigma: Tu Tutor Inteligente de Calculo"
@@ -271,10 +297,8 @@ class SigmaPDF(FPDF):
             self._pdf_font_family = "Helvetica"
 
     def _texto_celda_seguro(self, txt: str) -> str:
-        """Texto para ``cell``/``multi_cell``: prioriza ``limpiar_texto_para_pdf``; sin TTF, latin-1."""
-        from modules.pdf_text import limpiar_texto_para_pdf
-
-        t = limpiar_texto_para_pdf(txt)
+        """Texto para ``cell``/``multi_cell``: ``sanitizar_latex``; sin TTF, latin-1 seguro."""
+        t = sanitizar_latex(str(txt or ""))
         if not self._uses_dejavu:
             return t.encode("latin-1", errors="replace").decode("latin-1")
         return t
@@ -289,7 +313,11 @@ class SigmaPDF(FPDF):
         from modules.pdf_text import finalize_pdf_string, latex_raw_preprocess
 
         u = self._uses_dejavu
-        return finalize_pdf_string(latex_raw_preprocess(s or "", uses_unicode_font=u), uses_unicode_font=u)
+        base = finalize_pdf_string(
+            latex_raw_preprocess(s or "", uses_unicode_font=u),
+            uses_unicode_font=u,
+        )
+        return sanitizar_latex(base)
 
     def _header_modo_informe_quiz(self) -> None:
         """Logo izquierda, banner central con calificación, bloque derecho (nombre, fecha, actividad)."""
@@ -380,7 +408,8 @@ class SigmaPDF(FPDF):
                     pass
         self._set_font_text("B", 14)
         self.set_xy(0, y_logo + 1.5)
-        self.cell(0, 10, self._pdf_unicode_clean(self.titulo_reporte), ln=1, align="C")
+        titulo = _titulo_marca_sigma_unicode(self.titulo_reporte)
+        self.cell(0, 10, self._pdf_unicode_clean(titulo), ln=1, align="C")
         y_linea = 24.0
         self.set_draw_color(*self._COLOR_LINEA_AZUL)
         self.set_line_width(0.55)
