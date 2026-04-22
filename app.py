@@ -1055,6 +1055,29 @@ def _pdf_lineas_con_sanitizar_latex(texto: Optional[str]) -> str:
     return "\n".join(sanitizar_para_pdf(line) for line in s.splitlines())
 
 
+def _limpiar_markdown_gemini_para_pdf(texto: Optional[str]) -> str:
+    """
+    Limpieza final de residuos comunes del LLM para PDF:
+    encabezados Markdown, negritas con asteriscos y trazas tipo ``frac{a}{b}``.
+    """
+    s = str(texto or "")
+    if not s:
+        return ""
+    s = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", s)
+    s = s.replace("**", "").replace("__", "").replace("```", "").replace("`", "")
+
+    # Convierte patrones tipo frac{a}{b} (sin backslash) en (a)/(b).
+    for _ in range(5):
+        nxt = re.sub(r"frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", r"(\1)/(\2)", s)
+        if nxt == s:
+            break
+        s = nxt
+
+    s = re.sub(r"\{([^{}]+)\}", r"\1", s)
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
 def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
     """Pipeline completo para contenido matemático del informe; filtro final con ``sanitizar_para_pdf``."""
     u = bool(getattr(pdf, "_uses_dejavu", False))
@@ -1062,7 +1085,8 @@ def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
     try:
         pre = _pdf_lineas_con_sanitizar_latex(raw)
         out = _sanitizar_para_pdf(pre)
-        return sanitizar_para_pdf(out)
+        out = sanitizar_para_pdf(out)
+        return _limpiar_markdown_gemini_para_pdf(out)
     finally:
         _PDF_USE_UNICODE_FONT.reset(tok)
 
