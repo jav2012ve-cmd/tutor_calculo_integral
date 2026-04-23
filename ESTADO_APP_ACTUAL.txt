@@ -1,0 +1,185 @@
+================================================================================
+  ESTADO ACTUAL DE LA APLICACIÓN — Σigma Tutor de Cálculo Integral
+================================================================================
+Documento generado a partir del código y dependencias del repositorio.
+Fecha de referencia: 23 de abril de 2026.
+Propósito: describir con detalle qué hace la app hoy, cómo está montada y
+qué limitaciones o puntos calientes conocemos (incl. PDF y despliegue).
+
+--------------------------------------------------------------------------------
+1. RESUMEN EJECUTIVO
+--------------------------------------------------------------------------------
+- Aplicación web educativa monolítica en Python, interfaz con Streamlit.
+- Tutor de Cálculo Integral: práctica guiada, consultas con imagen/texto,
+  simulacro (quiz), chat de preguntas abiertas, corrección de manuscritos,
+  panel de continuidad (“Tu Ruta Maestra Σigma” / Seguimos) y vista de
+  planes de estudio oficiales según perfil.
+- Motor de IA: Google Gemini (google-generativeai); sin clave válida la app
+  no arranca (st.stop tras configurar Gemini).
+- Persistencia de uso y cuentas: opcional mediante Supabase (REST con
+  requests); sin Supabase, contadores y eventos pueden quedarse en disco local
+  (volátil en Streamlit Cloud).
+- Informes PDF corporativos con fpdf2; fuente Unicode DejaVu cuando está
+  disponible; si no, texto forzado a latin-1 para evitar errores de codificación
+  con fuentes core (Helvetica).
+
+--------------------------------------------------------------------------------
+2. STACK TECNOLÓGICO (requirements.txt y uso real)
+--------------------------------------------------------------------------------
+- streamlit (>=1.29 en requirements; entornos recientes suelen usar 1.5x).
+- google-generativeai (Gemini).
+- Pillow (imágenes, recortes, assets PDF).
+- fpdf2>=2.7.0 (import desde ``from fpdf import FPDF``; no usar el paquete
+  legacy ``fpdf`` en el mismo entorno).
+- requests, bcrypt.
+- numpy, pandas, plotly, sympy (entrenamiento: gráficos interactivos Plotly
+  cuando el ítem del banco define la clave ``grafico``).
+
+--------------------------------------------------------------------------------
+3. PUNTO DE ENTRADA Y ORQUESTACIÓN
+--------------------------------------------------------------------------------
+Archivo principal: app.py
+
+- Ajuste de sys.path para importar ``modules/`` aunque el cwd no sea la raíz
+  (relevante en Streamlit Cloud).
+- Configuración de página y estilos vía modules/interfaz.py
+  (configurar_pagina, inyectar_estilo_matematico, estilos universitarios).
+- Inicialización Gemini: modules/ia_core.py.
+- Compatibilidad de secretos Supabase (inyección desde connections si aplica).
+- Panel administrador opcional (?admin=1 o checkbox en portada) con
+  modules/admin_dashboard.py; al activarse puede hacer st.stop() y ocultar
+  el resto de la app hasta salir del panel.
+- Navegación por st.session_state.modo_actual:
+  * Sin modo: portada (logo/bienvenida, accesos Ruta Maestra / Registro / Demo,
+    selector de modos si hay demo o sesión).
+  * Con modo: fila imagen del modo + título de la app, barra de sesión compacta
+    (salvo en Seguimos), cabecera del modo (título, ayuda, temario solo en
+    entrenamiento), luego ramas if/elif por modo.
+- Pie global: modules/footer_sigma.py (HUD con métricas de uso, sesión,
+  soporte, leyenda legal).
+
+--------------------------------------------------------------------------------
+4. MODOS DE USUARIO (IDs internos → comportamiento)
+--------------------------------------------------------------------------------
+- seguimos (Tu Ruta Maestra Σigma): portal registro/login, panel de métricas,
+  accesos rápidos a otros modos, ruta por malla/minicurso, seguimiento 5+5
+  (práctica + simulacro por tema) cuando hay datos en Supabase.
+- a) Entrenamiento (Temario): series guiadas (5 ejercicios), pasos con IA,
+  posible gráfico Plotly en hito intermedio.
+- b) Respuesta guiada: carga de foto o texto, flujo por pasos con IA.
+- c) Autoevaluación (Quiz): modalidad parcial 1/2 o personalizada; resultado
+  y descarga de informe PDF detallado al finalizar.
+- d) Tutor: preguntas abiertas (“Dime y te digo”): chat con historial en
+  sesión; el cuadro de entrada va dentro de st.container() para que no quede
+  anclado al borde inferior del viewport (comportamiento por defecto de
+  st.chat_input en el layout principal).
+- e) Corrección de manuscritos: subida de imagen, evaluación estructurada.
+- f) Planes de estudio oficiales: guía textual según institución (y carrera)
+  del perfil de sesión.
+
+--------------------------------------------------------------------------------
+5. AUTENTICACIÓN, DEMO Y MÉTRICAS
+--------------------------------------------------------------------------------
+- modules/auth_estudiantes.py: registro/login contra tabla Supabase
+  (app_estudiante); hash de contraseña con bcrypt.
+- modules/demo_sigma.py: modo invitado con cupos por función (consultas IA
+  limitadas por clave de consumo); banner de usos en portada.
+- modules/uso_stats.py: contadores por módulo, eventos JSON, uso por tema;
+  integración Supabase cuando hay URL + service role.
+- modules/registro_interacciones.py: logs de llamadas a IA (ia_logs) si la
+  base está configurada.
+
+--------------------------------------------------------------------------------
+6. PDF — ESTADO ACTUAL (sigma_pdf.py + app.py)
+--------------------------------------------------------------------------------
+6.1 Clase corporativa
+- modules/sigma_pdf.py define SigmaPDF(FPDF) con cabecera tipo “informe de
+  actividad” o cabecera clásica, logo escalado, pie con numeración y leyenda
+  Σigma (bitmap o texto según disponibilidad).
+- Registro de familia “DejaVu” si existe DejaVuSans.ttf en assets/fonts/ o
+  rutas del sistema; si no, se usa Helvetica y el texto debe ser latin-1.
+
+6.2 Limpieza de texto
+- sanitizar_para_pdf() en sigma_pdf.py: quita $/$$, mapea comandos frecuentes
+  a símbolos (∫, ∞, Σ, desigualdades, flecha, etc.), elimina backslashes
+  residuos. Alias sanitizar_latex = sanitizar_para_pdf por compatibilidad.
+- app.py mantiene un pipeline más profundo (_sanitizar_para_pdf con
+  _limpiar_latex_comunes_para_pdf, fracciones, raíces, finalize_pdf_string) y
+  una limpieza final _limpiar_markdown_gemini_para_pdf para residuos de
+  Markdown y pseudo-LaTeX del modelo (### y --- también en medio de línea,
+  INTEGRAL _(a)^(b), “<= ft(”, etc.).
+- Tras la incidencia FPDFUnicodeEncodingException en Cloud: si NO hay fuente
+  DejaVu (_uses_dejavu falso), clean_unicode_text y _pdf_texto_cuerpo fuerzan
+  latin-1 con reemplazo para que cell/multi_cell no fallen con Unicode en
+  Helvetica.
+
+6.3 Informe de actividad (todos los modos con expander)
+- generar_pdf_informe_actividad() arma secciones (título, cuerpo) y aplica el
+  pipeline anterior al cuerpo.
+- Descarga: nombre de archivo Sigma_Reporte_[NombreParticipante].pdf con
+  caracteres seguros para sistema de archivos.
+
+6.4 Tutor — historial en PDF
+- Si se pasa historial_chat, la sección “Conversacion (ultimos mensajes)” se
+  renderiza con _pdf_bloque_historial_chat_formateado: mensajes user en
+  negrita, pdf.ln(5) tras la pregunta, respuestas partidas en párrafos más
+  cortos (_partir_parrafos_legibles) para legibilidad.
+
+6.5 Limitación honesta
+- El PDF es “texto plano legible”, no un motor LaTeX ni Markdown: no
+  reproduce negritas dentro del mismo multi_cell salvo lo que ya se hace por
+  rol (user vs assistant) y estilos de fuente. La calidad depende de la
+  limpieza agresiva del contenido generado por el LLM.
+
+--------------------------------------------------------------------------------
+7. INTERFAZ Y UX (interfaz.py + CSS)
+--------------------------------------------------------------------------------
+- Sidebar oculta por CSS; tipografía Roboto Mono + Orbitron en títulos.
+- Estilos institucionales opcionales por universidad (Venezuela): variables CSS
+  y fondos decorativos.
+- Portada con matriz de modos 2×3 y recortes de imágenes de botones.
+
+--------------------------------------------------------------------------------
+8. DATOS, SQL Y ARCHIVOS LOCALES
+--------------------------------------------------------------------------------
+- Scripts SQL en la raíz (supabase_*.sql) documentados en README.md.
+- Carpeta data/: minicurso JSON, posibles uso_stats.json / topic_usage.json /
+  usage_events.jsonl como respaldo sin nube.
+- assets/: portada, logos, fuentes (DejaVu descargable en runtime si falta).
+
+--------------------------------------------------------------------------------
+9. SECRETOS Y ENTORNO
+--------------------------------------------------------------------------------
+- GOOGLE_API_KEY (o variantes documentadas) obligatoria para Gemini.
+- SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY recomendadas para registro y
+  métricas persistentes en Cloud.
+- ADMIN_PORTADA_PASSWORD (u otra convención del repo) para acceso admin desde
+  portada.
+- SIGMA_PUBLIC_URL u otros env opcionales (p. ej. enlace de soporte en pie).
+
+--------------------------------------------------------------------------------
+10. DESPLIEGUE (Streamlit Cloud) — notas operativas
+--------------------------------------------------------------------------------
+- El contenedor es efímero: sin Supabase se pierden contadores al dormir.
+- Tras cambios en secrets o SQL, reiniciar la app.
+- Errores 429 de Gemini: la app usa reintentos y mensajes de “tráfico alto”
+  (cola / backoff); si persisten, el usuario ve toasts de reintento.
+- Python 3.14 en logs de Cloud es posible; fpdf2 debe estar instalado (no el
+  paquete antiguo fpdf) para evitar conflictos de namespace.
+
+--------------------------------------------------------------------------------
+11. CONTROL DE VERSIONES (estado típico del repo)
+--------------------------------------------------------------------------------
+- Rama principal: main; historial reciente incluye migración a fpdf2,
+  mejoras de PDF del tutor, latin-1 de seguridad y limpieza Markdown.
+- Pueden existir binarios sin seguimiento en el working tree (p. ej. imágenes
+  de universidades) según el entorno local; no son obligatorios para ejecutar.
+
+--------------------------------------------------------------------------------
+12. PRUEBAS
+--------------------------------------------------------------------------------
+- tests/ opcionales con pytest (ver README.md).
+
+================================================================================
+  FIN — ESTADO_APP_ACTUAL.txt
+================================================================================
