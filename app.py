@@ -1040,11 +1040,19 @@ def clean_unicode_text(texto: Optional[str], pdf: Any = None) -> str:
     símbolos que FPDF no admite con Helvetica; con fuente TTF se conserva Unicode seguro.
 
     Tras el preproceso de ``pdf_text``, aplica ``modules.sigma_pdf.sanitizar_para_pdf``.
+    Sin fuente Unicode (Helvetica), fuerza latin-1 para evitar ``FPDFUnicodeEncodingException``.
     """
-    u = bool(getattr(pdf, "_uses_dejavu", False))
+    u = (
+        bool(getattr(pdf, "_uses_dejavu", False))
+        if pdf is not None
+        else _PDF_USE_UNICODE_FONT.get()
+    )
     s = pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=u)
     s = pdf_text.finalize_pdf_string(s, uses_unicode_font=u)
-    return sanitizar_para_pdf(s)
+    s = sanitizar_para_pdf(s)
+    if not u:
+        s = s.encode("latin-1", errors="replace").decode("latin-1")
+    return s
 
 
 def _pdf_lineas_con_sanitizar_latex(texto: Optional[str]) -> str:
@@ -1142,7 +1150,10 @@ def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
         pre = _pdf_lineas_con_sanitizar_latex(raw)
         out = _sanitizar_para_pdf(pre)
         out = sanitizar_para_pdf(out)
-        return _limpiar_markdown_gemini_para_pdf(out)
+        out = _limpiar_markdown_gemini_para_pdf(out)
+        if not bool(getattr(pdf, "_uses_dejavu", False)):
+            out = out.encode("latin-1", errors="replace").decode("latin-1")
+        return out
     finally:
         _PDF_USE_UNICODE_FONT.reset(tok)
 
