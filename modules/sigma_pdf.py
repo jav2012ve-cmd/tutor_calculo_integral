@@ -17,8 +17,10 @@ from PIL import Image, ImageDraw, ImageFont
 
 _ROOT = Path(__file__).resolve().parents[1]
 
-# Nombre de familia registrado con ``add_font`` (fpdf); usar siempre este identificador en ``set_font``.
+# Nombre de familia registrado con ``add_font`` (fpdf2); usar siempre este identificador en ``set_font``.
 PDF_FONT_FAMILY = "DejaVu"
+# Marca visible en PDF: U+03A3 (Σ) + «igma». No usar ∑ (U+2211) en esta cadena: en fuentes core puede leerse como «Bigma».
+MARCA_SIGMA_PRODUCTO = "\u03a3igma"
 
 _DEJAVU_REMOTE_BASE = (
     "https://cdn.jsdelivr.net/gh/dejavu-fonts/dejavu-fonts@version_2_37/ttf/"
@@ -31,6 +33,19 @@ _LOGO_CANDIDATES: tuple[str, ...] = (
     str(_ROOT / "LogoSigma.png"),
     str(_ROOT / "assets" / "LogoSigma.png"),
 )
+
+
+def normalizar_marca_sigma_pdf(texto: str) -> str:
+    """
+    Corrige artefactos de marca en texto destinado al PDF:
+    «Bigma» (glifo ∑ mal leído), «∑igma» (sumatoria n-aria + sufijo) y variantes.
+    """
+    if not texto:
+        return ""
+    t = str(texto)
+    t = re.sub(r"(?i)Bigma", MARCA_SIGMA_PRODUCTO, t)
+    t = re.sub(r"\u2211(?=[iI]gma)", "\u03a3", t)
+    return t
 
 
 def sanitizar_para_pdf(texto):
@@ -74,8 +89,9 @@ sanitizar_latex = sanitizar_para_pdf
 
 
 def _titulo_marca_sigma_unicode(texto: str) -> str:
-    """Marca «Sigma» del producto como «Σigma» en cabeceras PDF."""
-    return re.sub(r"\bSigma\b", "\u03a3igma", texto or "")
+    """Marca ASCII «Sigma» del producto como «Σigma» en cabeceras PDF."""
+    t = normalizar_marca_sigma_pdf(texto or "")
+    return re.sub(r"\bSigma\b", MARCA_SIGMA_PRODUCTO, t)
 
 
 def _resolver_ruta_logo_sigma() -> Optional[str]:
@@ -221,7 +237,7 @@ def _logo_para_cabecera_pdf(ruta: str, max_px: int = 240) -> BytesIO:
 
 def _bitmap_tagline_pie_sigma() -> BytesIO:
     """Línea raster con la leyenda exacta (incluye Σ y acentos) sin fuentes embebidas en el PDF."""
-    texto = "\u03a3igma: Tu Tutor Inteligente de C\u00e1lculo"
+    texto = f"{MARCA_SIGMA_PRODUCTO}: Tu Tutor Inteligente de C\u00e1lculo"
     rgb = (158, 165, 175)
     font_path = str(_ROOT / "assets" / "fonts" / "DejaVuSans.ttf")
     if not os.path.isfile(font_path):
@@ -253,7 +269,7 @@ class SigmaPDF(FPDF):
     """
 
     _TAGLINE_ASCII = "Sigma: Tu Tutor Inteligente de Calculo"
-    _TAGLINE_PIE_UNICODE = "\u03a3igma: Tu Tutor Inteligente de C\u00e1lculo"
+    _TAGLINE_PIE_UNICODE = f"{MARCA_SIGMA_PRODUCTO}: Tu Tutor Inteligente de C\u00e1lculo"
     _COLOR_LINEA_AZUL = (41, 128, 185)
     _COLOR_PIE_GRIS = (158, 165, 175)
     _HEADER_QUIZ_ALTO = 32.0
@@ -261,16 +277,18 @@ class SigmaPDF(FPDF):
 
     def __init__(self, titulo_reporte: str, **kwargs: Any) -> None:
         super().__init__(orientation="P", unit="mm", format="A4")
-        self.titulo_reporte = titulo_reporte
+        self.titulo_reporte = normalizar_marca_sigma_pdf(str(titulo_reporte or ""))
         self._logo_path = _resolver_ruta_logo_sigma()
         self._cabecera_informe_quiz: bool = bool(kwargs.get("cabecera_informe_quiz"))
-        self._quiz_nombre: str = str(kwargs.get("nombre_estudiante") or "")
+        self._quiz_nombre: str = normalizar_marca_sigma_pdf(str(kwargs.get("nombre_estudiante") or ""))
         self._quiz_fecha: str = str(kwargs.get("fecha_informe") or "")
-        self._quiz_tipo: str = str(kwargs.get("tipo_actividad") or "Simulacro")
+        self._quiz_tipo: str = normalizar_marca_sigma_pdf(str(kwargs.get("tipo_actividad") or "Simulacro"))
         self._quiz_nota: Optional[float] = kwargs.get("nota_final")
-        self._quiz_aprobado: str = str(kwargs.get("aprobado_texto") or "")
-        self._quiz_banner_alt: str = str(kwargs.get("texto_banner_central") or "")
-        self._banner_titulo_centro: str = str(kwargs.get("banner_titulo_centro") or "Calificación Final")
+        self._quiz_aprobado: str = normalizar_marca_sigma_pdf(str(kwargs.get("aprobado_texto") or ""))
+        self._quiz_banner_alt: str = normalizar_marca_sigma_pdf(str(kwargs.get("texto_banner_central") or ""))
+        self._banner_titulo_centro: str = normalizar_marca_sigma_pdf(
+            str(kwargs.get("banner_titulo_centro") or "Calificación Final")
+        )
 
         self._tmp_logo_header: Optional[str] = None
         self._tmp_tagline_png: Optional[str] = None
@@ -318,8 +336,8 @@ class SigmaPDF(FPDF):
             self._pdf_font_family = "Helvetica"
 
     def _texto_celda_seguro(self, txt: str) -> str:
-        """Texto para ``cell``/``multi_cell``: ``sanitizar_para_pdf``; sin TTF, latin-1 seguro."""
-        t = sanitizar_para_pdf(str(txt or ""))
+        """Texto para ``cell``/``multi_cell``: ``sanitizar_para_pdf`` + marca Σigma; sin TTF, latin-1 seguro."""
+        t = normalizar_marca_sigma_pdf(sanitizar_para_pdf(str(txt or "")))
         if not self._uses_dejavu:
             return t.encode("latin-1", errors="replace").decode("latin-1")
         return t
@@ -338,7 +356,7 @@ class SigmaPDF(FPDF):
             latex_raw_preprocess(s or "", uses_unicode_font=u),
             uses_unicode_font=u,
         )
-        return sanitizar_para_pdf(base)
+        return normalizar_marca_sigma_pdf(sanitizar_para_pdf(base))
 
     def _header_modo_informe_quiz(self) -> None:
         """Logo izquierda, banner central con calificación, bloque derecho (nombre, fecha, actividad)."""

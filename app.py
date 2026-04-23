@@ -27,7 +27,7 @@ if modules_parent and modules_parent not in sys.path:
     sys.path.insert(0, modules_parent)
 
 from modules import pdf_text
-from modules.sigma_pdf import PDF_FONT_FAMILY, sanitizar_para_pdf
+from modules.sigma_pdf import PDF_FONT_FAMILY, normalizar_marca_sigma_pdf, sanitizar_para_pdf
 from modules import (
     ia_core,
     interfaz,
@@ -1049,7 +1049,7 @@ def clean_unicode_text(texto: Optional[str], pdf: Any = None) -> str:
     )
     s = pdf_text.latex_raw_preprocess(str(texto or ""), uses_unicode_font=u)
     s = pdf_text.finalize_pdf_string(s, uses_unicode_font=u)
-    s = sanitizar_para_pdf(s)
+    s = normalizar_marca_sigma_pdf(sanitizar_para_pdf(s))
     if not u:
         s = s.encode("latin-1", errors="replace").decode("latin-1")
     return s
@@ -1063,16 +1063,29 @@ def _pdf_lineas_con_sanitizar_latex(texto: Optional[str]) -> str:
     return "\n".join(sanitizar_para_pdf(line) for line in s.splitlines())
 
 
-def _limpiar_markdown_gemini_para_pdf(texto: Optional[str]) -> str:
+def sanitizar_salida_gemini_para_pdf(texto: Optional[str]) -> str:
     """
-    Limpieza final de residuos comunes del LLM para PDF:
-    Markdown en cualquier posición (no solo al inicio de línea), reglas horizontales,
-    negritas, pseudo-LaTeX (INTEGRAL, subíndices) y basura tipo ``<= ft(``.
+    Sanitizador de salida (Gemini / Markdown / HTML ligero) antes del pipeline PDF.
+
+    Debe invocarse sobre texto crudo del modelo para quitar marcado que fpdf2 no renderiza
+    y que ensucia el informe (enlaces, HTML, encabezados #, reglas ---, negritas, etc.).
     """
     s = str(texto or "")
     if not s:
         return ""
     s = s.replace("\r\n", "\n").replace("\r", "\n")
+
+    # HTML mínimo que a veces devuelve el modelo
+    s = re.sub(r"<[bB][rR]\s*/?>", "\n", s)
+    s = re.sub(r"</?p\s*>", "\n", s, flags=re.IGNORECASE)
+    s = re.sub(r"</?div[^>]*>", "\n", s, flags=re.IGNORECASE)
+    s = re.sub(r"<[^>]{0,800}>", "", s)
+
+    # Markdown: imágenes y enlaces → solo texto visible
+    s = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", s)
+    s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)
+    # Línea separadora de tablas Markdown (| --- |)
+    s = re.sub(r"(?m)^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$", "", s)
 
     # Separadores Markdown y encabezados también en medio de línea (ej. "... --- ### Título").
     s = re.sub(r"\s*-{3,}\s*", "\n\n", s)
@@ -1109,7 +1122,11 @@ def _limpiar_markdown_gemini_para_pdf(texto: Optional[str]) -> str:
     s = re.sub(r"[ \t]+", " ", s)
     s = re.sub(r"\n{3,}", "\n\n", s)
     lineas = [ln.strip() for ln in s.split("\n")]
-    return "\n".join(ln for ln in lineas if ln).strip()
+    return normalizar_marca_sigma_pdf("\n".join(ln for ln in lineas if ln).strip())
+
+
+# Alias interno (mismo contrato que antes).
+_limpiar_markdown_gemini_para_pdf = sanitizar_salida_gemini_para_pdf
 
 
 def _partir_parrafos_legibles(texto: str) -> list[str]:
@@ -1143,14 +1160,15 @@ def _partir_parrafos_legibles(texto: str) -> list[str]:
 
 
 def _pdf_texto_cuerpo(raw: Optional[str], pdf: Any) -> str:
-    """Pipeline completo para contenido matemático del informe; filtro final con ``sanitizar_para_pdf``."""
+    """Pipeline completo para contenido matemático del informe; sanitizador Gemini + LaTeX + fpdf2."""
     u = bool(getattr(pdf, "_uses_dejavu", False))
     tok = _PDF_USE_UNICODE_FONT.set(u)
     try:
-        pre = _pdf_lineas_con_sanitizar_latex(raw)
+        crudo = sanitizar_salida_gemini_para_pdf(raw)
+        pre = _pdf_lineas_con_sanitizar_latex(crudo)
         out = _sanitizar_para_pdf(pre)
         out = sanitizar_para_pdf(out)
-        out = _limpiar_markdown_gemini_para_pdf(out)
+        out = sanitizar_salida_gemini_para_pdf(out)
         if not bool(getattr(pdf, "_uses_dejavu", False)):
             out = out.encode("latin-1", errors="replace").decode("latin-1")
         return out
