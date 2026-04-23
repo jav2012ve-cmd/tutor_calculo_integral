@@ -1058,14 +1058,35 @@ def _pdf_lineas_con_sanitizar_latex(texto: Optional[str]) -> str:
 def _limpiar_markdown_gemini_para_pdf(texto: Optional[str]) -> str:
     """
     Limpieza final de residuos comunes del LLM para PDF:
-    encabezados Markdown, negritas con asteriscos y trazas tipo ``frac{a}{b}``.
+    Markdown en cualquier posición (no solo al inicio de línea), reglas horizontales,
+    negritas, pseudo-LaTeX (INTEGRAL, subíndices) y basura tipo ``<= ft(``.
     """
     s = str(texto or "")
     if not s:
         return ""
     s = s.replace("\r\n", "\n").replace("\r", "\n")
-    s = re.sub(r"(?m)^\s{0,3}#{1,6}\s*", "", s)
+
+    # Separadores Markdown y encabezados también en medio de línea (ej. "... --- ### Título").
+    s = re.sub(r"\s*-{3,}\s*", "\n\n", s)
+    s = re.sub(r"\s*#{1,6}\s+", "\n", s)
+    s = re.sub(r"#{1,6}", "", s)
+
     s = s.replace("**", "").replace("__", "").replace("```", "").replace("`", "")
+    s = re.sub(r"(?m)^\s*[*•-]\s+", "• ", s)
+
+    # Basura típica tras romper \left, \leq, \frac, etc.
+    s = re.sub(r"<=\s*ft\s*\(", " (", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bleq\s*ft\s*\(", "(", s, flags=re.IGNORECASE)
+    s = re.sub(r"\bft\s*\(\s*", "(", s, flags=re.IGNORECASE)
+
+    # Pseudo-notación INTEGRAL _(a)^(b) ... dt
+    s = re.sub(
+        r"\bINTEGRAL\s*_\s*\(\s*([^)]+)\s*\)\s*\^\s*\(\s*([^)]+)\s*\)",
+        r"∫_{\1}^{\2}",
+        s,
+        flags=re.IGNORECASE,
+    )
+    s = re.sub(r"\bINTEGRAL\b", "∫", s, flags=re.IGNORECASE)
 
     # Convertir artefactos LaTeX/LLM frecuentes que suelen quedar tras quitar "\".
     s = re.sub(r"\b[dt]?frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}", r"(\1)/(\2)", s)
