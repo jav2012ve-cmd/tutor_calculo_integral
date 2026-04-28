@@ -1,11 +1,13 @@
 from __future__ import annotations
 import base64
+import hashlib
 import json
 import logging
 import os
 import re
 import sys
 import time
+from datetime import date
 from contextvars import ContextVar
 from typing import Any, Callable, List, Optional, Tuple, Union
 
@@ -46,6 +48,7 @@ from modules import (
     contexto_universitario,
     demo_sigma,
     footer_sigma,
+    tutor_abierto_smart_cache,
 )
 
 # --- CONFIGURACIÓN CENTRALIZADA ---
@@ -447,6 +450,48 @@ def limpiar_json(texto: Optional[str]) -> Optional[Any]:
     if not base:
         return None
 
+    def _envolver_latex_fuera_de_dolares_texto(s: str) -> str:
+        """
+        Si detecta comandos LaTeX (ej. \int, \frac) fuera de $...$,
+        los envuelve automáticamente para evitar render roto.
+        """
+        if not s or "\\" not in s:
+            return s
+        cmds = r"(?:int|frac|sqrt|sum|prod|lim)"
+        patro = re.compile(
+            rf"(\\{cmds}\b(?:\s*_[^ \n\t\r{{}}]+)?(?:\s*\^[^ \n\t\r{{}}]+)?(?:[^,.;:!?$\n\r])*?)"
+        )
+        partes = re.split(r"(\$[^$]*\$)", s)
+        out: list[str] = []
+        for p in partes:
+            if not p:
+                continue
+            if p.startswith("$") and p.endswith("$"):
+                out.append(p)
+                continue
+
+            def _wrap(m: re.Match[str]) -> str:
+                chunk = (m.group(1) or "").strip()
+                if not chunk:
+                    return m.group(0)
+                return f"${chunk}$"
+
+            out.append(patro.sub(_wrap, p))
+        return "".join(out)
+
+    def _validar_json_recursivo_con_latex(obj: Any) -> Any:
+        if isinstance(obj, dict):
+            return {k: _validar_json_recursivo_con_latex(v) for k, v in obj.items()}
+        if isinstance(obj, list):
+            return [_validar_json_recursivo_con_latex(v) for v in obj]
+        if isinstance(obj, str):
+            return _envolver_latex_fuera_de_dolares_texto(obj)
+        return obj
+
+    def _parsear_y_validar(raw: str) -> Any:
+        parsed = json.loads(raw)
+        return _validar_json_recursivo_con_latex(parsed)
+
     candidatos: list[tuple[str, str]] = [("directo", base)]
 
     bloque_llaves = _extraer_bloque_llaves_json(base)
@@ -465,20 +510,20 @@ def limpiar_json(texto: Optional[str]) -> Optional[Any]:
 
         # Intento A: literal
         try:
-            return json.loads(trozo)
+            return _parsear_y_validar(trozo)
         except json.JSONDecodeError as e:
             _log_json_parseo_fallo(f"{etiqueta}_literal", e, trozo)
 
         # Intento B: duplicar barras que no sean escapes JSON (común con LaTeX)
         try:
             reparado = re.sub(r"\\(?![\"\\/bfnrtu])", r"\\\\", trozo)
-            return json.loads(reparado)
+            return _parsear_y_validar(reparado)
         except json.JSONDecodeError as e:
             _log_json_parseo_fallo(f"{etiqueta}_reparar_backslash", e, trozo)
 
         # Intento C: fuerza bruta (útil cuando hay mezcla inconsistente)
         try:
-            return json.loads(trozo.replace("\\", "\\\\"))
+            return _parsear_y_validar(trozo.replace("\\", "\\\\"))
         except json.JSONDecodeError as e:
             _log_json_parseo_fallo(f"{etiqueta}_doble_backslash_global", e, trozo)
 
@@ -1832,6 +1877,65 @@ if st.session_state.get(ADMIN_SESSION_KEY):
     if _render_admin_panel_safe():
         st.stop()
 
+
+def _plan_pago_usuario() -> str:
+    return auth_estudiantes.plan_pago_actual(default="free")
+
+
+def _es_plan_free() -> bool:
+    return _plan_pago_usuario() == "free"
+
+
+def _contadores_diarios_plan() -> dict[str, int]:
+    if not auth_estudiantes.sesion_activa():
+        return {"ejercicios_apracticar": 0, "simulacros_iniciados": 0}
+    sid = (st.session_state.get("auth_estudiante_id") or "").strip()
+    if not sid:
+        return {"ejercicios_apracticar": 0, "simulacros_iniciados": 0}
+    try:
+        return uso_stats.contar_interacciones_diarias_estudiante(sid, fecha_ref=date.today())
+    except Exception:
+        return {"ejercicios_apracticar": 0, "simulacros_iniciados": 0}
+
+
+def _render_bloque_subir_pro(mensaje: str, *, key: str) -> None:
+    st.warning(mensaje)
+    cta1, cta2 = st.columns([1, 2])
+    with cta1:
+        if st.button("✨ Subir a Pro", type="primary", key=key, use_container_width=True):
+            st.info(
+                "Plan Pro: ejercicios diarios ampliados, simulacros adicionales y prioridad de uso. "
+                "Si quieres, te habilito el flujo de actualización de plan en Supabase."
+            )
+    with cta2:
+        st.caption("Límite del plan free activo para hoy.")
+
+
+def _bloqueo_free_entrenamiento() -> bool:
+    if not _es_plan_free():
+        return False
+    c = _contadores_diarios_plan()
+    if int(c.get("ejercicios_apracticar", 0)) >= 5:
+        _render_bloque_subir_pro(
+            "Ya alcanzaste el límite diario del plan free: 5 ejercicios completados en A practicar.",
+            key="upgrade_free_train",
+        )
+        return True
+    return False
+
+
+def _bloqueo_free_quiz() -> bool:
+    if not _es_plan_free():
+        return False
+    c = _contadores_diarios_plan()
+    if int(c.get("simulacros_iniciados", 0)) >= 1:
+        _render_bloque_subir_pro(
+            "El plan free permite 1 simulacro diario. Para iniciar un segundo simulacro hoy, sube a Pro.",
+            key="upgrade_free_quiz",
+        )
+        return True
+    return False
+
 # --- 3. INTERFAZ PRINCIPAL ---
 _modo = st.session_state.get("modo_actual")
 if not _modo:
@@ -1894,11 +1998,18 @@ if ruta == seguimos.MODO_ID:
 elif ruta == "a) Entrenamiento (Temario)":
     st.info("Resolución paso a paso: **1. Elegir Estrategia** -> **2. Hito Intermedio** -> **3. Resultado Final**.")
 
+    def _entrenamiento_cache_key(ej: dict) -> str:
+        tema = str(ej.get("tema", "")).strip()
+        pregunta = str(ej.get("pregunta", "")).strip()
+        return hashlib.sha256(f"{tema}||{pregunta}".encode("utf-8")).hexdigest()[:24]
+
     if "entrenamiento_activo" not in st.session_state:
         st.session_state.entrenamiento_activo = False
 
     # --- PANTALLA 0: CONFIGURACIÓN ---
     if not st.session_state.entrenamiento_activo:
+        if _bloqueo_free_entrenamiento():
+            st.stop()
         _opts_train = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
         if "entrenamiento_config_temas" in st.session_state:
             _conf_t = st.session_state.pop("entrenamiento_config_temas")
@@ -1957,6 +2068,12 @@ elif ruta == "a) Entrenamiento (Temario)":
                             st.session_state.entrenamiento_step = 1
                             st.session_state.entrenamiento_data_ia = None
                             st.session_state.entrenamiento_validado = False 
+                            st.session_state.entrenamiento_estrategia_sel = None
+                            st.session_state.entrenamiento_estrategia_sel_idx = {}
+                            st.session_state.entrenamiento_tutor_cache = {
+                                _entrenamiento_cache_key(ej): None
+                                for ej in st.session_state.entrenamiento_lista
+                            }
                             st.session_state.entrenamiento_activo = True
                             cargar_exito = True
                             uso_stats.registrar_uso(
@@ -1987,10 +2104,18 @@ elif ruta == "a) Entrenamiento (Temario)":
 
             # --- LLAMADA A LA IA TUTOR ---
             if st.session_state.entrenamiento_data_ia is None:
+                cache = st.session_state.get("entrenamiento_tutor_cache") or {}
+                key_cache = _entrenamiento_cache_key(ejercicio)
+                cached = cache.get(key_cache)
+                if isinstance(cached, dict):
+                    st.session_state.entrenamiento_data_ia = cached
+                    st.rerun()
                 with st.spinner("🧠 El profesor está analizando el mejor camino de resolución..."):
                     datos_tutor = generar_tutor_paso_a_paso(ejercicio['pregunta'], ejercicio.get('tema', 'Cálculo'))
                     if datos_tutor:
                         st.session_state.entrenamiento_data_ia = datos_tutor
+                        cache[key_cache] = datos_tutor
+                        st.session_state.entrenamiento_tutor_cache = cache
                         st.rerun()
                     else:
                         st.error("No se pudo interpretar la respuesta del tutor. Saltando ejercicio; puedes continuar con el siguiente.")
@@ -2005,12 +2130,31 @@ elif ruta == "a) Entrenamiento (Temario)":
             if step == 1:
                 st.markdown("#### 1️⃣ Paso 1: Selección de Estrategia")
                 st.write("Antes de calcular, ¿cuál crees que es el camino correcto?")
-                
-                opcion_estrategia = st.radio("Selecciona el método:", tutor['estrategias'], index=None, key=f"radio_estrat_{idx}")
+
+                opciones = tutor.get("estrategias") or []
+                if not opciones:
+                    st.error("No hay estrategias disponibles para este ejercicio. Se cargará el siguiente.")
+                    st.session_state.entrenamiento_idx += 1
+                    st.session_state.entrenamiento_step = 1
+                    st.session_state.entrenamiento_data_ia = None
+                    st.session_state.entrenamiento_validado = False
+                    st.rerun()
+                mapa_sel = st.session_state.get("entrenamiento_estrategia_sel_idx") or {}
+                previa = mapa_sel.get(str(idx))
+                idx_previa = opciones.index(previa) if previa in opciones else None
+                opcion_estrategia = st.radio(
+                    "Selecciona el método:",
+                    opciones,
+                    index=idx_previa,
+                    key=f"radio_estrat_{idx}",
+                )
+                mapa_sel[str(idx)] = opcion_estrategia
+                st.session_state.entrenamiento_estrategia_sel = opcion_estrategia
+                st.session_state.entrenamiento_estrategia_sel_idx = mapa_sel
                 
                 if st.button("Validar Estrategia", key=f"btn_val_{idx}"):
                     if opcion_estrategia:
-                        idx_seleccionado = tutor['estrategias'].index(opcion_estrategia)
+                        idx_seleccionado = opciones.index(opcion_estrategia)
                         if idx_seleccionado == tutor['indice_correcta']:
                             st.session_state.entrenamiento_validado = True 
                         else:
@@ -2062,6 +2206,9 @@ elif ruta == "a) Entrenamiento (Temario)":
                     _render_texto_con_latex(ejercicio.get("explicacion", "Procedimiento estándar aplicado correctamente."))
 
                 if st.button("Siguiente Ejercicio ➡️", type="primary", key=f"btn_next_{idx}"):
+                    if _bloqueo_free_entrenamiento():
+                        st.session_state.entrenamiento_activo = False
+                        st.stop()
                     t_train = temario.normalizar_tema_curso(ejercicio.get("tema"))
                     if t_train:
                         uso_stats.registrar_evento_aprendizaje(
@@ -2076,6 +2223,7 @@ elif ruta == "a) Entrenamiento (Temario)":
                     st.session_state.entrenamiento_step = 1
                     st.session_state.entrenamiento_data_ia = None 
                     st.session_state.entrenamiento_validado = False
+                    st.session_state.entrenamiento_estrategia_sel = None
                     st.rerun()
 
         else:
@@ -2235,6 +2383,8 @@ elif ruta == "b) Respuesta Guiada (Consultas)":
 elif ruta == "c) Autoevaluación (Quiz)":
     # --- PANTALLA 1: CONFIGURACIÓN ---
     if not st.session_state.quiz_activo:
+        if _bloqueo_free_quiz():
+            st.stop()
         st.info("Configura tu prueba (El sistema combinará ejercicios oficiales y generados por IA):")
         
         col1, col2 = st.columns(2)
@@ -2255,7 +2405,13 @@ elif ruta == "c) Autoevaluación (Quiz)":
 
         with st.expander("⚙️ Personalizado"):
             _opts_quiz = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
-            temas_custom = st.multiselect("Temas:", _opts_quiz)
+            if "quiz_config_temas" in st.session_state:
+                _qc_pre = st.session_state.pop("quiz_config_temas")
+                if isinstance(_qc_pre, list) and _qc_pre:
+                    _sel_q = [x for x in _qc_pre if x in _opts_quiz]
+                    if _sel_q:
+                        st.session_state["quiz_temas_personalizado_ms"] = _sel_q
+            temas_custom = st.multiselect("Temas:", _opts_quiz, key="quiz_temas_personalizado_ms")
             if st.button("▶️ Iniciar simulacro personalizado"):
                 if not temas_custom:
                     st.error("Selecciona tema.")
@@ -2543,6 +2699,16 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
             "Ej. puedes preguntar por resumen o explicación corta de cualquier tema a partir de los ejercicios del curso"
         )
     if prompt:
+        tema_ui = st.session_state.get("tema_seleccionado")
+        hist_prev = list(st.session_state.historial_tutor_abierto)
+        hit = tutor_abierto_smart_cache.intentar_respuesta_cache_tutor(
+            tema_seleccionado=tema_ui,
+            pregunta=prompt,
+            historial_previo=hist_prev,
+            sanitizar_salida_gemini_para_pdf=sanitizar_salida_gemini_para_pdf,
+        )
+        meta_u = tutor_abierto_smart_cache.meta_mensaje_tutor(tema_ui, prompt)
+
         with st.spinner("Clasificando tema para estadísticas…"):
             _tema_stats = clasificar_tema_desde_texto(prompt)
         uso_stats.registrar_uso(
@@ -2551,20 +2717,41 @@ elif ruta == "d) Tutor: Preguntas Abiertas":
                 "tipo_evento": "tutor_consulta",
                 "tema_catedra": _tema_stats,
                 "pregunta_resumen": (prompt or "")[:500],
+                "tutor_cache": ("hit_maestra" if hit and hit[1] == "maestra" else "hit_historial" if hit else "miss"),
             },
         )
-        st.session_state.historial_tutor_abierto.append({"role": "user", "content": prompt})
+        st.session_state.historial_tutor_abierto.append(
+            {"role": "user", "content": prompt, **meta_u}
+        )
         with st.chat_message("user"):
             st.markdown(prompt)
 
         with st.chat_message("assistant"):
-            with st.spinner("Consultando guías del curso..."):
-                ultimos = st.session_state.historial_tutor_abierto[-MAX_MENSAJES_HISTORIAL_TUTOR:]
-                historial_texto = "\n".join([f"{m['role']}: {m['content']}" for m in ultimos])
-                respuesta_tutor = generar_respuesta_tutor_abierto(prompt, historial_texto)
-                st.markdown(respuesta_tutor)
+            if hit:
+                respuesta_tutor, _origen = hit
+                if _origen == "maestra":
+                    st.caption(
+                        "Respuesta desde **guías maestras** del curso (misma intención de pregunta y tema); "
+                        "sin llamada al modelo en la nube. Texto adaptado al PDF."
+                    )
+                else:
+                    st.caption(
+                        "Reutilizando tu **respuesta reciente** (misma pregunta y tema del selector, últimas 24 h); "
+                        "sin nueva llamada al modelo. Texto pasado por el filtro PDF."
+                    )
+            else:
+                with st.spinner("Consultando guías del curso..."):
+                    ultimos = st.session_state.historial_tutor_abierto[-MAX_MENSAJES_HISTORIAL_TUTOR:]
+                    historial_texto = "\n".join(
+                        [f"{m['role']}: {m['content']}" for m in ultimos]
+                    )
+                    respuesta_tutor = generar_respuesta_tutor_abierto(prompt, historial_texto)
+            st.markdown(respuesta_tutor)
 
-        st.session_state.historial_tutor_abierto.append({"role": "assistant", "content": respuesta_tutor})
+        meta_a = {**meta_u, "ts": time.time()}
+        st.session_state.historial_tutor_abierto.append(
+            {"role": "assistant", "content": respuesta_tutor, **meta_a}
+        )
 
     _expand_descarga_informe_actividad(
         tipo_actividad="Tutor preguntas abiertas",

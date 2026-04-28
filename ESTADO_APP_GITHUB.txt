@@ -1,0 +1,126 @@
+ESTADO ACTUAL DE LA APP EN GITHUB
+Fecha: 2026-04-28
+Repositorio remoto (origin): https://github.com/jav2012ve-cmd/tutor_calculo_integral.git
+
+1) Rama activa
+- main
+
+2) Sincronizacion con GitHub (origin/main)
+- Estado: sincronizado (no hay commits por subir ni por bajar).
+- Verificacion: origin/main...HEAD => 0 por detras, 0 por delante.
+
+3) Cambios locales aun NO reflejados en GitHub
+- Archivos modificados:
+  - app.py
+  - modules/seguimos.py
+  - modules/temario.py
+  - modules/uso_stats.py
+- Archivos nuevos sin seguimiento (untracked):
+  - ESTADO_APP_GITHUB.txt
+  - ImagenesUniversidades.png
+  - UDO.jpg
+  - modules/seguimos_avisos_minicurso.py
+  - modules/tutor_abierto_smart_cache.py
+
+4) Ultimos commits en main
+- 48dde21: fpdf2 obligatorio, sanitizar_salida_gemini PDF y marca Sigma sin Bigma.
+- a175eee: Anadir ESTADO_APP_ACTUAL.txt con descripcion detallada del estado del proyecto.
+- 469ff5d: Evitar FPDFUnicodeEncodingException sin fuente DejaVu (latin-1).
+- eec4030: PDF: limpiar Markdown inline y pseudo-LaTeX del tutor.
+- f66be6b: Pulir legibilidad del PDF del tutor con limpieza final y parrafos.
+
+5) Funcionalidades de la app (detalle actual)
+
+5.1 Portada y navegacion principal
+- Pantalla de inicio con identidad visual Sigma y accesos directos a los modos.
+- Selector de modo de estudio (segun estado de sesion y/o demo).
+- Entrada al panel "Seguimos" (Ruta Maestra), registro, demo y modos academicos.
+- Navegacion controlada por estado de sesion (st.session_state), lo que permite mantener progreso mientras el usuario cambia de seccion.
+
+5.2 Seguimos (Tu Ruta Maestra Sigma)
+- Funciona como panel de continuidad academica y punto de control del estudiante.
+- Integra registro/inicio de sesion cuando Supabase esta activo.
+- Muestra avances, actividad y cobertura de temas para orientar que practicar despues.
+- Organiza ruta por malla/minicurso y conecta con el resto de modos para continuar el estudio desde el punto adecuado.
+
+5.3 A practicar (entrenamiento guiado)
+- Genera una secuencia guiada de ejercicios (flujo por pasos) para practicar de forma estructurada.
+- Explica el razonamiento paso a paso con apoyo del tutor IA.
+- Puede incluir apoyo grafico interactivo (Plotly) en temas donde aplique.
+- Ideal para construir tecnica de resolucion, no solo obtener la respuesta final.
+
+5.4 Vamos paso a paso (respuesta guiada por foto o texto)
+- Permite subir imagen del ejercicio o escribir el enunciado manualmente.
+- El sistema analiza el problema y propone una guia progresiva de solucion.
+- Enfatiza comprension del procedimiento (despejes, metodo, verificacion), no respuesta directa corta.
+- Adecuado para tareas reales del estudiante cuando tiene un ejercicio concreto enfrente.
+
+5.5 Simulacro (autoevaluacion)
+- Modo de quiz con modalidades (por parciales o seleccion personalizada de temas).
+- Registra respuestas del usuario, progreso de preguntas y resumen de rendimiento.
+- Al finalizar, genera reporte con resultados y observaciones para detectar debilidades.
+- Incluye descarga de informe en PDF para estudio posterior o seguimiento personal.
+
+5.6 Dime y te digo (tutor abierto)
+- Chat de preguntas libres sobre teoria y ejercicios de calculo integral.
+- Mantiene historial conversacional en sesion para continuidad de contexto.
+- Permite aclarar dudas puntuales, pedir explicaciones alternativas o reforzar conceptos.
+- En el reporte PDF puede incluirse el historial reciente de conversacion.
+
+5.7 Te lo reviso (correccion de manuscritos)
+- El estudiante sube una foto de su procedimiento manuscrito.
+- El modulo evalua la solucion y devuelve retroalimentacion estructurada.
+- Identifica fallas de procedimiento, pasos faltantes y oportunidades de mejora.
+- Util para entrenar calidad de presentacion y coherencia matematica del desarrollo.
+
+5.8 Planes de estudio oficiales
+- Muestra orientacion academica basada en institucion/carrera del perfil del estudiante.
+- Sirve como referencia de contenidos esperados por contexto universitario.
+- Ayuda a alinear la practica del tutor con el programa formal de la asignatura.
+
+5.9 Informes PDF y exportables
+- La app puede generar reportes PDF de actividad por modo y reporte de quiz.
+- Incluye saneamiento de texto para evitar errores de codificacion y mejorar legibilidad.
+- Maneja historial de chat y secciones de actividad para documentar el proceso de estudio.
+- Permite descargar archivos con nombres seguros para uso local.
+
+5.10 Registro, metricas y analitica de uso
+- Con Supabase: guarda cuentas, eventos de uso, metricas por modulo y trazas de interaccion IA.
+- Sin Supabase: usa archivos locales de respaldo para que la app siga operativa.
+- Soporta analitica por temas para identificar donde hay mayor/menor practica.
+- Base util para decisiones pedagogicas y para evolucion del producto.
+
+5.11 Motor de IA y robustez operativa
+- Usa Google Gemini como motor principal para explicaciones, analisis y apoyo tutorial.
+- Implementa limpieza/sanitizacion de salida para mostrar y exportar contenido de forma estable.
+- Considera escenarios de trafico alto y mensajes de reintento para mejorar experiencia.
+- Si falta la clave API de Gemini, la app se detiene para evitar comportamiento incompleto.
+
+6) Ajustes tecnicos incorporados (actualizacion 28-04-2026)
+
+6.1 Refactor de Modo Entrenamiento (app.py)
+- Se agrego una clave de cache por ejercicio (tema + pregunta) para almacenar la respuesta del tutor IA.
+- Al iniciar la sesion de ejercicios se crea `entrenamiento_tutor_cache` en `st.session_state`.
+- Antes de volver a pedir respuesta al tutor, la app revisa cache y reutiliza datos ya generados.
+- Se mejoro persistencia de `st.radio` (seleccion de estrategia) guardando la opcion por indice de ejercicio en session_state.
+- La seleccion ya no se resetea al cambiar de paso; se limpia al avanzar al siguiente ejercicio.
+
+6.2 Mejora de limpiar_json (app.py)
+- Se incorporo validacion recursiva para recorrer dicts, listas y strings del JSON retornado por IA.
+- Si se detectan comandos LaTeX (ej. \int, \frac, \sqrt, \sum, \prod, \lim) fuera de simbolos $, se envuelven automaticamente en `$...$`.
+- Se mantiene la estrategia de reparacion de backslashes para JSON con escapes inconsistentes.
+- Resultado esperado: menor probabilidad de parseo roto y mejor render matematico posterior.
+
+6.3 Ajuste de prompt en temario.py
+- Se agrego instruccion estricta al generador de quiz: prohibido usar backticks (`) o bloques ``` en cualquier valor del JSON.
+- La restriccion aplica a pregunta, opciones, explicacion, tema y cualquier otra clave.
+
+6.4 Seguimos: comparativa avanzada de desempeno (seguimos.py + uso_stats.py)
+- Se agrego calculo de maestria por tema a partir de eventos personales de aprendizaje.
+- Nuevas metricas por tema: intentos, correctos, tasa de exito, score de maestria y nivel cualitativo.
+- Niveles definidos: Sin datos, Inicial, En refuerzo, Progresando, Dominado.
+- En la vista extendida de Seguimos se integra tabla comparativa "Correctos vs Intentos" con barras de progreso.
+- Se integra tambien un heatmap de maestria por tema (si Plotly esta disponible).
+
+7) Conclusion
+La version publicada en GitHub corresponde al ultimo commit de main y esta sincronizada con origin/main. Actualmente existen cambios locales relevantes (incluyendo refactor de entrenamiento, validacion recursiva de JSON/LaTeX y panel de maestria por tema) que aun no estan versionados en remoto; al hacer commit y push quedaran reflejados en GitHub.

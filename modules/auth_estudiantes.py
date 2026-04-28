@@ -1,7 +1,7 @@
 """
 Registro e inicio de sesión de participantes contra Supabase (tabla app_estudiante).
 Campos: nombre, cédula, correo, institución, carrera, semestre, fecha de nacimiento,
-fecha de inicio de curso y contraseña (hash bcrypt).
+fecha de inicio de curso, plan_pago y contraseña (hash bcrypt).
 Requiere SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY en secrets o entorno.
 """
 
@@ -220,6 +220,7 @@ def registrar_estudiante(
         "fecha_inicio_curso": fecha_inicio_curso.isoformat(),
         "carrera": car,
         "semestre": sem,
+        "plan_pago": "free",
     }
     insert_url = f"{_base_url()}/rest/v1/{_TABLE}"
     headers_ins = {**_headers(), "Prefer": "return=minimal"}
@@ -243,11 +244,13 @@ def registrar_estudiante(
                             "carrera" in low_all
                             or "semestre" in low_all
                             or "fecha_inicio_curso" in low_all
+                            or "plan_pago" in low_all
                         )
                     )
                     or ("could not find" in low_all and "carrera" in low_all)
                     or ("could not find" in low_all and "semestre" in low_all)
                     or ("could not find" in low_all and "fecha_inicio_curso" in low_all)
+                    or ("could not find" in low_all and "plan_pago" in low_all)
                 )
             )
             or (
@@ -257,6 +260,7 @@ def registrar_estudiante(
                     "carrera" in low_msg
                     or "semestre" in low_msg
                     or "fecha_inicio_curso" in low_msg
+                    or "plan_pago" in low_msg
                 )
             )
         )
@@ -274,7 +278,7 @@ def registrar_estudiante(
             payload_min = {
                 k: v
                 for k, v in payload.items()
-                if k not in ("carrera", "semestre", "fecha_inicio_curso")
+                if k not in ("carrera", "semestre", "fecha_inicio_curso", "plan_pago")
             }
             r2 = requests.post(
                 insert_url, headers=headers_ins, json=payload_min, timeout=_TIMEOUT
@@ -283,9 +287,10 @@ def registrar_estudiante(
                 return (
                     True,
                     "Cuenta creada. Tu base aún no tiene las columnas de perfil ampliado "
-                    "(carrera/semestre/fecha_inicio_curso): ejecuta en Supabase los scripts "
+                    "(carrera/semestre/fecha_inicio_curso/plan_pago): ejecuta en Supabase los scripts "
                     "**`supabase_estudiantes_add_carrera_semestre.sql`** y "
-                    "**`supabase_estudiantes_add_inicio_curso.sql`** cuando puedas "
+                    "**`supabase_estudiantes_add_inicio_curso.sql`** y "
+                    "**`supabase_estudiantes_add_plan_pago.sql`** cuando puedas "
                     "para guardar ese dato en el perfil.",
                 )
             err2 = (r2.text or "")[:400]
@@ -330,6 +335,7 @@ def autenticar(email: str, password: str) -> tuple[bool, str]:
     st.session_state.auth_estudiante_institucion = (row.get("institucion") or "").strip() or None
     st.session_state.auth_estudiante_carrera = (row.get("carrera") or "").strip() or None
     st.session_state.auth_estudiante_semestre = (row.get("semestre") or "").strip() or None
+    st.session_state.auth_estudiante_plan_pago = (row.get("plan_pago") or "free").strip().lower()
     fic = row.get("fecha_inicio_curso")
     if isinstance(fic, str):
         st.session_state.auth_estudiante_fecha_inicio_curso = fic[:10]
@@ -369,6 +375,7 @@ def cerrar_sesion() -> None:
         "auth_estudiante_institucion",
         "auth_estudiante_carrera",
         "auth_estudiante_semestre",
+        "auth_estudiante_plan_pago",
         "auth_estudiante_fecha_inicio_curso",
         "auth_estudiante_fecha_nacimiento",
         "_seguimos_uso_registrado_sesion",
@@ -381,6 +388,11 @@ def cerrar_sesion() -> None:
 
 def sesion_activa() -> bool:
     return bool(st.session_state.get("auth_estudiante_id"))
+
+
+def plan_pago_actual(default: str = "free") -> str:
+    plan = (st.session_state.get("auth_estudiante_plan_pago") or "").strip().lower()
+    return plan or default
 
 
 def render_formulario_login(

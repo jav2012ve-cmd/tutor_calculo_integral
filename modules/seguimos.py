@@ -25,6 +25,7 @@ from modules import (
     demo_sigma,
     perfil_curso,
     ruta_maestra,
+    seguimos_avisos_minicurso,
     seguimos_curso,
     temario,
     uso_stats,
@@ -33,6 +34,7 @@ from modules import (
 MODO_ID = "0) Seguimos (continuidad)"
 # Mismo id que en ``app.py`` / ``interfaz.MATRIZ_MODOS_2X3`` para abrir A practicar con tema precargado.
 MODO_ENTRENAMIENTO_APP = "a) Entrenamiento (Temario)"
+MODO_QUIZ_APP = "c) Autoevaluación (Quiz)"
 
 SEGUIMOS_PASO_ENTRADA = "entrada"
 SEGUIMOS_PASO_PORTAL = "portal"
@@ -125,6 +127,23 @@ def _navegar_entrenamiento_prefijar_tema(tema_raw: str) -> None:
     _ix._aplicar_iniciar_modo(MODO_ENTRENAMIENTO_APP)
     st.session_state.entrenamiento_config_temas = [t_norm]
     st.session_state.entrenamiento_activo = False
+    st.rerun()
+
+
+def _navegar_quiz_prefijar_temas(temas: list[str]) -> None:
+    """Abre Simulacro con temas ya marcados en la configuración personalizada."""
+    from modules import interfaz as _ix
+
+    opts = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+    pre: list[str] = []
+    for raw in temas:
+        t = temario.normalizar_tema_curso((raw or "").strip()) or (raw or "").strip()
+        if t in opts:
+            pre.append(t)
+    if not pre:
+        return
+    _ix._aplicar_iniciar_modo(MODO_QUIZ_APP)
+    st.session_state.quiz_config_temas = list(pre)
     st.rerun()
 
 
@@ -528,10 +547,103 @@ def _render_panel_tab_continuidad() -> None:
             height=min(420, 28 * n_total + 38),
         )
 
+        _render_tabla_maestria_por_tema(eventos_mc, lista)
+
         st.caption(
             "Los conteos por tema dependen de la configuración (Supabase o archivo local) y son "
             "agregados; no sustituyen el criterio docente."
         )
+
+
+def _render_tabla_maestria_por_tema(eventos: list[dict[str, Any]], lista_temas: list[str]) -> None:
+    st.markdown("##### Maestría por tema (Correctos vs Intentos)")
+    st.caption(
+        "Cálculo personal por sesión: combina aciertos en Simulacro y cierres de práctica en Entrenamiento."
+    )
+    if not eventos:
+        st.info(
+            "Aún no hay eventos suficientes para calcular maestría por tema. "
+            "Completa ejercicios en A practicar y Simulacro para habilitar esta vista."
+        )
+        return
+    try:
+        import pandas as pd
+
+        metricas = uso_stats.calcular_maestria_por_tema(eventos, temas=lista_temas)
+        if not metricas:
+            st.info("No se pudo calcular el nivel de maestría con los datos actuales.")
+            return
+        df = pd.DataFrame(metricas)
+        df["tasa_exito_pct"] = (df["tasa_exito"] * 100.0).round(1)
+        df["maestria_pct"] = (df["maestria"] * 100.0).round(1)
+        df["fallos"] = (df["intentos"] - df["correctos"]).clip(lower=0)
+        df_show = (
+            df.rename(
+                columns={
+                    "tema": "Tema",
+                    "intentos": "Intentos",
+                    "correctos": "Correctos",
+                    "fallos": "Fallos",
+                    "tasa_exito_pct": "Tasa de éxito (%)",
+                    "maestria_pct": "Nivel de maestría (%)",
+                    "nivel_maestria": "Nivel",
+                }
+            )
+            .sort_values(["Nivel de maestría (%)", "Tasa de éxito (%)"], ascending=False)
+        )
+        st.dataframe(
+            df_show[
+                [
+                    "Tema",
+                    "Intentos",
+                    "Correctos",
+                    "Fallos",
+                    "Tasa de éxito (%)",
+                    "Nivel de maestría (%)",
+                    "Nivel",
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True,
+            height=min(540, 27 * max(len(df_show), 1) + 42),
+            column_config={
+                "Tasa de éxito (%)": st.column_config.ProgressColumn(
+                    "Tasa de éxito (%)", min_value=0, max_value=100, format="%.1f%%"
+                ),
+                "Nivel de maestría (%)": st.column_config.ProgressColumn(
+                    "Nivel de maestría (%)", min_value=0, max_value=100, format="%.1f%%"
+                ),
+            },
+        )
+        try:
+            import plotly.graph_objects as go
+
+            top = df_show.head(20)
+            etiquetas = [
+                str(t)[:46] + ("…" if len(str(t)) > 46 else "") for t in top["Tema"].tolist()
+            ]
+            z = [top["Nivel de maestría (%)"].tolist()]
+            fig = go.Figure(
+                data=go.Heatmap(
+                    z=z,
+                    x=etiquetas,
+                    y=["Maestría"],
+                    colorscale="YlGnBu",
+                    zmin=0,
+                    zmax=100,
+                    colorbar=dict(title="%"),
+                )
+            )
+            fig.update_layout(
+                height=260,
+                margin=dict(l=8, r=8, t=26, b=140),
+                xaxis_tickangle=-48,
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as exc:
+            st.caption(f"(Heatmap no disponible: {exc})")
+    except Exception as exc:
+        st.caption(f"(Tabla de maestría no disponible: {exc})")
 
 
 def _render_debilidades_y_mapa() -> None:
@@ -833,6 +945,22 @@ def _render_panel_seguimos() -> None:
     st.success(
         f"Hola, **{nombre}**. Tu **Ruta Maestra Σigma** y el resumen de actividad están en la pestaña principal."
     )
+
+    eventos_avisos: list = []
+    if auth_estudiantes.sesion_activa() and _supabase_configurado():
+        sid_av = st.session_state.get("auth_estudiante_id")
+        if sid_av:
+            eventos_avisos = uso_stats.obtener_eventos_aprendizaje_estudiante(str(sid_av), limit=4000)
+    if auth_estudiantes.sesion_activa() and _supabase_configurado() and st.session_state.get(
+        "auth_estudiante_id"
+    ):
+        seguimos_avisos_minicurso.render_avisos_minicurso_semanales(
+            eventos=eventos_avisos,
+            sesion_supabase=True,
+            on_practicar_tema=_navegar_entrenamiento_prefijar_tema,
+            on_simulacro_temas=_navegar_quiz_prefijar_temas,
+            on_reto_tema=_navegar_entrenamiento_reto_del_dia,
+        )
 
     if auth_estudiantes.sesion_activa():
         em = (st.session_state.get("auth_estudiante_email") or "").strip()

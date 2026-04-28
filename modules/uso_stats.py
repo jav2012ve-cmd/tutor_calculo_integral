@@ -18,7 +18,7 @@ import json
 import os
 import re
 import urllib.parse
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any, Optional
 from uuid import UUID
 
@@ -675,6 +675,52 @@ def obtener_eventos_aprendizaje_estudiante(
         return []
 
 
+def _fecha_local_desde_iso8601(valor: Any) -> Optional[date]:
+    s = (str(valor or "")).strip()
+    if not s:
+        return None
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        return datetime.fromisoformat(s).date()
+    except ValueError:
+        return None
+
+
+def contar_interacciones_diarias_estudiante(
+    estudiante_id: str,
+    *,
+    fecha_ref: Optional[date] = None,
+    limit: int = 3000,
+) -> dict[str, int]:
+    """
+    Conteo diario de interacciones para reglas de plan.
+    - ejercicios_apracticar: Entrenamiento con tipo_evento=practica_ok
+    - simulacros_iniciados: Quiz con payload.modalidad
+    """
+    dia = fecha_ref or date.today()
+    out = {"ejercicios_apracticar": 0, "simulacros_iniciados": 0}
+    eventos = obtener_eventos_aprendizaje_estudiante(estudiante_id, limit=limit)
+    for row in eventos:
+        if _fecha_local_desde_iso8601(row.get("created_at")) != dia:
+            continue
+        modo = (row.get("modo") or "").strip()
+        pl = row.get("payload")
+        if isinstance(pl, str):
+            try:
+                pl = json.loads(pl)
+            except json.JSONDecodeError:
+                pl = {}
+        if not isinstance(pl, dict):
+            pl = {}
+        tipo = str(pl.get("tipo_evento") or "").strip()
+        if modo == "Entrenamiento" and tipo == "practica_ok":
+            out["ejercicios_apracticar"] += 1
+        elif modo == "Quiz" and pl.get("modalidad"):
+            out["simulacros_iniciados"] += 1
+    return out
+
+
 def calcular_metricas_debilidad_por_tema(
     eventos: list[dict[str, Any]],
 ) -> dict[str, dict[str, Any]]:
@@ -726,6 +772,81 @@ def calcular_metricas_debilidad_por_tema(
         for k, v in acum.items()
         if v["score"] > 0
     }
+
+
+def calcular_maestria_por_tema(
+    eventos: list[dict[str, Any]],
+    temas: Optional[list[str]] = None,
+) -> list[dict[str, Any]]:
+    """
+    Calcula intentos/correctos por tema y deriva nivel de maestría.
+
+    Señales consideradas:
+    - Entrenamiento ``practica_ok``: suma 1 intento + 1 correcto.
+    - Quiz correcta: suma 1 intento + 1 correcto.
+    - Quiz incorrecta: suma 1 intento.
+    """
+    temas_ref = temas or perfil_curso.lista_temas_para_metricas_agregadas()
+    base = {
+        t: {"tema": t, "intentos": 0, "correctos": 0}
+        for t in (temas_ref or list(temario.LISTA_TEMAS))
+    }
+
+    def _sumar(tema_raw: Any, *, intento: int, correcto: int) -> None:
+        tema = temario.normalizar_tema_curso(tema_raw, temas_validos=list(base.keys()))
+        if not tema:
+            return
+        base[tema]["intentos"] += int(intento)
+        base[tema]["correctos"] += int(correcto)
+
+    for row in eventos or []:
+        modo = (row.get("modo") or "").strip()
+        pl = row.get("payload")
+        if isinstance(pl, str):
+            try:
+                pl = json.loads(pl)
+            except json.JSONDecodeError:
+                pl = {}
+        if not isinstance(pl, dict):
+            pl = {}
+        tipo = str(pl.get("tipo_evento") or "").strip()
+
+        if modo == "Entrenamiento" and tipo == "practica_ok":
+            _sumar(pl.get("tema"), intento=1, correcto=1)
+        elif modo == "Quiz" and tipo == "quiz_respuesta_correcta":
+            _sumar(pl.get("tema"), intento=1, correcto=1)
+        elif modo == "Quiz" and tipo == "quiz_respuesta_incorrecta":
+            _sumar(pl.get("tema"), intento=1, correcto=0)
+
+    salida: list[dict[str, Any]] = []
+    for t in (temas_ref or list(base.keys())):
+        row = base.get(t, {"tema": t, "intentos": 0, "correctos": 0})
+        intentos = int(row["intentos"])
+        correctos = int(row["correctos"])
+        tasa = (correctos / intentos) if intentos > 0 else 0.0
+        dominio = min(1.0, intentos / 5.0)
+        maestria = 0.65 * tasa + 0.35 * dominio
+        if intentos == 0:
+            nivel = "Sin datos"
+        elif maestria >= 0.85:
+            nivel = "Dominado"
+        elif maestria >= 0.65:
+            nivel = "Progresando"
+        elif maestria >= 0.4:
+            nivel = "En refuerzo"
+        else:
+            nivel = "Inicial"
+        salida.append(
+            {
+                "tema": t,
+                "intentos": intentos,
+                "correctos": correctos,
+                "tasa_exito": round(tasa, 4),
+                "maestria": round(maestria, 4),
+                "nivel_maestria": nivel,
+            }
+        )
+    return salida
 
 
 def _norm_institucion_comparativa(txt: Optional[str]) -> str:
