@@ -2837,15 +2837,48 @@ elif ruta == "e) Corrección de Manuscritos":
 
         errores = datos.get("errores_detectados") or []
         if errores:
-            st.subheader("🔴 Errores detectados")
+            st.markdown("##### Fallos críticos detectados")
             for e in errores:
-                st.markdown("- " + preparar_latex_para_streamlit(e))
+                raw = (e if isinstance(e, str) else str(e)).strip()
+                if not raw:
+                    continue
+                tex = preparar_latex_para_streamlit(raw)
+                # Resumen sin delimitadores LaTeX para el cuerpo del alert (evita KaTeX roto en st.error).
+                resumen = re.sub(r"\$+\s*|\s*\$+", " ", raw)
+                resumen = re.sub(r"\s+", " ", resumen).strip()
+                if len(resumen) > 140:
+                    resumen = resumen[:137].rstrip() + "…"
+                resumen_esc = resumen.replace("`", "'")
+                msg_err = "**Fallo crítico**"
+                if resumen_esc:
+                    msg_err += f" `{resumen_esc}`"
+                try:
+                    st.error(msg_err, icon="⛔")
+                except TypeError:
+                    st.error(msg_err)
+                _render_texto_con_latex(tex)
 
         pasos_omitidos = datos.get("pasos_omitidos") or []
         if pasos_omitidos:
-            st.subheader("📌 Pasos omitidos o importantes")
+            st.markdown("##### Pasos omitidos o importantes")
             for p in pasos_omitidos:
-                st.markdown("- " + preparar_latex_para_streamlit(p))
+                raw = (p if isinstance(p, str) else str(p)).strip()
+                if not raw:
+                    continue
+                tex = preparar_latex_para_streamlit(raw)
+                resumen = re.sub(r"\$+\s*|\s*\$+", " ", raw)
+                resumen = re.sub(r"\s+", " ", resumen).strip()
+                if len(resumen) > 140:
+                    resumen = resumen[:137].rstrip() + "…"
+                resumen_esc = resumen.replace("`", "'")
+                msg_om = "**Paso omitido o incompleto**"
+                if resumen_esc:
+                    msg_om += f" `{resumen_esc}`"
+                try:
+                    st.warning(msg_om, icon="📌")
+                except TypeError:
+                    st.warning(msg_om)
+                _render_texto_con_latex(tex)
 
         sugerencias = datos.get("sugerencias") or []
         if sugerencias:

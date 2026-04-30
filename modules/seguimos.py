@@ -792,6 +792,191 @@ def _registrar_acceso_modo() -> None:
     st.session_state["_seguimos_uso_registrado_sesion"] = True
 
 
+def _gamificacion_cobertura_temario() -> tuple[float, int, int]:
+    """Fracción de temas del temario activo con al menos un conteo de práctica (uso agregado)."""
+    lista = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+    por_tema = uso_stats.obtener_estadisticas_temas()
+    n = len(lista)
+    con_pr = sum(1 for t in lista if int(por_tema.get(t, 0) or 0) > 0)
+    pct = (con_pr / n) if n else 0.0
+    return float(pct), int(con_pr), int(n)
+
+
+def _gamificacion_barra_texto(pct: float, ancho: int = 22) -> str:
+    pct = max(0.0, min(1.0, float(pct)))
+    lleno = int(round(pct * ancho))
+    return "█" * lleno + "░" * (ancho - lleno)
+
+
+def _gamificacion_parse_payload(row: dict[str, Any]) -> dict[str, Any]:
+    pl = row.get("payload")
+    if isinstance(pl, str):
+        import json
+
+        try:
+            pl = json.loads(pl)
+        except Exception:
+            pl = {}
+    return pl if isinstance(pl, dict) else {}
+
+
+def _gamificacion_insignias_desde_stats(
+    *,
+    eventos: list[dict[str, Any]],
+    filas_maestria: list[dict[str, Any]],
+) -> list[str]:
+    """
+    Insignias pedagógicas según cobertura, maestría por tema y volumen de simulacro/tutor.
+    Orden estable: cobertura → temas → simulacro/tutor.
+    """
+    por_maestria = {str(r.get("tema", "")): r for r in filas_maestria if r.get("tema")}
+    insignias: list[str] = []
+    visto: set[str] = set()
+
+    def add(clave: str, texto: str) -> None:
+        if clave not in visto:
+            visto.add(clave)
+            insignias.append(texto)
+
+    pct, con_pr, n_temas = _gamificacion_cobertura_temario()
+    if pct >= 0.82:
+        add("cartografo", "🗺️ **Cartógrafo del temario** — práctica registrada en la mayor parte de unidades.")
+    elif pct >= 0.52:
+        add("expansion", "🚀 **Ruta en expansión** — ya cubres más de la mitad del temario activo.")
+    elif pct >= 0.22:
+        add("explorador", "🧭 **Explorador del temario** — abriste varias líneas de estudio; sigue sumando.")
+
+    # Tramo inicial (metáfora «derivadas» / técnicas previas al bloque avanzado)
+    trampolin = temario.TEMAS_PARCIAL_1[:4]
+    intentos_ini = 0
+    mas_ini: list[float] = []
+    for t in trampolin:
+        r = por_maestria.get(t)
+        if not r:
+            continue
+        it = int(r.get("intentos", 0) or 0)
+        if it <= 0:
+            continue
+        intentos_ini += it
+        mas_ini.append(float(r.get("maestria", 0) or 0.0))
+    if intentos_ini >= 1 and mas_ini and (sum(mas_ini) / len(mas_ini)) < 0.52:
+        add(
+            "novato_deriv",
+            "📐 **Novato en Derivadas** — refuerzo en el tramo inicial (técnicas y primeras integrales).",
+        )
+
+    for t, r in por_maestria.items():
+        it = int(r.get("intentos", 0) or 0)
+        if it <= 0:
+            continue
+        m = float(r.get("maestria", 0) or 0.0)
+        if "Integrales dobles" in t and it >= 2 and m >= 0.55:
+            add("maestro_dobles", "🎓 **Maestro de Integrales Dobles** — dominio sólido en integración doble.")
+            break
+
+    for t, r in por_maestria.items():
+        it = int(r.get("intentos", 0) or 0)
+        if it <= 0:
+            continue
+        m = float(r.get("maestria", 0) or 0.0)
+        if "Volúmenes" in t and m >= 0.58:
+            add("volumenes", "🔩 **Arquitecto de volúmenes** — buen desempeño en sólidos de revolución.")
+            break
+
+    for t, r in por_maestria.items():
+        it = int(r.get("intentos", 0) or 0)
+        if it <= 0:
+            continue
+        m = float(r.get("maestria", 0) or 0.0)
+        if "Cambios de variables" in t or "Sustitución" in t:
+            if it >= 2 and m >= 0.62:
+                add("sustitucion", "🔁 **Estratega de sustitución** — dominas cambios de variable en integración.")
+                break
+
+    for t, r in por_maestria.items():
+        it = int(r.get("intentos", 0) or 0)
+        if it <= 0:
+            continue
+        m = float(r.get("maestria", 0) or 0.0)
+        if t.startswith("2.") and m >= 0.6 and it >= 3:
+            add("edo", "⚡ **Operador de EDO** — constancia en ecuaciones diferenciales.")
+            break
+
+    n_quiz_ok = 0
+    n_tutor = 0
+    for row in eventos or []:
+        modo = (row.get("modo") or "").strip()
+        pl = _gamificacion_parse_payload(row)
+        if modo == "Quiz" and pl.get("tipo_evento") == "quiz_respuesta_correcta":
+            n_quiz_ok += 1
+        if modo == "Tutor Preguntas Abiertas":
+            n_tutor += 1
+    if n_quiz_ok >= 10:
+        add("sim_vet", "🏅 **Veterano de simulacro** — muchos aciertos registrados en examen de práctica.")
+    elif n_quiz_ok >= 4:
+        add("sim_pil", "🎯 **Piloto de simulacro** — ya completaste varias rondas con buen ritmo.")
+
+    if n_tutor >= 8:
+        add("tutor_cur", "💬 **Curioso del tutor Σigma** — abuso saludable de dudas abiertas con contexto.")
+    elif n_tutor >= 3:
+        add("tutor_ini", "🗨️ **Conversador del curso** — usas el tutor abierto para profundizar.")
+
+    if not insignias:
+        add("primeros", "✨ **Primeros pasos** — practica en *A practicar* o *Simulacro* para desbloquear insignias.")
+
+    return insignias
+
+
+def _render_gamificacion_panel_sigma() -> None:
+    """
+    Bloque inicial de gamificación: cobertura + barra nativa + insignias desde uso_stats.
+    ``st.info`` estilizado en Markdown dentro de un contenedor con borde (tarjeta tipo HUD).
+    """
+    pct, con_pr, n_temas = _gamificacion_cobertura_temario()
+    bar_txt = _gamificacion_barra_texto(pct)
+
+    eventos: list = []
+    filas_maestria: list[dict[str, Any]] = []
+    if auth_estudiantes.sesion_activa() and _supabase_configurado():
+        sid = st.session_state.get("auth_estudiante_id")
+        if sid:
+            eventos = uso_stats.obtener_eventos_aprendizaje_estudiante(str(sid), limit=4000)
+            lista = perfil_curso.lista_temas_activa() or list(temario.LISTA_TEMAS)
+            try:
+                filas_maestria = uso_stats.calcular_maestria_por_tema(eventos, temas=lista)
+            except Exception:
+                filas_maestria = []
+
+    insignias = _gamificacion_insignias_desde_stats(eventos=eventos, filas_maestria=filas_maestria)
+    lista_insignias = "\n".join(f"- {x}" for x in insignias[:8])
+
+    cuerpo = (
+        f"**Nivel Σigma** · cobertura del temario activo con práctica registrada (datos de uso).\n\n"
+        f"`{bar_txt}` **{pct:.0%}** · **{con_pr}** / **{n_temas}** temas con actividad\n\n"
+        f"---\n\n"
+        f"**Insignias**\n\n{lista_insignias}"
+    )
+    if not (auth_estudiantes.sesion_activa() and _supabase_configurado()):
+        cuerpo += (
+            "\n\n_Sin sesión con Supabase, las insignias temáticas usan solo la cobertura agregada; "
+            "inicia sesión para personalizar según tu simulacro, tutor y práctica._"
+        )
+
+    try:
+        hud = st.container(border=True)
+    except TypeError:
+        hud = st.container()
+    with hud:
+        try:
+            st.info(cuerpo, icon="🎮")
+        except TypeError:
+            st.info("🎮 " + cuerpo)
+        st.progress(
+            min(max(pct, 0.0), 1.0),
+            text=f"Cobertura del temario · {con_pr}/{n_temas} temas · {pct:.0%}",
+        )
+
+
 def _supabase_configurado() -> bool:
     u, _ = uso_stats.supabase_url_y_clave()
     return bool(u)
@@ -941,6 +1126,8 @@ def _render_panel_seguimos() -> None:
 
     nombre = _nombre_estudiante()
     codigo = _codigo_referencia()
+
+    _render_gamificacion_panel_sigma()
 
     st.success(
         f"Hola, **{nombre}**. Tu **Ruta Maestra Σigma** y el resumen de actividad están en la pestaña principal."

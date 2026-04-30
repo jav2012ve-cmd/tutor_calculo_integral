@@ -1,0 +1,153 @@
+================================================================================
+  Σigma — Tutor de Cálculo Integral
+  Estructura actual de la experiencia (didáctica, pedagógica y mercadeo)
+================================================================================
+Documento orientado a comunicación y campaña. No incluye detalles técnicos
+de implementación.
+
+--------------------------------------------------------------------------------
+1. QUÉ ES LA APP (mensaje central)
+--------------------------------------------------------------------------------
+- Tutor virtual de Cálculo Integral para estudiantes universitarios.
+- Combina práctica guiada, simulacros, consultas abiertas y seguimiento del
+  propio ritmo de estudio.
+- Pensada para quien quiere entender el procedimiento, no solo ver la respuesta
+  final: el énfasis está en el razonamiento paso a paso y en la autonomía.
+
+--------------------------------------------------------------------------------
+2. ESTRUCTURA DE LA EXPERIENCIA (cómo está organizada la app)
+--------------------------------------------------------------------------------
+
+2.1 Punto de entrada (portada)
+- Presentación de la marca y acceso claro a los modos de estudio.
+- Invitación a registrarse o a probar en modo invitado (cuando aplique),
+  según la campaña que se quiera priorizar.
+
+2.2 Tu Ruta Maestra Σigma (Seguimos)
+- Panel de continuidad: el estudiante ve su camino y dónde reforzar.
+- Conecta la práctica diaria con una visión de conjunto (qué temas tocar,
+  qué tanto se ha practicado, orientación para el siguiente paso).
+- Mensaje de mercadeo: "no estudias a ciegas; tienes un mapa de tu curso".
+
+2.3 A practicar (entrenamiento con temario)
+- Serie corta de ejercicios con flujo en tres momentos pedagógicos:
+  (1) elegir la estrategia correcta, (2) reconocer un hito intermedia en el
+  camino, (3) llegar al resultado final.
+- Refuerza metacognición: antes de calcular, el alumno decide "qué camino"
+  es el adecuado.
+- Donde el temario lo permite, puede aparecer apoyo visual (gráficos) para
+  anclar ideas geométricas o de interpretación.
+- Mensaje de mercadeo: "entrenas como en clase, pero con feedback inmediato".
+
+2.4 Vamos paso a paso (consulta guiada)
+- El estudiante trae su propio ejercicio (foto o texto) y recibe una guía
+  ordenada, sin saltarse el proceso.
+- Ideal para deberes, parciales y dudas concretas del cuaderno.
+- Mensaje de mercadeo: "tu ejercicio, tu ritmo; el tutor te acompaña".
+
+2.5 Simulacro (autoevaluación)
+- Examen de práctica al estilo parcial o con temas elegidos por el usuario.
+- Al cierre, resumen del desempeño y material de repaso (incluye informe
+  descargable para revisar en casa o con un compañero).
+- Mensaje de mercadeo: "ensayas el examen antes del examen".
+
+2.6 Dime y te digo (tutor de preguntas abiertas)
+- Conversación para teoría, ejemplos y dudas puntuales sin estar atado a un
+  ejercicio cerrado.
+- Mantiene contexto dentro de la sesión para seguir profundizando.
+- Mensaje de mercadeo: "cuando la duda no entra en una sola fórmula".
+
+2.7 Te lo reviso (corrección de manuscritos)
+- El alumno sube una foto de su desarrollo escrito y recibe retroalimentación
+  sobre el procedimiento, no solo sobre el resultado.
+- Mensaje de mercadeo: "tu profe virtual revisa cómo planteas, no solo si
+  acertaste el número".
+
+2.8 Planes de estudio oficiales
+- Orientación alineada a institución y carrera del perfil, como referencia
+  de qué se espera en el curso formal.
+- Mensaje de mercadeo: "lo que ves en la app habla el idioma de tu malla".
+
+--------------------------------------------------------------------------------
+3. ELEMENTOS DIDÁCTICOS Y PEDAGÓGICOS (qué enfatizar en campaña)
+--------------------------------------------------------------------------------
+
+3.1 Progresión clara
+- De la elección de método → al desarrollo → al resultado.
+- En simulacro: de la prueba → al feedback → al informe para estudiar errores.
+
+3.2 Práctica distribuida y metas alcanzables
+- Series acotadas (pocos ejercicios por sesión) para no saturar y favorecer
+  constancia.
+
+3.3 Identificación con el contexto venezolano
+- Referencia explícita a universidades y trayectorias típicas del estudiante
+  regional (mensaje de pertenencia: "es para ti, de tu plantel").
+
+3.4 Autonomía con acompañamiento
+- El sistema guía pero exige que el estudiante tome decisiones (estrategia,
+  avance de paso), lo que refuerza aprendizaje activo.
+
+3.5 Visibilidad del progreso
+- Seguimos y paneles relacionados comunican cobertura del temario y dónde
+  conviene reforzar, útil para mensajes de "control de tu preparación".
+
+--------------------------------------------------------------------------------
+4. FUNCIONALIDADES RESUMIDAS (para fichas de producto o redes)
+--------------------------------------------------------------------------------
+- Ruta y continuidad de estudio (Seguimos).
+- Entrenamiento por temario con pasos de estrategia, hito y solución.
+- Resolución guiada desde foto o texto del propio ejercicio.
+- Simulacro con modalidades y temas personalizables + informe al final.
+- Chat de dudas abiertas.
+- Revisión de desarrollo manuscrito.
+- Guía según plan de estudios oficial del perfil.
+
+--------------------------------------------------------------------------------
+5. PREFERENCIAS Y ÁNGULOS PARA MERCADEO (tono, públicos y promesas)
+--------------------------------------------------------------------------------
+
+5.1 Públicos prioritarios
+- Estudiante que va a parcial y necesita práctica intensiva y simulacros.
+- Estudiante con lagunas puntuales que prefiere "traer su ejercicio".
+- Estudiante que quiere orden: ver temario, practicar y saber qué falta.
+
+5.2 Promesas que conviene testear en A/B
+- "Menos ansiedad el día del parcial" (simulacro + informe).
+- "Entiendes el porqué, no solo el cómo" (estrategia + pasos).
+- "Tu universidad, tu ritmo" (contexto institucional + flexibilidad).
+
+5.3 Tono sugerido
+- Cercano, motivador, sin infantilizar: estudiante universitario adulto.
+- Uso moderado de símbolo de marca (Σigma) como distintivo de rigor con calidez.
+
+5.4 Pruebas sociales y prueba de valor
+- Resaltar modo invitado o demo (si la campaña lo permite) como "pruébalo
+  sin compromiso".
+- Resaltar registro para "guardar tu ruta" y personalizar seguimiento.
+
+5.5 Límites honestos (evitar reclamos)
+- Comunicar que es apoyo al estudio, no sustituto del criterio del profesor
+  ni de la normativa de cada facultad.
+- Si la campaña menciona planes (free/pro), alinear el mensaje con lo que
+  realmente ofrece cada plan en la app (práctica diaria, simulacros, etc.).
+
+5.6 Canales y formatos
+- Cortos: una funcionalidad = un beneficio (carrusel o reel por modo).
+- Medios: "un día con Σigma" (flujo Seguimos → practicar → simulacro).
+- Largos: landing con las ocho secciones de este documento adaptadas a bullets.
+
+--------------------------------------------------------------------------------
+6. CIERRE
+--------------------------------------------------------------------------------
+La app está estructurada como un ecosistema de estudio: orientación (Ruta),
+práctica estructurada (A practicar), práctica libre con material propio
+(Vamos paso a paso), evaluación formativa (Simulacro), aclaración conceptual
+(Dime y te digo), revisión de proceso escrito (Te lo reviso) y marco curricular
+(Planes oficiales). Para mercadeo, conviene rotar mensajes por cada pilar y
+unificar la historia: "preparación integral de Cálculo Integral con acompañamiento
+inteligente y sentido de progreso".
+
+================================================================================
+  Fin del documento
+================================================================================
